@@ -1,0 +1,10 @@
+/* ==========================================================================
+   Vcore · Fonts
+   --------------------------------------------------------------------------
+   Brand primary typeface is "Atyp BL" (commercial, used in logo + headlines).
+   Brand secondary is a neutral grotesque (used for bajadas + body copy).
+   SUBSTITUTION: both roles are served here by "Hanken Grotesk" (Google Fonts)
+   — a clean, friendly grotesque close in spirit to Atyp. Swap in the licensed
+   Atyp BL webfonts (self-host as @font-face) when available.
+   ========================================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,700&display=swap');

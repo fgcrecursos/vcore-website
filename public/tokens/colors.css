@@ -1,0 +1,156 @@
+/* ==========================================================================
+   Vcore · Color tokens
+   Source of truth: VC Manual de Marca v01 (corporate colors page).
+   Pantone refs:  Green P 139-6 C · Navy P 108-16 C · Sage P-99 C 20%
+   ========================================================================== */
+:root {
+  /* ---- Brand green (hero) ---------------------------------------------- */
+  --green-900: #1C5436;
+  --green-800: #237046;
+  --green-700: #2C8C58;
+  --green-600: #319A61;
+  --green-500: #37A769;   /* ← PANTONE P 139-6 C — primary brand green */
+  --green-400: #5BB783;
+  --green-300: #88CBA4;
+  --green-200: #BBE2CC;
+  --green-100: #DEF1E6;
+  --green-050: #EFF8F2;
+
+  /* ---- Brand navy (secondary) ------------------------------------------ */
+  --navy-900: #0B1C2E;
+  --navy-700: #0F2740;
+  --navy-600: #122C49;
+  --navy-500: #143251;   /* ← PANTONE P 108-16 C — secondary brand navy */
+  --navy-300: #6B7E91;   /* ≈ 50% tint over paper */
+  --navy-200: #A7B4C0;
+  --navy-100: #DCE2E8;
+
+  /* ---- Sage (soft accent) ---------------------------------------------- */
+  --sage-500: #C7CD8E;
+  --sage-300: #D8DCA8;   /* ← PANTONE P-99 C 20% */
+  --sage-100: #EDEFD8;
+
+  /* ---- Warm paper neutrals (kraft-derived) ----------------------------- */
+  --paper-000: #FAFAF8;
+  --paper-050: #F4F1EC;
+  --paper-100: #E9E5DF;
+  --paper-150: #E4E0DC;  /* ← manual warm off-white */
+  --paper-200: #D7D2CA;
+  --paper-300: #C0BAB0;
+  --paper-400: #A39C90;
+
+  /* ---- Ink (text + dark surfaces) -------------------------------------- */
+  --ink-500: #6C6F76;
+  --ink-600: #565961;
+  --ink-700: #43464D;
+  --ink-800: #2C2E35;    /* ← manual cool dark */
+  --ink-900: #202020;    /* ← manual near-black */
+  --ink-950: #141414;
+
+  /* ---- Functional (derived, harmonised to the brand) ------------------- */
+  --success-500: #37A769;   /* brand green doubles as success */
+  --warning-500: #E0A53A;
+  --danger-500:  #C8503E;
+  --info-500:    #2F6E9E;
+
+  /* ========================================================================
+     Semantic aliases — reference these in components, not the raw scales.
+     ====================================================================== */
+  /* surfaces */
+  --surface-page:    var(--paper-050);
+  --surface-card:    var(--paper-000);
+  --surface-sunken:  var(--paper-100);
+  --surface-inverse: var(--ink-900);
+  --surface-brand:   var(--green-500);
+  --surface-accent:  var(--navy-500);
+  --surface-highlight: var(--sage-300);
+
+  /* text */
+  --text-primary:   var(--ink-900);
+  --text-secondary: var(--ink-700);
+  --text-muted:     var(--ink-500);
+  --text-on-brand:  var(--paper-000);
+  --text-on-dark:   var(--paper-050);
+  --text-brand:     var(--green-700);
+  --text-accent:    var(--navy-500);
+  --text-link:      var(--green-700);
+
+  /* borders + lines */
+  --border-subtle:  var(--paper-200);
+  --border-default: var(--paper-300);
+  --border-strong:  var(--ink-900);
+  --border-brand:   var(--green-500);
+
+  /* interactive (brand button) */
+  --action-bg:        var(--green-500);
+  --action-bg-hover:  var(--green-600);
+  --action-bg-active: var(--green-700);
+  --action-fg:        var(--paper-000);
+
+  /* interactive (dark / ink button) */
+  --action-ink-bg:        var(--ink-900);
+  --action-ink-bg-hover:  var(--ink-800);
+  --action-ink-bg-active: var(--ink-950);
+
+  /* focus */
+  --focus-ring: var(--green-400);
+}
+
+/* ==========================================================================
+   Dark theme — opt in by setting [data-theme="dark"] on any container
+   (e.g. <html data-theme="dark"> or a page root). The warm neutral scales
+   are inverted to cool-dark surfaces; because every semantic alias above
+   references these raw tokens, the whole system flips automatically. A few
+   "must stay light-on-color" tokens are re-asserted so brand buttons/badges
+   keep white text, and brand green is brightened for legible text on dark.
+   Brand blooms (tokens/gradients.css) glow more intensely against these.
+   ========================================================================== */
+[data-theme="dark"] {
+  /* paper → cool, green-tinted dark surfaces */
+  --paper-000: #18211F;   /* card / raised surface */
+  --paper-050: #111917;   /* page base */
+  --paper-100: #202C29;   /* sunken / hover */
+  --paper-150: #1A2421;
+  --paper-200: #2B3733;   /* subtle border */
+  --paper-300: #3B4945;   /* default border */
+  --paper-400: #6E7C77;   /* muted on dark */
+
+  /* ink → light text scale */
+  --ink-950: #FFFFFF;
+  --ink-900: #F1F5F2;     /* primary text */
+  --ink-800: #E2E8E4;
+  --ink-700: #BAC4BF;     /* secondary text */
+  --ink-600: #9AA49F;
+  --ink-500: #8A938E;     /* muted text */
+
+  /* keep brand foregrounds light-on-color */
+  --text-on-brand: #FAFAF8;
+  --action-fg:     #FAFAF8;
+
+  /* Re-declare semantic aliases INSIDE this scope. Custom properties that
+     reference other custom properties resolve where they are DECLARED, so the
+     :root aliases stay pinned to the light scales unless restated here. */
+  --surface-page:    var(--paper-050);
+  --surface-card:    var(--paper-000);
+  --surface-sunken:  var(--paper-100);
+  --surface-inverse: #F1F5F2;
+  --text-primary:    var(--ink-900);
+  --text-secondary:  var(--ink-700);
+  --text-muted:      var(--ink-500);
+  --text-on-dark:    #F1F5F2;
+  --border-subtle:   var(--paper-200);
+  --border-default:  var(--paper-300);
+
+  /* brighten green for text/links/outline on dark */
+  --text-brand: var(--green-400);
+  --text-link:  var(--green-400);
+
+  /* dark, elevated ink button so it reads as a surface (not light) */
+  --action-ink-bg:        #243230;
+  --action-ink-bg-hover:  #2C3C39;
+  --action-ink-bg-active: #1D2927;
+
+  --border-strong: var(--paper-300);
+  color-scheme: dark;
+}
+

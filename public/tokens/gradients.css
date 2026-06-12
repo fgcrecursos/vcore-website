@@ -1,0 +1,62 @@
+/* ==========================================================================
+   Vcore · Gradient tokens — "blooms"
+   --------------------------------------------------------------------------
+   Derived from the brand's social-media panels: a single-hue radial bloom —
+   one luminous light source on an edge, the saturated brand color filling the
+   field, deep vignetted corners. Minimal, glowing, never multi-hue.
+   Pair a *-bloom background with --vignette layered on top for the corner
+   falloff, and (optionally) --grain for the soft film texture.
+   ========================================================================== */
+:root {
+  /* Light blooms upward from the bottom edge (navy) */
+  --gradient-navy-bloom:
+    radial-gradient(85% 70% at 50% 108%,
+      #eef4fc 0%, #aac1d8 14%, #5b7c9c 34%, #2a4d6e 58%, #163454 78%, #0d2138 100%); /* @kind color */
+
+  /* Light blooms down from the top edge (green) */
+  --gradient-green-bloom:
+    radial-gradient(90% 72% at 50% -10%,
+      #e2f2e8 0%, #a6d5bb 18%, #58a87b 44%, #2f8a57 64%, #1d6e42 82%, #154f30 100%); /* @kind color */
+
+  /* Soft light from the center (sage) */
+  --gradient-sage-bloom:
+    radial-gradient(78% 78% at 50% 42%,
+      #f6f8ec 0%, #e6ebc4 42%, #d3da9c 80%, #c4cb8c 100%); /* @kind color */
+
+  /* Whisper-soft warm paper bloom — for page + section backdrops */
+  --gradient-paper-bloom:
+    radial-gradient(120% 90% at 50% -20%,
+      #ffffff 0%, #faf7f1 38%, #f1ece3 72%, #e9e3da 100%); /* @kind color */
+
+  /* Deep ink bloom with a green core — mission / quote bands */
+  --gradient-ink-bloom:
+    radial-gradient(90% 110% at 50% 0%,
+      #1d6e42 0%, #163a4f 26%, #1a2b33 52%, #16201f 78%, #11181a 100%); /* @kind color */
+
+  /* Full-page dark canvas — near-black with a faint green bloom up top.
+     Pair with [data-theme="dark"]; makes the brand blooms glow. */
+  --gradient-page-dark:
+    radial-gradient(110% 80% at 50% -12%,
+      #1a3b30 0%, #123028 22%, #0d201d 48%, #0a1614 72%, #070f0e 100%); /* @kind color */
+
+  /* Brand button sheen — subtle top-light on green pills (optional) */
+  --gradient-green-sheen:
+    linear-gradient(180deg, #45b878 0%, #37a769 52%, #2f9760 100%); /* @kind color */
+
+  /* Overlays — layer on top of a bloom */
+  --vignette:
+    radial-gradient(120% 120% at 50% 45%, transparent 52%, rgba(8,20,30,0.22) 100%); /* @kind color */
+  --vignette-soft:
+    radial-gradient(120% 120% at 50% 45%, transparent 60%, rgba(8,20,30,0.12) 100%); /* @kind color */
+
+  /* Faint film grain (data-URI noise) for the social-panel softness */
+  --grain:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E"); /* @kind color */
+
+  /* semantic aliases */
+  --surface-bloom-navy:  var(--gradient-navy-bloom);
+  --surface-bloom-green: var(--gradient-green-bloom);
+  --surface-bloom-sage:  var(--gradient-sage-bloom);
+  --surface-bloom-paper: var(--gradient-paper-bloom);
+  --surface-bloom-ink:   var(--gradient-ink-bloom);
+}

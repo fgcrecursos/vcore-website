@@ -79,10 +79,10 @@ function injectSite() {
   }
 }
 
-function Header({ page, onNav, cartCount, onOpenCart, theme, onToggleTheme }) {
+function Header({ page, onNav, cartCount, onOpenCart, theme, onToggleTheme, onSearch }) {
   injectSite();
   const dark = theme === 'dark';
-  const nav = [['home', 'Inicio'], ['shop', 'Tienda'], ['product', 'Creatina'], ['about', 'Nosotros']];
+  const nav = [['home', 'Inicio'], ['shop', 'Tienda'], ['about', 'Nosotros']];
   return (
     <header className="vc-hd">
       <div className="vc-wrap vc-hd__row">
@@ -100,8 +100,8 @@ function Header({ page, onNav, cartCount, onOpenCart, theme, onToggleTheme }) {
             {dark ? <I.Sun size={17} /> : <I.Moon size={17} />}
             <span>{dark ? 'Claro' : 'Oscuro'}</span>
           </button>
-          <button className="vc-iconbtn" aria-label="Buscar"><I.Search size={20} /></button>
-          <button className="vc-iconbtn" aria-label="Cuenta"><I.User size={20} /></button>
+          <button className="vc-iconbtn" aria-label="Buscar" onClick={onSearch}><I.Search size={20} /></button>
+          <button className="vc-iconbtn" aria-label="Admin" onClick={() => onNav('admin')}><I.User size={20} /></button>
           <button className="vc-iconbtn" aria-label="Carrito" onClick={onOpenCart}>
             <I.Bag size={20} />
             {cartCount > 0 && <span className="vc-cart-count">{cartCount}</span>}
@@ -134,6 +134,7 @@ function ProductImage({ product, className = '' }) {
 
 function Footer() {
   injectSite();
+  const nav = (pg) => window.dispatchEvent(new CustomEvent('vc:nav', { detail: pg }));
   return (
     <footer className="vc-ft">
       <div className="vc-wrap">
@@ -141,14 +142,26 @@ function Footer() {
           <div>
             <Logo variant="wordmark" tone="paper" height={30} />
             <p style={{ fontSize: 14.5, color: 'rgba(255,255,255,.62)', marginTop: 16, maxWidth: 280, lineHeight: 1.6 }}>
-              Nutrición funcional, simple y confiable. Para quienes entienden que una vida activa merece una suplementación simple.
+              Nutrición funcional, simple y confiable. Para quienes entienden que una vida activa merece una suplementación limpia.
             </p>
           </div>
-          <div><h5>Productos</h5><a>Creatina</a><a>Proteína</a><a>Pre-Workout</a><a>Magnesio</a></div>
-          <div><h5>Marca</h5><a>Nosotros</a><a>Ciencia</a><a>Blog</a><a>Contacto</a></div>
+          <div>
+            <h5>Productos</h5>
+            <a style={{ cursor: 'pointer' }} onClick={() => nav('shop')}>Ver catálogo</a>
+            <a style={{ cursor: 'pointer' }} onClick={() => nav('product-creatina')}>Creatina</a>
+            <a style={{ cursor: 'pointer' }} onClick={() => nav('shop')}>Proteína</a>
+            <a style={{ cursor: 'pointer' }} onClick={() => nav('shop')}>Suplementos</a>
+          </div>
+          <div>
+            <h5>Ayuda</h5>
+            <a style={{ cursor: 'pointer' }} onClick={() => nav('howto')}>Cómo comprar</a>
+            <a href="https://wa.me/5491100000000" target="_blank" rel="noopener">WhatsApp</a>
+            <a style={{ cursor: 'pointer' }} onClick={() => nav('admin')}>Panel admin</a>
+            <a style={{ cursor: 'pointer' }} onClick={() => nav('about')}>Nosotros</a>
+          </div>
           <div>
             <h5>Sumate</h5>
-            <p style={{ fontSize: 14, color: 'rgba(255,255,255,.62)', margin: 0 }}>Tips reales, sin spam.</p>
+            <p style={{ fontSize: 14, color: 'rgba(255,255,255,.62)', margin: 0 }}>Novedades y promos, sin spam.</p>
             <div className="vc-ft__news">
               <Input placeholder="Tu email" size="sm" style={{ background: 'rgba(255,255,255,.06)', borderColor: 'rgba(255,255,255,.15)', color: '#fff' }} />
               <Button size="sm">OK</Button>

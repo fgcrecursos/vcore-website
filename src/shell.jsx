@@ -82,7 +82,7 @@ function injectSite() {
 function Header({ page, onNav, cartCount, onOpenCart, theme, onToggleTheme, onSearch }) {
   injectSite();
   const dark = theme === 'dark';
-  const nav = [['home', 'Inicio'], ['shop', 'Tienda'], ['about', 'Nosotros']];
+  const nav = [['home', 'Inicio'], ['shop', 'Tienda'], ['nosotros', 'Nosotros']];
   return (
     <header className="vc-hd">
       <div className="vc-wrap vc-hd__row">
@@ -157,7 +157,7 @@ function Footer() {
             <a style={{ cursor: 'pointer' }} onClick={() => nav('howto')}>Cómo comprar</a>
             <a href="https://wa.me/5491100000000" target="_blank" rel="noopener">WhatsApp</a>
             <a style={{ cursor: 'pointer' }} onClick={() => nav('admin')}>Panel admin</a>
-            <a style={{ cursor: 'pointer' }} onClick={() => nav('about')}>Nosotros</a>
+            <a style={{ cursor: 'pointer' }} onClick={() => nav('nosotros')}>Nosotros</a>
           </div>
           <div>
             <h5>Sumate</h5>

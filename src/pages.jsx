@@ -488,7 +488,7 @@ function Home({ onNav, onAdd, onOpen }) {
         </section>
       </div>
 
-      <VolumeTiers />
+      {false && <VolumeTiers />}
 
       <div className="vc-wrap" style={{ marginBottom: 0 }}>
         <div className="vc-band">
@@ -683,6 +683,153 @@ function SearchOverlay({ open, onClose, onOpen }) {
   );
 }
 
+function AboutPage() {
+  injectPages();
+  const values = [
+    { icon: 'Shield', title: 'Pureza sin concesiones',
+      desc: 'Usamos solo materias primas de primer nivel. Cada lote es analizado antes de llegar a tu casa. Sin rellenos, sin aditivos, sin mentiras en la etiqueta.' },
+    { icon: 'Leaf', title: 'Formulaciones limpias',
+      desc: 'Nada que no necesites. Cada producto tiene un objetivo claro y los ingredientes exactos para lograrlo. Ni más ni menos.' },
+    { icon: 'Zap', title: 'Accesible de verdad',
+      desc: 'Creemos que la suplementación de calidad no debería ser un privilegio. Por eso trabajamos directo con distribuidores y eliminamos intermediarios.' },
+  ];
+  return (
+    <main>
+      {/* Hero */}
+      <div style={{ background: 'var(--gradient-ink-bloom)', position: 'relative', isolation: 'isolate', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'var(--vignette)', pointerEvents: 'none' }} />
+        <div className="vc-wrap" style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ paddingTop: 80, paddingBottom: 88, maxWidth: 640, color: '#EAF0EC' }}>
+            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase',
+              color: 'rgba(255,255,255,.5)', marginBottom: 20 }}>Quiénes somos</div>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(40px,5vw,70px)',
+              letterSpacing: '-.03em', lineHeight: .97, margin: '0 0 26px' }}>
+              Nutrición funcional<br />
+              <em style={{ fontStyle: 'italic', fontWeight: 600, color: 'var(--green-400)' }}>para la vida real.</em>
+            </h1>
+            <p style={{ fontSize: 18, lineHeight: 1.65, color: 'rgba(255,255,255,.7)', margin: 0, maxWidth: 520 }}>
+              Vcore nació de una pregunta simple: ¿por qué es tan difícil encontrar suplementos de calidad,
+              sin letra chica y a un precio honesto? Decidimos hacer algo al respecto.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Origin story */}
+      <div className="vc-wrap">
+        <section className="vc-section">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase',
+                color: 'var(--ink-400)', marginBottom: 16 }}>Nuestra historia</div>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 38,
+                letterSpacing: '-.025em', lineHeight: 1.05, margin: '0 0 22px' }}>
+                Empezamos como clientes frustrados
+              </h2>
+              <p style={{ fontSize: 16, lineHeight: 1.7, color: 'var(--ink-700)', margin: '0 0 20px' }}>
+                Entrenamos, leemos etiquetas y nos cansamos de pagar por productos llenos de excipientes,
+                colorantes y promesas infladas. Así que armamos Vcore desde cero: primero para nosotros,
+                después para todos.
+              </p>
+              <p style={{ fontSize: 16, lineHeight: 1.7, color: 'var(--ink-700)', margin: 0 }}>
+                Trabajamos con laboratorios que priorizan la biodisponibilidad real sobre el marketing.
+                Publicamos los análisis. No te contamos un cuento.
+              </p>
+            </div>
+            <div style={{ background: 'var(--gradient-sage-bloom)', borderRadius: 'var(--radius-2xl)',
+              padding: '48px 40px', display: 'flex', flexDirection: 'column', gap: 28 }}>
+              {[
+                { v: '26+', l: 'Productos en catálogo' },
+                { v: '99.5%', l: 'Pureza en nuestros productos base' },
+                { v: '0',   l: 'Aditivos artificiales' },
+                { v: '100%', l: 'Etiquetas transparentes' },
+              ].map(s => (
+                <div key={s.l} style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 36,
+                    color: 'var(--green-700)', lineHeight: 1 }}>{s.v}</span>
+                  <span style={{ fontSize: 15, color: 'var(--ink-600)' }}>{s.l}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* Values */}
+      <div style={{ background: 'var(--paper-100)' }}>
+        <div className="vc-wrap">
+          <section className="vc-section">
+            <div style={{ textAlign: 'center', marginBottom: 44 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase',
+                color: 'var(--ink-400)', marginBottom: 14 }}>Lo que nos mueve</div>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 38,
+                letterSpacing: '-.025em', margin: '0 auto', maxWidth: 520, lineHeight: 1.1 }}>
+                Tres principios que no negociamos
+              </h2>
+            </div>
+            <div className="vc-ben">
+              {values.map(v => {
+                const Ic = I[v.icon];
+                return (
+                  <div key={v.title} style={{ background: 'var(--surface-card)', borderRadius: 'var(--radius-xl)',
+                    padding: '28px 26px', border: '1px solid var(--paper-200)' }}>
+                    <div className="vc-ben__icon"><Ic size={22} /></div>
+                    <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 21,
+                      letterSpacing: '-.01em', margin: '0 0 10px' }}>{v.title}</h3>
+                    <p style={{ fontSize: 14.5, color: 'var(--ink-700)', margin: 0, lineHeight: 1.6 }}>{v.desc}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+      </div>
+
+      {/* Mission band */}
+      <div className="vc-wrap" style={{ paddingTop: 56, paddingBottom: 56 }}>
+        <div className="vc-band">
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase',
+              color: 'rgba(255,255,255,.45)', marginBottom: 14 }}>Nuestra misión</div>
+            <h2>Democratizar el bienestar<br />y el <em>rendimiento.</em></h2>
+          </div>
+          <div>
+            <p style={{ marginBottom: 20 }}>
+              No diseñamos solo para atletas de élite. Vcore es para quienes corren hacia su trabajo,
+              entrenan por salud o buscan energía para superar su día a día.
+            </p>
+            <p>
+              Si cubrís los básicos de tu nutrición con productos honestos y bien formulados,
+              el resto lo pone tu constancia. Ahí es donde entramos nosotros.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Contact CTA */}
+      <div className="vc-wrap" style={{ paddingBottom: 80 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 32, background: 'var(--surface-card)',
+          border: '1px solid var(--paper-200)', borderRadius: 'var(--radius-xl)', padding: '32px 40px' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase',
+              color: 'var(--ink-400)', marginBottom: 10 }}>Contacto</div>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 26,
+              letterSpacing: '-.02em', margin: '0 0 10px' }}>¿Tenés preguntas?</h3>
+            <p style={{ fontSize: 15, color: 'var(--ink-600)', margin: 0 }}>
+              Escribinos por WhatsApp — respondemos en minutos.
+            </p>
+          </div>
+          <Button size="lg"
+            onClick={() => window.open('https://wa.me/5491100000000?text=Hola!%20Tengo%20una%20consulta', '_blank')}
+            iconRight={<I.ArrowRight size={18} />}>
+            Escribinos
+          </Button>
+        </div>
+      </div>
+    </main>
+  );
+}
+
 function AdminPage() {
   injectPages();
   const [pw, setPw] = useState('');
@@ -814,5 +961,6 @@ Object.assign(window, {
   VcoreProduct: Product,
   VcoreProductCard: ProductCard,
   VcoreSearchOverlay: SearchOverlay,
-  VcoreAdminPage: AdminPage,
+  VcoreAboutPage: AboutPage,
+  /* VcoreAdminPage is set by admin.jsx which loads after */
 });

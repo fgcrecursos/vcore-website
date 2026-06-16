@@ -21,6 +21,7 @@ function loadBundle() {
   await import('./shell.jsx');
   await import('./pages.jsx');
   await import('./cart.jsx');
+  await import('./admin.jsx');
   const { default: App } = await import('./App.jsx');
   createRoot(document.getElementById('root')).render(<App />);
 })();

@@ -167,10 +167,26 @@ function buildWAMsg({ items, tier, codeApplied, codeDiscount, subtotal, tierSavi
   return encodeURIComponent(msg);
 }
 
-function saveOrder({ items, total }) {
+function saveOrder({ items, total, tier, tierSaving, codeApplied, codeSaving, subtotal, shippingOpt, shippingCost }) {
   const summary = items.map(it => `${it.product.name} ×${it.qty}`).join(', ');
   const orders = JSON.parse(localStorage.getItem('vc-orders') || '[]');
-  orders.push({ date: new Date().toISOString(), total, summary });
+  const id = 'VC' + Date.now().toString(36).toUpperCase();
+  orders.push({
+    id,
+    date: new Date().toISOString(),
+    ts: Date.now(),
+    summary,
+    items: items.map(it => ({ name: it.product.name, sub: it.product.sub, size: it.size, qty: it.qty, price: it.product.price })),
+    subtotal,
+    tierName: tier.label,
+    tierDiscAmt: tierSaving,
+    couponCode: codeApplied || '',
+    couponDiscAmt: codeSaving,
+    shippingLabel: shippingOpt.label,
+    shippingCost,
+    total,
+    status: 'nuevo',
+  });
   localStorage.setItem('vc-orders', JSON.stringify(orders));
 }
 
@@ -212,7 +228,7 @@ function CartDrawer({ open, items, onClose, onQty }) {
       subtotal, tierSaving, codeSaving,
       shippingOpt, shippingCost, total,
     });
-    saveOrder({ items, total });
+    saveOrder({ items, total, tier, tierSaving, codeApplied, codeSaving, subtotal, shippingOpt, shippingCost });
     window.open(`https://wa.me/5491100000000?text=${msg}`, '_blank');
   }
 

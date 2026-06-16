@@ -31,6 +31,7 @@ export default function App() {
   const Product = window.VcoreProduct;
   const CartDrawer = window.VcoreCartDrawer;
   const SearchOverlay = window.VcoreSearchOverlay;
+  const AboutPage = window.VcoreAboutPage;
   const AdminPage = window.VcoreAdminPage;
 
   function addToCart(p, qty = 1, size) {
@@ -77,6 +78,14 @@ export default function App() {
 
   const count = cart.reduce((s, it) => s + it.qty, 0);
 
+  if (page === 'admin') {
+    return (
+      <div data-theme={theme === 'dark' ? 'dark' : undefined}>
+        <AdminPage onExit={() => nav('home')} />
+      </div>
+    );
+  }
+
   return (
     <div className="vc-site" data-theme={theme === 'dark' ? 'dark' : undefined}>
       <Header
@@ -89,11 +98,10 @@ export default function App() {
         onSearch={() => setSearchOpen(true)}
       />
 
-      {page === 'home'    && <Home onNav={nav} onAdd={addToCart} onOpen={openProduct} />}
-      {page === 'shop'    && <Shop onAdd={addToCart} onOpen={openProduct} />}
-      {page === 'product' && <Product product={active} onAdd={addToCart} />}
-      {page === 'about'   && <Product product={window.VcoreData.products[0]} onAdd={addToCart} />}
-      {page === 'admin'   && <AdminPage />}
+      {page === 'home'     && <Home onNav={nav} onAdd={addToCart} onOpen={openProduct} />}
+      {page === 'shop'     && <Shop onAdd={addToCart} onOpen={openProduct} />}
+      {page === 'product'  && <Product product={active} onAdd={addToCart} />}
+      {page === 'nosotros' && <AboutPage />}
 
       <Footer />
 

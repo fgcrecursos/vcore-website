@@ -8,6 +8,32 @@ const fmt = n => '$' + Math.round(n).toLocaleString('es-CL');
 
 function uid() { return 'VC' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 5).toUpperCase(); }
 
+/* Resize + compress an image File into a data URL that fits comfortably in localStorage. */
+function fileToDataUrl(file, maxW = 900, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxW / img.width);
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';          // avoid black bg if source has transparency
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 function useLS(key, init) {
   const [val, setVal] = useState(() => {
     try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : init; }
@@ -16,7 +42,12 @@ function useLS(key, init) {
   function set(next) {
     const v = typeof next === 'function' ? next(val) : next;
     setVal(v);
-    try { localStorage.setItem(key, JSON.stringify(v)); } catch {}
+    try { localStorage.setItem(key, JSON.stringify(v)); }
+    catch (e) {
+      if (e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014)) {
+        alert('No se pudo guardar: el almacenamiento local está lleno. Probá con imágenes más livianas o menos productos con foto.');
+      }
+    }
   }
   return [val, set];
 }
@@ -147,6 +178,27 @@ const ADMIN_CSS = `
 .adm-field input:focus, .adm-field textarea:focus, .adm-field select:focus { border-color: var(--green-500); }
 .adm-field textarea { resize: vertical; min-height: 80px; }
 .adm-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* image uploader */
+.adm-img-edit { display: flex; gap: 16px; align-items: stretch; }
+.adm-img-preview { width: 110px; height: 132px; flex: none; border-radius: var(--radius-md);
+  overflow: hidden; border: 1.5px solid var(--border-default); background: var(--paper-100);
+  display: flex; align-items: center; justify-content: center; }
+.adm-img-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.adm-img-ph { font-size: 11px; font-weight: 700; color: var(--ink-400); text-align: center;
+  line-height: 1.5; padding: 0 8px; }
+.adm-img-ph span { font-weight: 500; font-size: 10.5px; color: var(--ink-300); }
+.adm-img-actions { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; justify-content: center; }
+.adm-img-hint { font-size: 11px; color: var(--ink-400); }
+
+/* disabled buttons */
+.adm-btn:disabled { opacity: .55; cursor: not-allowed; }
+
+/* product thumbnail in table */
+.adm-thumb { width: 42px; height: 50px; flex: none; border-radius: var(--radius-sm); overflow: hidden;
+  background: var(--gradient-sage-bloom); display: flex; align-items: center; justify-content: center; }
+.adm-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.adm-thumb__v { font-family: var(--font-display); font-weight: 800; font-size: 18px; color: var(--green-600); }
 
 /* login */
 .adm-login { min-height: 100vh; display: flex; align-items: center; justify-content: center;
@@ -355,7 +407,8 @@ function AdminDashboard({ orders, products, onNav }) {
 /* ─── Products ──────────────────────────────────────────── */
 function emptyProduct() {
   return { id: '', name: '', sub: '', category: D.categories[1] || 'Bienestar',
-    price: 0, sizes: '', badge: '', blurb: '', tone: 'green', visible: true, featured: false, rating: 4.8, reviews: 0 };
+    price: 0, sizes: '', badge: '', blurb: '', tone: 'green', photo: '',
+    visible: true, featured: false, rating: 4.8, reviews: 0 };
 }
 
 function ProductEditor({ product, onSave, onClose }) {
@@ -363,11 +416,38 @@ function ProductEditor({ product, onSave, onClose }) {
     ? { ...product, sizes: (product.sizes || []).join(', ') }
     : emptyProduct()
   );
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef(null);
   function f(k) { return e => setP(v => ({ ...v, [k]: e.target.value })); }
-  function save() {
-    const sizes = p.sizes.split(',').map(s => s.trim()).filter(Boolean);
-    onSave({ ...p, sizes, price: parseFloat(p.price) || 0, id: p.id || p.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') });
+
+  async function handleFile(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    setBusy(true);
+    try {
+      const url = await fileToDataUrl(file);
+      setP(v => ({ ...v, photo: url }));
+    } catch {
+      alert('No se pudo procesar la imagen. Probá con otro archivo.');
+    } finally {
+      setBusy(false);
+      e.target.value = '';
+    }
   }
+
+  function save() {
+    if (!p.name.trim()) { alert('El producto necesita un nombre.'); return; }
+    const sizes = p.sizes.split(',').map(s => s.trim()).filter(Boolean);
+    onSave({
+      ...p,
+      sizes: sizes.length ? sizes : ['Único'],
+      price: parseFloat(p.price) || 0,
+      rating: Math.min(5, Math.max(0, parseFloat(p.rating) || 0)),
+      reviews: parseInt(p.reviews, 10) || 0,
+      id: p.id || p.name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+    });
+  }
+
   return (
     <div className="adm-modal-ov" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="adm-modal">
@@ -376,6 +456,36 @@ function ProductEditor({ product, onSave, onClose }) {
           <button className="adm-close" onClick={onClose}><IcoClose size={15} /></button>
         </div>
         <div className="adm-modal__body">
+
+          {/* Imagen */}
+          <div className="adm-field">
+            <label>Imagen del producto</label>
+            <div className="adm-img-edit">
+              <div className="adm-img-preview">
+                {p.photo
+                  ? <img src={p.photo} alt="Vista previa" />
+                  : <div className="adm-img-ph">Sin imagen<br/><span>se usa el tile de marca</span></div>}
+              </div>
+              <div className="adm-img-actions">
+                <button type="button" className="adm-btn adm-btn--outline adm-btn--sm"
+                  onClick={() => fileRef.current && fileRef.current.click()} disabled={busy}>
+                  <IcoDown size={13} /> {busy ? 'Procesando…' : 'Subir imagen'}
+                </button>
+                {p.photo && (
+                  <button type="button" className="adm-btn adm-btn--danger adm-btn--sm"
+                    onClick={() => setP(v => ({ ...v, photo: '' }))}>
+                    <IcoTrash size={13} /> Quitar
+                  </button>
+                )}
+                <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleFile} />
+                <span className="adm-img-hint">JPG o PNG. Se optimiza automáticamente.</span>
+              </div>
+            </div>
+            <input value={p.photo && p.photo.startsWith('data:') ? '' : (p.photo || '')}
+              onChange={f('photo')} placeholder="…o pegá una URL de imagen (https://…)"
+              style={{ marginTop: 10 }} />
+          </div>
+
           <div className="adm-field-row">
             <div className="adm-field"><label>Nombre</label>
               <input value={p.name} onChange={f('name')} placeholder="Creatina" />
@@ -384,40 +494,55 @@ function ProductEditor({ product, onSave, onClose }) {
               <input value={p.sub} onChange={f('sub')} placeholder="Monohidrato" />
             </div>
           </div>
+
           <div className="adm-field-row">
             <div className="adm-field"><label>Categoría</label>
               <select value={p.category} onChange={f('category')}>
                 {D.categories.filter(c => c !== 'Todo').map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
-            <div className="adm-field"><label>Color</label>
+            <div className="adm-field"><label>Color del tile (sin imagen)</label>
               <select value={p.tone} onChange={f('tone')}>
                 {['green', 'sage', 'navy', 'paper'].map(t => <option key={t}>{t}</option>)}
               </select>
             </div>
           </div>
+
           <div className="adm-field-row">
             <div className="adm-field"><label>Precio ($)</label>
-              <input type="number" value={p.price} onChange={f('price')} />
+              <input type="number" value={p.price} onChange={f('price')} min={0} />
             </div>
             <div className="adm-field"><label>Badge (ej. "Más vendido")</label>
               <input value={p.badge || ''} onChange={f('badge')} placeholder="Opcional" />
             </div>
           </div>
-          <div className="adm-field"><label>Presentaciones (separadas por coma)</label>
-            <input value={p.sizes} onChange={f('sizes')} placeholder="60 caps, 120 caps" />
+
+          <div className="adm-field"><label>Presentaciones / pesos (separados por coma)</label>
+            <input value={p.sizes} onChange={f('sizes')} placeholder="60 caps, 120 caps · 300 gr, 500 gr" />
           </div>
-          <div className="adm-field"><label>Descripción corta</label>
-            <textarea value={p.blurb || ''} onChange={f('blurb')} rows={3} />
+
+          <div className="adm-field"><label>Descripción</label>
+            <textarea value={p.blurb || ''} onChange={f('blurb')} rows={3}
+              placeholder="Describe el producto, sus beneficios y usos." />
           </div>
-          <div style={{ display: 'flex', gap: 24 }}>
-            <Switch on={p.visible} onChange={v => setP(x => ({ ...x, visible: v }))} label="Visible en tienda" />
-            <Switch on={p.featured} onChange={v => setP(x => ({ ...x, featured: v }))} label="Destacado en home" />
+
+          <div className="adm-field-row">
+            <div className="adm-field"><label>Valoración (0–5)</label>
+              <input type="number" value={p.rating} onChange={f('rating')} min={0} max={5} step={0.1} />
+            </div>
+            <div className="adm-field"><label>Cantidad de reseñas</label>
+              <input type="number" value={p.reviews} onChange={f('reviews')} min={0} />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 24, paddingTop: 4 }}>
+            <Switch on={p.visible !== false} onChange={v => setP(x => ({ ...x, visible: v }))} label="Visible en tienda" />
+            <Switch on={!!p.featured} onChange={v => setP(x => ({ ...x, featured: v }))} label="Destacado en home" />
           </div>
         </div>
         <div className="adm-modal__ft">
           <button className="adm-btn adm-btn--outline" onClick={onClose}>Cancelar</button>
-          <button className="adm-btn adm-btn--primary" onClick={save}>Guardar</button>
+          <button className="adm-btn adm-btn--primary" onClick={save} disabled={busy}>Guardar</button>
         </div>
       </div>
     </div>
@@ -480,8 +605,15 @@ function AdminProducts() {
             {shown.map(p => (
               <tr key={p.id}>
                 <td>
-                  <div style={{ fontWeight: 800, fontSize: 14 }}>{p.name}</div>
-                  <div style={{ fontSize: 12, color: 'var(--ink-500)' }}>{p.sub}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div className="adm-thumb">
+                      {p.photo ? <img src={p.photo} alt="" /> : <span className="adm-thumb__v">V</span>}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 14 }}>{p.name}</div>
+                      <div style={{ fontSize: 12, color: 'var(--ink-500)' }}>{p.sub}</div>
+                    </div>
+                  </div>
                 </td>
                 <td style={{ fontSize: 13, color: 'var(--ink-600)' }}>{p.category}</td>
                 <td style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}>{fmt(p.price)}</td>

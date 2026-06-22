@@ -33,6 +33,17 @@ const PAGE_CSS = `
   color: var(--green-400); line-height: 1; }
 .vc-slide__stat-l { font-size: 11.5px; text-transform: uppercase; letter-spacing: .1em;
   color: rgba(255,255,255,.5); margin-top: 4px; }
+/* two-col slide */
+.vc-slide__two { display: grid; grid-template-columns: 1fr 1fr; gap: 52px; align-items: center; width: 100%; }
+.vc-slide__two .vc-slide__content { padding: 88px 0; max-width: none; }
+.vc-slide__stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.vc-slide__stat-card { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.13);
+  border-radius: 18px; padding: 24px 20px; }
+.vc-slide__stat-card .vc-slide__stat-v { font-family: var(--font-display); font-weight: 800;
+  font-size: 36px; color: var(--green-400); line-height: 1; margin-bottom: 8px; }
+.vc-slide__stat-card .vc-slide__stat-l { font-size: 12px; text-transform: uppercase; letter-spacing: .1em;
+  color: rgba(255,255,255,.55); font-weight: 700; line-height: 1.4; }
+
 .vc-banner__arr { position: absolute; top: 50%; transform: translateY(-50%); z-index: 10;
   width: 42px; height: 42px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,.22);
   background: rgba(255,255,255,.08); color: rgba(255,255,255,.9); cursor: pointer;
@@ -279,13 +290,13 @@ const SLIDES = [
     eyebrow: 'Pureza certificada',
     title: <>Formulaciones limpias.<br /><em>Sin rellenos innecesarios.</em></>,
     body: 'Seleccionamos insumos de primer nivel y formulamos con precisión. Etiquetas honestas, sin promesas infladas.',
-    bg: 'var(--gradient-green-bloom)',
-    darkOverlay: true,
+    bg: 'linear-gradient(130deg, #0b2d1c 0%, #0d3d25 40%, #156638 72%, #1e8a4e 100%)',
+    twoCol: true,
     stats: [
-      { v: '26+',  l: 'productos'  },
-      { v: '0%',   l: 'rellenos'   },
-      { v: '100%', l: 'transparencia' },
-      { v: '0g',   l: 'azúcar agregada' },
+      { v: '26+',  l: 'productos en catálogo'    },
+      { v: '0%',   l: 'rellenos en la fórmula'   },
+      { v: '100%', l: 'etiquetas transparentes'   },
+      { v: '0g',   l: 'azúcar agregada'           },
     ],
     ctas: [
       { label: 'Ver catálogo', nav: 'shop', primary: true },
@@ -311,32 +322,56 @@ function HeroBanner({ onNav }) {
         <div key={i} className={`vc-slide${i === slide ? ' active' : ''}`}>
           <div className="vc-slide__bg" style={{ background: s.bg }} />
           <div className="vc-slide__vignette" />
-          {s.darkOverlay && (
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(120deg, rgba(0,40,20,.52) 0%, rgba(0,40,20,.22) 55%, transparent 100%)', pointerEvents: 'none' }} />
-          )}
           <div className="vc-wrap vc-slide__inner">
-            <div className="vc-slide__content">
-              <Eyebrow tone="onDark">{s.eyebrow}</Eyebrow>
-              <h1>{s.title}</h1>
-              <p>{s.body}</p>
-              <div className="vc-slide__ctas">
-                {s.ctas.map((c, j) =>
-                  c.primary
-                    ? <Button key={j} size="lg" onClick={() => onNav(c.nav)} iconRight={<I.ArrowRight size={18} />}>{c.label}</Button>
-                    : <button key={j} className="vc-slide__outline-btn" onClick={() => onNav(c.nav)}>{c.label}</button>
+            {s.twoCol ? (
+              <div className="vc-slide__two">
+                <div className="vc-slide__content">
+                  <Eyebrow tone="onDark">{s.eyebrow}</Eyebrow>
+                  <h1>{s.title}</h1>
+                  <p>{s.body}</p>
+                  <div className="vc-slide__ctas">
+                    {s.ctas.map((c, j) =>
+                      c.primary
+                        ? <Button key={j} size="lg" onClick={() => onNav(c.nav)} iconRight={<I.ArrowRight size={18} />}>{c.label}</Button>
+                        : <button key={j} className="vc-slide__outline-btn" onClick={() => onNav(c.nav)}>{c.label}</button>
+                    )}
+                  </div>
+                </div>
+                {s.stats && (
+                  <div className="vc-slide__stats-grid">
+                    {s.stats.map((st, j) => (
+                      <div key={j} className="vc-slide__stat-card">
+                        <div className="vc-slide__stat-v">{st.v}</div>
+                        <div className="vc-slide__stat-l">{st.l}</div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-              {s.stats && (
-                <div className="vc-slide__stats">
-                  {s.stats.map((st, j) => (
-                    <div key={j}>
-                      <div className="vc-slide__stat-v">{st.v}</div>
-                      <div className="vc-slide__stat-l">{st.l}</div>
-                    </div>
-                  ))}
+            ) : (
+              <div className="vc-slide__content">
+                <Eyebrow tone="onDark">{s.eyebrow}</Eyebrow>
+                <h1>{s.title}</h1>
+                <p>{s.body}</p>
+                <div className="vc-slide__ctas">
+                  {s.ctas.map((c, j) =>
+                    c.primary
+                      ? <Button key={j} size="lg" onClick={() => onNav(c.nav)} iconRight={<I.ArrowRight size={18} />}>{c.label}</Button>
+                      : <button key={j} className="vc-slide__outline-btn" onClick={() => onNav(c.nav)}>{c.label}</button>
+                  )}
                 </div>
-              )}
-            </div>
+                {s.stats && (
+                  <div className="vc-slide__stats">
+                    {s.stats.map((st, j) => (
+                      <div key={j}>
+                        <div className="vc-slide__stat-v">{st.v}</div>
+                        <div className="vc-slide__stat-l">{st.l}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       ))}

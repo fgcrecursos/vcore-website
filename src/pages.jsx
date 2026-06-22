@@ -33,6 +33,20 @@ const PAGE_CSS = `
   color: var(--green-400); line-height: 1; }
 .vc-slide__stat-l { font-size: 11.5px; text-transform: uppercase; letter-spacing: .1em;
   color: rgba(255,255,255,.5); margin-top: 4px; }
+/* About — origin story */
+.vc-about-story { display: grid; grid-template-columns: 1.05fr .95fr; gap: 64px; align-items: center; }
+.vc-about-mark { position: relative; aspect-ratio: 1 / 1; border-radius: var(--radius-2xl);
+  background: var(--gradient-ink-bloom); overflow: hidden; isolation: isolate;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 24px 60px rgba(8,28,18,.28); }
+.vc-about-mark__vignette { position: absolute; inset: 0; background: var(--vignette); pointer-events: none; z-index: 0; }
+.vc-about-mark__logo { position: relative; z-index: 1; width: 46%; max-width: 220px; height: auto;
+  filter: drop-shadow(0 12px 32px rgba(0,0,0,.35)); }
+.vc-about-mark__tag { position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 2;
+  font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: .1em;
+  text-transform: uppercase; color: rgba(255,255,255,.6); white-space: nowrap; }
+@media (max-width: 760px) { .vc-about-story { grid-template-columns: 1fr; gap: 36px; } }
+
 /* two-col slide */
 .vc-slide__two { display: grid; grid-template-columns: 1fr 1fr; gap: 52px; align-items: center; width: 100%; }
 .vc-slide__two .vc-slide__content { padding: 88px 0; max-width: none; }
@@ -763,13 +777,13 @@ function AboutPage() {
       {/* Origin story */}
       <div className="vc-wrap">
         <section className="vc-section">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'center' }}>
+          <div className="vc-about-story">
             <div>
               <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase',
                 color: 'var(--ink-400)', marginBottom: 16 }}>Nuestra historia</div>
               <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 38,
                 letterSpacing: '-.025em', lineHeight: 1.05, margin: '0 0 22px' }}>
-                Empezamos como clientes frustrados
+                Empezamos como <em style={{ fontStyle: 'italic', fontWeight: 600, color: 'var(--green-700)' }}>clientes frustrados</em>
               </h2>
               <p style={{ fontSize: 16, lineHeight: 1.7, color: 'var(--ink-700)', margin: '0 0 20px' }}>
                 Entrenamos, leemos etiquetas y nos cansamos de pagar por productos llenos de excipientes,
@@ -781,20 +795,11 @@ function AboutPage() {
                 Publicamos los análisis. No te contamos un cuento.
               </p>
             </div>
-            <div style={{ background: 'var(--gradient-sage-bloom)', borderRadius: 'var(--radius-2xl)',
-              padding: '48px 40px', display: 'flex', flexDirection: 'column', gap: 28 }}>
-              {[
-                { v: '26+',  l: 'Productos en catálogo' },
-                { v: '0%',   l: 'Aditivos artificiales' },
-                { v: '100%', l: 'Etiquetas transparentes' },
-                { v: '5+',   l: 'Categorías de suplementos' },
-              ].map(s => (
-                <div key={s.l} style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
-                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 36,
-                    color: 'var(--green-700)', lineHeight: 1 }}>{s.v}</span>
-                  <span style={{ fontSize: 15, color: 'var(--ink-600)' }}>{s.l}</span>
-                </div>
-              ))}
+            <div className="vc-about-mark">
+              <div className="vc-about-mark__vignette" />
+              <img className="vc-about-mark__logo"
+                src={(window.__VCORE_ASSET_BASE__ || '/assets/') + 'vcore-isotipo-grad-mint.png'} alt="Vcore" />
+              <div className="vc-about-mark__tag">Desde 2026 · Argentina</div>
             </div>
           </div>
         </section>

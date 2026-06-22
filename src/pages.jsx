@@ -278,16 +278,16 @@ const SLIDES = [
   {
     eyebrow: 'Pureza certificada',
     title: <>Sin aditivos.<br /><em>Solo lo que funciona.</em></>,
-    body: 'Formulaciones limpias, etiquetas honestas. Monohidrato 99.5% de pureza. Cero azúcar, cero colorantes, cero excipientes.',
+    body: 'Formulaciones limpias, etiquetas honestas. Ingredientes de primer nivel sin excipientes, colorantes ni rellenos de ningún tipo.',
     bg: 'var(--gradient-green-bloom)',
     stats: [
-      { v: '0%',   l: 'aditivos'  },
-      { v: '99.5%', l: 'pureza'   },
-      { v: '0g',   l: 'azúcar'    },
-      { v: '60',   l: 'servicios' },
+      { v: '26+',  l: 'productos'  },
+      { v: '0%',   l: 'aditivos'   },
+      { v: '100%', l: 'transparencia' },
+      { v: '0g',   l: 'azúcar agregada' },
     ],
     ctas: [
-      { label: 'Conocer Creatina', nav: 'product-creatina', primary: true },
+      { label: 'Ver catálogo', nav: 'shop', primary: true },
     ],
   },
 ];
@@ -446,10 +446,16 @@ function HowToBuy() {
   );
 }
 
+const BRAND_BENEFITS = [
+  ['Zap',      'Más rendimiento',      'Formulaciones pensadas para potenciar tu energía, foco y recuperación en cada rutina.'],
+  ['Leaf',     'Ingredientes limpios', 'Sin excipientes, colorantes ni rellenos. Solo lo que figura en la etiqueta y nada más.'],
+  ['Shield',   'Pureza verificada',    'Insumos de primer nivel con análisis de calidad en cada lote. Cero compromisos.'],
+];
+
 function Home({ onNav, onAdd, onOpen }) {
   injectPages();
-  const benefits = D.products[0].benefits;
-  const featured = D.products.slice(0, 4);
+  const benefits = BRAND_BENEFITS;
+  const featured = D.products.filter(p => p.featured).slice(0, 4);
   return (
     <main>
       <HeroBanner onNav={onNav} />
@@ -739,10 +745,10 @@ function AboutPage() {
             <div style={{ background: 'var(--gradient-sage-bloom)', borderRadius: 'var(--radius-2xl)',
               padding: '48px 40px', display: 'flex', flexDirection: 'column', gap: 28 }}>
               {[
-                { v: '26+', l: 'Productos en catálogo' },
-                { v: '99.5%', l: 'Pureza en nuestros productos base' },
-                { v: '0',   l: 'Aditivos artificiales' },
+                { v: '26+',  l: 'Productos en catálogo' },
+                { v: '0%',   l: 'Aditivos artificiales' },
                 { v: '100%', l: 'Etiquetas transparentes' },
+                { v: '5+',   l: 'Categorías de suplementos' },
               ].map(s => (
                 <div key={s.l} style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
                   <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 36,

@@ -65,7 +65,7 @@ window.VcoreData = {
       visible: true, featured: true,
     },
     {
-      id: 'proteina', name: 'Proteína', sub: 'Whey Isolate', price: 28990,
+      id: 'proteina', name: 'Proteína', sub: 'Aislado de Suero de Leche', price: 28990,
       category: 'Recuperación',
       sizes: ['1 kg', '2 kg'], rating: 4.8, reviews: 198, badge: null, tone: 'green',
       blurb: 'Recuperación y construcción muscular con proteína de alta absorción.',
@@ -219,7 +219,7 @@ window.VcoreData = {
       visible: true, featured: false,
     },
     {
-      id: 'cardo-mariano', name: 'Cardo Mariano', sub: 'Silymarin 80%', price: 13000,
+      id: 'cardo-mariano', name: 'Cardo Mariano', sub: 'Silimarina 80%', price: 13000,
       category: 'Bienestar',
       sizes: ['60 caps', '120 caps'], rating: 4.7, reviews: 52, badge: null, tone: 'navy',
       blurb: 'Protección y regeneración hepática. Extracto estandarizado en silimarina 80%.',

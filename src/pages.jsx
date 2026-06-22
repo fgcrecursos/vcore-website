@@ -266,7 +266,7 @@ function ProductCard({ p, onOpen, onAdd }) {
 /* --- Hero banner slides --- */
 const SLIDES = [
   {
-    eyebrow: 'Nutrition & Performance',
+    eyebrow: 'Nutrición & Rendimiento',
     title: <>Más rendimiento,<br /><em>menos complicaciones.</em></>,
     body: 'Suplementación funcional para quienes entienden que el cuerpo merece lo mejor. Sin rellenos, sin vueltas.',
     bg: 'var(--gradient-ink-bloom)',
@@ -277,12 +277,13 @@ const SLIDES = [
   },
   {
     eyebrow: 'Pureza certificada',
-    title: <>Sin aditivos.<br /><em>Solo lo que funciona.</em></>,
-    body: 'Formulaciones limpias, etiquetas honestas. Ingredientes de primer nivel sin excipientes, colorantes ni rellenos de ningún tipo.',
+    title: <>Formulaciones limpias.<br /><em>Sin rellenos innecesarios.</em></>,
+    body: 'Seleccionamos insumos de primer nivel y formulamos con precisión. Etiquetas honestas, sin promesas infladas.',
     bg: 'var(--gradient-green-bloom)',
+    darkOverlay: true,
     stats: [
       { v: '26+',  l: 'productos'  },
-      { v: '0%',   l: 'aditivos'   },
+      { v: '0%',   l: 'rellenos'   },
       { v: '100%', l: 'transparencia' },
       { v: '0g',   l: 'azúcar agregada' },
     ],
@@ -310,6 +311,9 @@ function HeroBanner({ onNav }) {
         <div key={i} className={`vc-slide${i === slide ? ' active' : ''}`}>
           <div className="vc-slide__bg" style={{ background: s.bg }} />
           <div className="vc-slide__vignette" />
+          {s.darkOverlay && (
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(120deg, rgba(0,40,20,.52) 0%, rgba(0,40,20,.22) 55%, transparent 100%)', pointerEvents: 'none' }} />
+          )}
           <div className="vc-wrap vc-slide__inner">
             <div className="vc-slide__content">
               <Eyebrow tone="onDark">{s.eyebrow}</Eyebrow>

@@ -169,7 +169,7 @@ function Footer() {
           </div>
         </div>
         <div className="vc-ft__bottom">
-          <span>© 2026 Vcore · Nutrition &amp; Performance</span>
+          <span>© 2026 Vcore · Nutrición &amp; Rendimiento</span>
           <span>Términos · Privacidad</span>
         </div>
       </div>

@@ -6,6 +6,9 @@ const I = window.VcoreIcons;
 const D = window.VcoreData;
 const ProductImage = window.VcoreProductImage;
 
+/* Precio unitario de una línea según la presentación elegida. */
+const unitOf = (it) => (it.unitPrice != null ? it.unitPrice : D.priceFor(it.product, it.size));
+
 const CART_CSS = `
 .vc-cart-ov { position: fixed; inset: 0; background: rgba(8,18,16,.5); z-index: 44;
   opacity: 0; transition: opacity .25s; pointer-events: none; backdrop-filter: blur(2px); }
@@ -156,7 +159,7 @@ function TierProgress({ subtotal }) {
 
 function buildWAMsg({ items, tier, codeApplied, codeDiscount, subtotal, tierSaving, codeSaving, shippingOpt, shippingCost, total }) {
   const lines = items.map(it =>
-    `• ${it.product.name} (${it.size}) ×${it.qty} — ${D.fmt(it.product.price * it.qty)}`
+    `• ${it.product.name} (${it.size}) ×${it.qty} — ${D.fmt(unitOf(it) * it.qty)}`
   ).join('\n');
 
   let msg = `Hola Vcore! Quiero hacer un pedido:\n\n${lines}\n\nSubtotal: ${D.fmt(subtotal)}\n`;
@@ -176,7 +179,7 @@ function saveOrder({ items, total, tier, tierSaving, codeApplied, codeSaving, su
     date: new Date().toISOString(),
     ts: Date.now(),
     summary,
-    items: items.map(it => ({ name: it.product.name, sub: it.product.sub, size: it.size, qty: it.qty, price: it.product.price })),
+    items: items.map(it => ({ name: it.product.name, sub: it.product.sub, size: it.size, qty: it.qty, price: unitOf(it) })),
     subtotal,
     tierName: tier.label,
     tierDiscAmt: tierSaving,
@@ -198,7 +201,7 @@ function CartDrawer({ open, items, onClose, onQty }) {
   const [codeApplied, setCodeApplied] = useState(null);
   const [codeErr, setCodeErr] = useState(false);
 
-  const subtotal = items.reduce((s, it) => s + it.product.price * it.qty, 0);
+  const subtotal = items.reduce((s, it) => s + unitOf(it) * it.qty, 0);
   const tier = D.getTier(subtotal);
   const tierSaving = Math.round(subtotal * tier.discount);
   const afterTier = subtotal - tierSaving;
@@ -283,7 +286,7 @@ function CartDrawer({ open, items, onClose, onQty }) {
                           <I.Plus size={12} />
                         </button>
                       </div>
-                      <span className="vc-line__price">{D.fmt(it.product.price * it.qty)}</span>
+                      <span className="vc-line__price">{D.fmt(unitOf(it) * it.qty)}</span>
                     </div>
                   </div>
                 </div>

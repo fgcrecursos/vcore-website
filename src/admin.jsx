@@ -194,6 +194,22 @@ const ADMIN_CSS = `
 /* disabled buttons */
 .adm-btn:disabled { opacity: .55; cursor: not-allowed; }
 
+/* variant editor */
+.adm-var-list { display: flex; flex-direction: column; gap: 8px; }
+.adm-var-head { display: grid; grid-template-columns: 1fr 130px 36px; gap: 10px;
+  font-size: 10.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-400); padding: 0 2px; }
+.adm-var-row { display: grid; grid-template-columns: 1fr 130px 36px; gap: 10px; align-items: center; }
+.adm-var-row input { width: 100%; padding: 8px 11px; border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-md); font-family: var(--font-body); font-size: 13.5px;
+  color: var(--ink-900); background: var(--surface-card); outline: none; box-sizing: border-box; }
+.adm-var-row input:focus { border-color: var(--green-500); }
+.adm-var-del { width: 36px; height: 36px; border-radius: var(--radius-md); border: 1.5px solid var(--border-default);
+  background: transparent; color: var(--ink-500); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.adm-var-del:hover:not(:disabled) { border-color: #D32F2F44; color: #B71C1C; background: #FFEBEE; }
+.adm-var-del:disabled { opacity: .4; cursor: not-allowed; }
+.adm-var-add { margin-top: 10px; align-self: flex-start; }
+
 /* product thumbnail in table */
 .adm-thumb { width: 42px; height: 50px; flex: none; border-radius: var(--radius-sm); overflow: hidden;
   background: var(--gradient-sage-bloom); display: flex; align-items: center; justify-content: center; }
@@ -407,18 +423,34 @@ function AdminDashboard({ orders, products, onNav }) {
 /* ─── Products ──────────────────────────────────────────── */
 function emptyProduct() {
   return { id: '', name: '', sub: '', category: D.categories[1] || 'Bienestar',
-    price: 0, sizes: '', badge: '', blurb: '', tone: 'green', photo: '',
+    badge: '', blurb: '', tone: 'green', photo: '',
     visible: true, featured: false, rating: 4.8, reviews: 0 };
 }
 
+/* Deriva las filas de variantes (presentación + precio) desde un producto,
+   sea nuevo (variants), legacy (sizes + price) o vacío. */
+function productToVariants(p) {
+  if (p && Array.isArray(p.variants) && p.variants.length) {
+    return p.variants.map(v => ({ label: v.label || '', price: v.price != null ? v.price : 0 }));
+  }
+  if (p && p.sizes && p.sizes.length) {
+    return p.sizes.map(label => ({ label, price: p.price != null ? p.price : 0 }));
+  }
+  return [{ label: '', price: 0 }];
+}
+
 function ProductEditor({ product, onSave, onClose }) {
-  const [p, setP] = useState(product
-    ? { ...product, sizes: (product.sizes || []).join(', ') }
-    : emptyProduct()
-  );
+  const [p, setP] = useState(product ? { ...product } : emptyProduct());
+  const [variants, setVariants] = useState(() => productToVariants(product));
   const [busy, setBusy] = useState(false);
   const fileRef = useRef(null);
   function f(k) { return e => setP(v => ({ ...v, [k]: e.target.value })); }
+
+  function setVariant(i, key, value) {
+    setVariants(vs => vs.map((v, idx) => idx === i ? { ...v, [key]: value } : v));
+  }
+  function addVariant() { setVariants(vs => [...vs, { label: '', price: 0 }]); }
+  function removeVariant(i) { setVariants(vs => vs.length > 1 ? vs.filter((_, idx) => idx !== i) : vs); }
 
   async function handleFile(e) {
     const file = e.target.files && e.target.files[0];
@@ -437,11 +469,16 @@ function ProductEditor({ product, onSave, onClose }) {
 
   function save() {
     if (!p.name.trim()) { alert('El producto necesita un nombre.'); return; }
-    const sizes = p.sizes.split(',').map(s => s.trim()).filter(Boolean);
+    const clean = variants
+      .map(v => ({ label: String(v.label).trim(), price: parseFloat(v.price) || 0 }))
+      .filter(v => v.label);
+    if (!clean.length) { alert('Agregá al menos una presentación con su precio.'); return; }
+    const minPrice = Math.min(...clean.map(v => v.price));
     onSave({
       ...p,
-      sizes: sizes.length ? sizes : ['Único'],
-      price: parseFloat(p.price) || 0,
+      variants: clean,
+      sizes: clean.map(v => v.label),
+      price: minPrice,
       rating: Math.min(5, Math.max(0, parseFloat(p.rating) || 0)),
       reviews: parseInt(p.reviews, 10) || 0,
       id: p.id || p.name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
@@ -508,17 +545,34 @@ function ProductEditor({ product, onSave, onClose }) {
             </div>
           </div>
 
-          <div className="adm-field-row">
-            <div className="adm-field"><label>Precio ($)</label>
-              <input type="number" value={p.price} onChange={f('price')} min={0} />
-            </div>
-            <div className="adm-field"><label>Badge (ej. "Más vendido")</label>
-              <input value={p.badge || ''} onChange={f('badge')} placeholder="Opcional" />
-            </div>
+          <div className="adm-field"><label>Badge (ej. "Más vendido")</label>
+            <input value={p.badge || ''} onChange={f('badge')} placeholder="Opcional" />
           </div>
 
-          <div className="adm-field"><label>Presentaciones / pesos (separados por coma)</label>
-            <input value={p.sizes} onChange={f('sizes')} placeholder="60 caps, 120 caps · 300 gr, 500 gr" />
+          {/* Presentaciones con precio individual */}
+          <div className="adm-field">
+            <label>Presentaciones y precios</label>
+            <div className="adm-var-list">
+              <div className="adm-var-head">
+                <span>Presentación / peso</span><span>Precio ($)</span><span></span>
+              </div>
+              {variants.map((v, i) => (
+                <div className="adm-var-row" key={i}>
+                  <input value={v.label} onChange={e => setVariant(i, 'label', e.target.value)}
+                    placeholder="Ej. 300 gr · 120 caps" />
+                  <input type="number" min={0} value={v.price}
+                    onChange={e => setVariant(i, 'price', e.target.value)} placeholder="0" />
+                  <button type="button" className="adm-var-del" onClick={() => removeVariant(i)}
+                    disabled={variants.length === 1} aria-label="Quitar presentación">
+                    <IcoTrash size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button type="button" className="adm-btn adm-btn--outline adm-btn--sm adm-var-add"
+              onClick={addVariant}>
+              <IcoPlus size={13} /> Agregar presentación
+            </button>
           </div>
 
           <div className="adm-field"><label>Descripción</label>
@@ -616,7 +670,10 @@ function AdminProducts() {
                   </div>
                 </td>
                 <td style={{ fontSize: 13, color: 'var(--ink-600)' }}>{p.category}</td>
-                <td style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}>{fmt(p.price)}</td>
+                <td style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}>
+                  {D.hasPriceRange(D._normalize(p)) && <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 11, color: 'var(--ink-400)' }}>Desde </span>}
+                  {fmt(D._normalize(p).price)}
+                </td>
                 <td><Switch on={p.visible !== false} onChange={() => toggle(p.id, 'visible')} /></td>
                 <td><Switch on={!!p.featured} onChange={() => toggle(p.id, 'featured')} /></td>
                 <td>

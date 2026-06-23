@@ -29,21 +29,39 @@ window.VcoreData = {
 
   categories: ['Todo', 'Rendimiento', 'Recuperación', 'Vitaminas', 'Bienestar', 'Colágeno', 'Articulaciones'],
 
+  /* Normaliza un producto: garantiza variants [{label, price}], sizes [labels]
+     y price (precio "desde" = el menor). Compatible con productos legacy que
+     traían sizes + un único price. */
+  _normalize(p) {
+    let variants;
+    if (Array.isArray(p.variants) && p.variants.length) {
+      variants = p.variants
+        .map(v => ({ label: String(v.label || '').trim(), price: Number(v.price) || 0 }))
+        .filter(v => v.label);
+    } else {
+      const sizes = (p.sizes && p.sizes.length) ? p.sizes : ['Único'];
+      variants = sizes.map(label => ({ label: String(label).trim(), price: Number(p.price) || 0 }));
+    }
+    if (!variants.length) variants = [{ label: 'Único', price: Number(p.price) || 0 }];
+    const minPrice = Math.min(...variants.map(v => v.price));
+    return { ...p, variants, sizes: variants.map(v => v.label), price: minPrice };
+  },
+
   /* Catálogo base — el admin puede sobrescribir con vc-products en localStorage */
   get products() {
     try {
       const stored = localStorage.getItem('vc-products');
-      if (stored) return JSON.parse(stored).filter(p => p.visible !== false);
+      if (stored) return JSON.parse(stored).filter(p => p.visible !== false).map(p => this._normalize(p));
     } catch {}
-    return this._base.filter(p => p.visible !== false);
+    return this._base.filter(p => p.visible !== false).map(p => this._normalize(p));
   },
 
   get allProducts() {
     try {
       const stored = localStorage.getItem('vc-products');
-      if (stored) return JSON.parse(stored);
+      if (stored) return JSON.parse(stored).map(p => this._normalize(p));
     } catch {}
-    return this._base;
+    return this._base.map(p => this._normalize(p));
   },
 
   _base: [
@@ -242,6 +260,22 @@ window.VcoreData = {
   ],
 
   fmt: (n) => '$' + Math.round(n).toLocaleString('es-CL'),
+
+  /* Precio para una presentación específica. */
+  priceFor(product, sizeLabel) {
+    const variants = (product.variants && product.variants.length)
+      ? product.variants
+      : [{ label: (product.sizes && product.sizes[0]) || 'Único', price: product.price }];
+    const v = variants.find(x => x.label === sizeLabel) || variants[0];
+    return v ? v.price : (product.price || 0);
+  },
+
+  /* ¿Tiene presentaciones con precios distintos? */
+  hasPriceRange(product) {
+    if (!product.variants || product.variants.length < 2) return false;
+    const prices = product.variants.map(v => v.price);
+    return Math.min(...prices) !== Math.max(...prices);
+  },
 
   getTier(subtotal) {
     return [...this.tiers].reverse().find(t => subtotal >= t.min) || this.tiers[0];

@@ -128,6 +128,8 @@ const PAGE_CSS = `
 .vc-pc__sub { font-size: 13px; color: var(--ink-500); margin: 0 0 10px; }
 .vc-pc__foot { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
 .vc-pc__price { font-family: var(--font-display); font-weight: 800; font-size: 19px; }
+.vc-pc__from { font-family: var(--font-body); font-weight: 600; font-size: 11px;
+  color: var(--ink-500); letter-spacing: 0; }
 .vc-rating { display: inline-flex; align-items: center; gap: 5px;
   color: var(--ink-600); font-size: 13px; font-weight: 600; }
 .vc-rating svg { color: var(--warning-500); }
@@ -172,6 +174,9 @@ const PAGE_CSS = `
   border: 1.5px solid var(--border-default); background: var(--surface-card);
   color: var(--ink-800); cursor: pointer; }
 .vc-opt button.on { border-color: var(--green-500); background: var(--green-050); color: var(--green-800); }
+.vc-opt__price { display: block; font-weight: 800; font-size: 12px; color: var(--green-700);
+  margin-top: 3px; }
+[data-theme="dark"] .vc-opt__price { color: var(--green-400); }
 .vc-qty { display: inline-flex; align-items: center;
   border: 1.5px solid var(--border-default); border-radius: var(--radius-pill); overflow: hidden; }
 .vc-qty button { width: 40px; height: 44px; border: 0; background: transparent; cursor: pointer;
@@ -279,7 +284,9 @@ function ProductCard({ p, onOpen, onAdd }) {
           <div className="vc-pc__sub">{p.sub}</div>
           <Rating r={p.rating} n={p.reviews} />
           <div className="vc-pc__foot">
-            <span className="vc-pc__price">{D.fmt(p.price)}</span>
+            <span className="vc-pc__price">
+              {D.hasPriceRange(p) && <span className="vc-pc__from">Desde </span>}{D.fmt(p.price)}
+            </span>
             <Button size="sm" onClick={(e) => { e.stopPropagation(); onAdd(p); }}>Agregar</Button>
           </div>
         </div>
@@ -642,14 +649,17 @@ function Product({ product, onAdd }) {
           <div className="vc-pdp__sub">{p.sub}</div>
           <Rating r={p.rating} n={p.reviews} />
           <p className="vc-pdp__blurb">{p.blurb}</p>
-          <p className="vc-pdp__price">{D.fmt(p.price)}</p>
+          <p className="vc-pdp__price">{D.fmt(D.priceFor(p, size))}</p>
 
           <div style={{ marginTop: 22, marginBottom: 6, fontWeight: 700, fontSize: 13.5, color: 'var(--ink-700)' }}>
-            Tamaño
+            Presentación
           </div>
           <div className="vc-opt">
             {p.sizes.map(s => (
-              <button key={s} className={size === s ? 'on' : ''} onClick={() => setSize(s)}>{s}</button>
+              <button key={s} className={size === s ? 'on' : ''} onClick={() => setSize(s)}>
+                {s}
+                {D.hasPriceRange(p) && <span className="vc-opt__price">{D.fmt(D.priceFor(p, s))}</span>}
+              </button>
             ))}
           </div>
 

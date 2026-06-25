@@ -246,6 +246,69 @@ const PAGE_CSS = `
 .vc-orders__del { background: none; border: none; cursor: pointer; color: var(--ink-400);
   padding: 4px; display: inline-flex; align-items: center; }
 .vc-orders__del:hover { color: #8E2E22; }
+
+/* ───────── Mobile ───────── */
+@media (max-width: 860px) {
+  /* hero */
+  .vc-banner, .vc-slide { min-height: 0; }
+  .vc-slide { position: relative; }
+  .vc-slide:not(.active) { display: none; }
+  .vc-slide__content { padding: 56px 0 64px; max-width: none; }
+  .vc-slide__content p { font-size: 15.5px; }
+  .vc-banner__arr { display: none; }
+  .vc-banner__dots { bottom: 16px; }
+  /* two-col slide → stack, stats below */
+  .vc-slide__two { grid-template-columns: 1fr; gap: 26px; }
+  .vc-slide__two .vc-slide__content { padding: 56px 0 8px; }
+  .vc-slide__stats-grid { gap: 10px; padding-bottom: 56px; }
+  .vc-slide__stat-card { padding: 16px 16px; }
+  .vc-slide__stat-card .vc-slide__stat-v { font-size: 28px; }
+  .vc-slide__stats { gap: 22px; flex-wrap: wrap; }
+
+  /* sections */
+  .vc-section { padding: 40px 0; }
+  .vc-section__head { flex-direction: column; align-items: flex-start; gap: 14px; margin-bottom: 22px; }
+  .vc-section__head h2 { font-size: 27px; }
+
+  /* grids → 1 col */
+  .vc-ben, .vc-howto, .vc-tiers { grid-template-columns: 1fr; }
+  .vc-grid, .vc-grid--3, .vc-grid--2 { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+
+  /* mission band */
+  .vc-band { grid-template-columns: 1fr; padding: 40px 26px; gap: 18px; border-radius: var(--radius-xl); }
+  .vc-band h2 { font-size: 30px; }
+
+  /* PDP */
+  .vc-pdp { grid-template-columns: 1fr; gap: 26px; padding: 24px 0; }
+  .vc-pdp > div:first-child { position: static !important; }
+  .vc-pdp__name { font-size: 38px; }
+  .vc-pdp__sub { font-size: 17px; }
+  .vc-pdp__price { font-size: 30px; }
+  .vc-rings { flex-wrap: wrap; gap: 12px; }
+  .vc-pdp__stats { gap: 12px; }
+
+  /* shop heading */
+  .vc-cats { gap: 6px; }
+
+  /* product card tighter */
+  .vc-pc__name { font-size: 16px; margin-top: 12px; }
+  .vc-pc__price { font-size: 17px; }
+  .vc-pc__foot { flex-direction: column; align-items: stretch; gap: 10px; }
+  .vc-pc__foot > button { width: 100%; }
+
+  /* about */
+  .vc-about-mark { max-width: 360px; margin: 0 auto; width: 100%; }
+  .vc-about-hero { padding-top: 52px !important; padding-bottom: 56px !important; }
+  .vc-about-cta { flex-direction: column; align-items: flex-start !important; gap: 20px !important; padding: 26px 22px !important; }
+}
+@media (max-width: 360px) {
+  .vc-grid, .vc-grid--3, .vc-grid--2 { grid-template-columns: 1fr; }
+}
+@media (max-width: 420px) {
+  .vc-pdp__name { font-size: 32px; }
+  .vc-section__head h2 { font-size: 24px; }
+  .vc-pc__name { font-size: 15px; }
+}
 `;
 
 function injectPages() {
@@ -768,7 +831,7 @@ function AboutPage() {
       <div style={{ background: 'var(--gradient-ink-bloom)', position: 'relative', isolation: 'isolate', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0, background: 'var(--vignette)', pointerEvents: 'none' }} />
         <div className="vc-wrap" style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ paddingTop: 80, paddingBottom: 88, maxWidth: 640, color: '#EAF0EC' }}>
+          <div className="vc-about-hero" style={{ paddingTop: 80, paddingBottom: 88, maxWidth: 640, color: '#EAF0EC' }}>
             <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase',
               color: 'rgba(255,255,255,.5)', marginBottom: 20 }}>Quiénes somos</div>
             <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(40px,5vw,70px)',
@@ -868,7 +931,7 @@ function AboutPage() {
 
       {/* Contact CTA */}
       <div className="vc-wrap" style={{ paddingBottom: 80 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 32, background: 'var(--surface-card)',
+        <div className="vc-about-cta" style={{ display: 'flex', alignItems: 'center', gap: 32, background: 'var(--surface-card)',
           border: '1px solid var(--paper-200)', borderRadius: 'var(--radius-xl)', padding: '32px 40px' }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase',

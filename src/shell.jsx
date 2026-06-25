@@ -1,5 +1,6 @@
 /* Vcore website — shell: Header, Footer, ProductImage + shared styles. */
 const React = window.React;
+const { useState } = React;
 const { Logo, Button, Input, Eyebrow } = window.VcoreDesignSystem_8ff97c;
 const I = window.VcoreIcons;
 
@@ -70,6 +71,39 @@ const SITE_CSS = `
 .vc-ft__bottom { border-top: 1px solid rgba(255,255,255,.1); padding: 22px 0; display: flex; justify-content: space-between;
   font-size: 12.5px; color: rgba(255,255,255,.5); }
 .vc-ft__news { display: flex; gap: 8px; margin-top: 16px; }
+
+/* hamburger + mobile menu (hidden on desktop) */
+.vc-hd__burger { display: none; }
+.vc-hd__menu { display: none; }
+.vc-hd__menu-inner { padding: 8px 0 16px; }
+.vc-hd__menu-link { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  background: none; border: 0; cursor: pointer; font-family: var(--font-body); font-size: 16px;
+  font-weight: 600; color: var(--ink-800); padding: 13px 4px; }
+.vc-hd__menu-link.is-active { color: var(--green-700); }
+.vc-hd__menu-link svg { color: var(--ink-500); }
+.vc-hd__menu-sep { height: 1px; background: var(--paper-200); margin: 8px 0; }
+
+/* ───────── Mobile ───────── */
+@media (max-width: 860px) {
+  .vc-wrap { padding: 0 18px; }
+  .vc-hd__row { height: 60px; gap: 12px; }
+  .vc-hd__nav--desk, .vc-hd__theme--desk, .vc-hd__admin--desk { display: none; }
+  .vc-hd__act { gap: 2px; }
+  .vc-hd__burger { display: inline-flex; }
+  .vc-hd__menu { display: block; overflow: hidden; max-height: 0; transition: max-height .28s ease;
+    background: var(--paper-050); border-bottom: 1px solid var(--paper-200); }
+  .vc-hd__menu.open { max-height: 360px; }
+  .vc-hd__menu .vc-wrap, .vc-hd__menu-inner { padding-left: 18px; padding-right: 18px; }
+
+  .vc-ft { margin-top: 60px; }
+  .vc-ft__grid { grid-template-columns: 1fr 1fr; gap: 28px 24px; padding: 44px 0 28px; }
+  .vc-ft__grid > div:first-child { grid-column: 1 / -1; }
+  .vc-ft__grid > div:last-child { grid-column: 1 / -1; }
+  .vc-ft__bottom { flex-direction: column; gap: 8px; text-align: center; }
+}
+@media (max-width: 460px) {
+  .vc-ft__grid { grid-template-columns: 1fr; }
+}
 `;
 
 function injectSite() {
@@ -82,29 +116,55 @@ function injectSite() {
 function Header({ page, onNav, cartCount, onOpenCart, theme, onToggleTheme, onSearch }) {
   injectSite();
   const dark = theme === 'dark';
+  const [menuOpen, setMenuOpen] = useState(false);
   const nav = [['home', 'Inicio'], ['shop', 'Tienda'], ['nosotros', 'Nosotros']];
+  function go(k) { setMenuOpen(false); onNav(k); }
   return (
     <header className="vc-hd">
       <div className="vc-wrap vc-hd__row">
-        <button onClick={() => onNav('home')} style={{ background: 'none', border: 0, cursor: 'pointer', padding: 0 }}>
+        <button className="vc-hd__logo" onClick={() => go('home')} style={{ background: 'none', border: 0, cursor: 'pointer', padding: 0 }}>
           <Logo variant="wordmark" tone={dark ? 'white' : 'ink'} height={30} />
         </button>
-        <nav className="vc-hd__nav">
+        <nav className="vc-hd__nav vc-hd__nav--desk">
           {nav.map(([k, label]) => (
             <button key={k} className={page === k ? 'is-active' : ''} onClick={() => onNav(k)}>{label}</button>
           ))}
         </nav>
         <div className="vc-hd__spacer" />
         <div className="vc-hd__act">
-          <button className="vc-hd__theme" aria-label={dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'} title={dark ? 'Modo claro' : 'Modo oscuro'} onClick={onToggleTheme}>
+          <button className="vc-hd__theme vc-hd__theme--desk" aria-label={dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'} title={dark ? 'Modo claro' : 'Modo oscuro'} onClick={onToggleTheme}>
             {dark ? <I.Sun size={17} /> : <I.Moon size={17} />}
             <span>{dark ? 'Claro' : 'Oscuro'}</span>
           </button>
           <button className="vc-iconbtn" aria-label="Buscar" onClick={onSearch}><I.Search size={20} /></button>
-          <button className="vc-iconbtn" aria-label="Admin" onClick={() => onNav('admin')}><I.User size={20} /></button>
+          <button className="vc-iconbtn vc-hd__admin--desk" aria-label="Admin" onClick={() => onNav('admin')}><I.User size={20} /></button>
           <button className="vc-iconbtn" aria-label="Carrito" onClick={onOpenCart}>
             <I.Bag size={20} />
             {cartCount > 0 && <span className="vc-cart-count">{cartCount}</span>}
+          </button>
+          <button className="vc-iconbtn vc-hd__burger" aria-label="Menú"
+            aria-expanded={menuOpen} onClick={() => setMenuOpen(o => !o)}>
+            {menuOpen
+              ? <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>}
+          </button>
+        </div>
+      </div>
+
+      {/* Menú mobile */}
+      <div className={`vc-hd__menu${menuOpen ? ' open' : ''}`}>
+        <div className="vc-hd__menu-inner">
+          {nav.map(([k, label]) => (
+            <button key={k} className={`vc-hd__menu-link${page === k ? ' is-active' : ''}`} onClick={() => go(k)}>
+              {label}
+            </button>
+          ))}
+          <div className="vc-hd__menu-sep" />
+          <button className="vc-hd__menu-link" onClick={() => go('admin')}>
+            <I.User size={18} /> Panel de administración
+          </button>
+          <button className="vc-hd__menu-link" onClick={() => { onToggleTheme(); }}>
+            {dark ? <I.Sun size={18} /> : <I.Moon size={18} />} {dark ? 'Modo claro' : 'Modo oscuro'}
           </button>
         </div>
       </div>

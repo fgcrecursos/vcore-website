@@ -262,6 +262,42 @@ const ADMIN_CSS = `
 /* filter bar */
 .adm-bar { display: flex; align-items: center; gap: 10px; padding: 14px 20px;
   border-bottom: 1px solid var(--border-default); flex-wrap: wrap; }
+
+/* ───────── Mobile admin ───────── */
+@media (max-width: 860px) {
+  .adm-shell { flex-direction: column; }
+  .adm-side { width: 100%; height: auto; position: sticky; top: 0; z-index: 30;
+    flex-direction: row; align-items: center; flex-wrap: nowrap; }
+  .adm-side__logo { border-bottom: 0; border-right: 1px solid rgba(255,255,255,.1);
+    padding: 12px 14px; flex: none; }
+  .adm-side__logo span { display: none; }
+  .adm-nav { display: flex; flex-direction: row; gap: 4px; padding: 8px 10px; flex: 1;
+    overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .adm-nav__item { white-space: nowrap; margin-bottom: 0; padding: 9px 13px; }
+  .adm-side__out { border-top: 0; padding: 8px 10px; flex: none; }
+  .adm-side__out button { padding: 9px 12px; white-space: nowrap; }
+
+  .adm-main { padding: 22px 16px 64px; }
+  .adm-head h1 { font-size: 26px; }
+  .adm-stats { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .adm-stat .sv { font-size: 24px; }
+
+  /* tables scroll horizontally inside their panel */
+  .adm-panel { overflow-x: auto; }
+  .adm-tbl { min-width: 580px; }
+  .adm-bar { flex-wrap: nowrap; overflow-x: auto; }
+
+  /* modals near full-screen */
+  .adm-modal-ov { padding: 0; align-items: stretch; }
+  .adm-modal { width: 100%; min-height: 100vh; border-radius: 0; }
+  .adm-field-row { grid-template-columns: 1fr; }
+  .adm-var-row, .adm-var-head { grid-template-columns: 1fr 96px 36px; gap: 8px; }
+  .adm-img-edit { flex-direction: column; }
+  .adm-img-actions { flex-direction: row; flex-wrap: wrap; align-items: center; }
+
+  /* order detail / status */
+  .adm-order-items { min-width: 0; }
+}
 `;
 
 function injectAdmin() {

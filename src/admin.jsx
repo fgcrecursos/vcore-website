@@ -98,7 +98,9 @@ const ADMIN_CSS = `
   border-radius: var(--radius-lg); padding: 20px 22px; }
 .adm-stat h4 { font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
   color: var(--ink-500); margin: 0 0 10px; font-weight: 800; }
-.adm-stat .sv { font-family: var(--font-display); font-weight: 800; font-size: 30px; margin: 0; }
+.adm-stat .sv { font-family: var(--font-display); font-weight: 800; font-size: 30px; margin: 0; line-height: 1.1; }
+.adm-stat__den { font-size: 16px; color: var(--ink-400); font-weight: 700; margin-left: 2px; }
+.adm-stat__desc { font-size: 12.5px; color: var(--ink-500); margin: 8px 0 0; }
 
 /* panel */
 .adm-panel { background: var(--surface-card); border: 1px solid var(--border-default);
@@ -411,13 +413,21 @@ function AdminLogin({ onAuth }) {
 
 /* ─── Dashboard ─────────────────────────────────────────── */
 function AdminDashboard({ orders, products, onNav }) {
-  const total   = orders.reduce((s, o) => s + (o.total || 0), 0);
-  const nuevos  = orders.filter(o => o.status === 'nuevo').length;
-  const avgTicket = orders.length ? Math.round(total / orders.length) : 0;
-  const recent  = [...orders].sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 5);
+  const total    = orders.reduce((s, o) => s + (o.total || 0), 0);
+  const nuevos   = orders.filter(o => o.status === 'nuevo').length;
+  const recent   = [...orders].sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 5);
+  const visibles = products.filter(p => p.visible !== false).length;
+  const featured = products.filter(p => p.featured && p.visible !== false).length;
 
   const STATUS_COLORS = { nuevo: 'adm-chip--nuevo', confirmado: 'adm-chip--confirmado',
     enviado: 'adm-chip--enviado', entregado: 'adm-chip--entregado' };
+
+  const cards = [
+    { l: 'Productos',       v: visibles,                        d: 'En el catálogo activo' },
+    { l: 'Destacados',      v: <>{featured}<span className="adm-stat__den">/{visibles}</span></>, d: 'Visibles en home' },
+    { l: 'Pedidos',         v: orders.length,                   d: 'Histórico total' },
+    { l: 'Facturación est.',v: fmt(total),                      d: 'Suma de pedidos recibidos' },
+  ];
 
   return (
     <div>
@@ -427,15 +437,11 @@ function AdminDashboard({ orders, products, onNav }) {
       </div>
 
       <div className="adm-stats">
-        {[
-          { l: 'Productos',      v: products.length },
-          { l: 'Pedidos totales', v: orders.length },
-          { l: 'Ingresos',       v: fmt(total) },
-          { l: 'Ticket promedio', v: orders.length ? fmt(avgTicket) : '—' },
-        ].map(s => (
+        {cards.map(s => (
           <div key={s.l} className="adm-stat">
             <h4>{s.l}</h4>
             <p className="sv">{s.v}</p>
+            <p className="adm-stat__desc">{s.d}</p>
           </div>
         ))}
       </div>

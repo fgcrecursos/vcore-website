@@ -17,6 +17,7 @@ function loadBundle() {
 (async () => {
   await loadBundle();
   await import('./icons.jsx');
+  await import('./backend.jsx');   // window.VcoreBackend (Supabase + Cloudinary)
   await import('./data.jsx');
   await import('./shell.jsx');
   await import('./pages.jsx');
@@ -24,4 +25,6 @@ function loadBundle() {
   await import('./admin.jsx');
   const { default: App } = await import('./App.jsx');
   createRoot(document.getElementById('root')).render(<App />);
+  /* refresca catálogo/códigos/config desde el backend (si está configurado) */
+  window.VcoreData.loadFromBackend();
 })();

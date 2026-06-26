@@ -558,7 +558,7 @@ function HowToBuy() {
         </div>
         <div className="vc-howto__wa">
           <Button size="lg"
-            onClick={() => window.open('https://wa.me/5491100000000?text=Hola!%20Quiero%20hacer%20un%20pedido', '_blank')}
+            onClick={() => window.open(`https://wa.me/${(D.config && D.config.whatsapp) || '5491100000000'}?text=Hola!%20Quiero%20hacer%20un%20pedido`, '_blank')}
             iconRight={<I.ArrowRight size={18} />}>
             Hablar por WhatsApp
           </Button>
@@ -943,7 +943,7 @@ function AboutPage() {
             </p>
           </div>
           <Button size="lg"
-            onClick={() => window.open('https://wa.me/5491100000000?text=Hola!%20Tengo%20una%20consulta', '_blank')}
+            onClick={() => window.open(`https://wa.me/${(D.config && D.config.whatsapp) || '5491100000000'}?text=Hola!%20Tengo%20una%20consulta`, '_blank')}
             iconRight={<I.ArrowRight size={18} />}>
             Escribinos
           </Button>

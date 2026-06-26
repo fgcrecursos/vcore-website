@@ -172,10 +172,8 @@ function buildWAMsg({ items, tier, codeApplied, codeDiscount, subtotal, tierSavi
 
 function saveOrder({ items, total, tier, tierSaving, codeApplied, codeSaving, subtotal, shippingOpt, shippingCost }) {
   const summary = items.map(it => `${it.product.name} ×${it.qty}`).join(', ');
-  const orders = JSON.parse(localStorage.getItem('vc-orders') || '[]');
-  const id = 'VC' + Date.now().toString(36).toUpperCase();
-  orders.push({
-    id,
+  const order = {
+    id: 'VC' + Date.now().toString(36).toUpperCase(),
     date: new Date().toISOString(),
     ts: Date.now(),
     summary,
@@ -189,8 +187,18 @@ function saveOrder({ items, total, tier, tierSaving, codeApplied, codeSaving, su
     shippingCost,
     total,
     status: 'nuevo',
-  });
-  localStorage.setItem('vc-orders', JSON.stringify(orders));
+  };
+  /* Backend (Supabase) → pedido centralizado, visible desde cualquier dispositivo.
+     Demo (sin backend) → guardado local. */
+  if (window.VcoreBackend && window.VcoreBackend.isOn()) {
+    window.VcoreBackend.createOrder(order); // fire-and-forget; no bloquea el WhatsApp
+  } else {
+    try {
+      const orders = JSON.parse(localStorage.getItem('vc-orders') || '[]');
+      orders.push(order);
+      localStorage.setItem('vc-orders', JSON.stringify(orders));
+    } catch {}
+  }
 }
 
 function CartDrawer({ open, items, onClose, onQty }) {
@@ -232,7 +240,8 @@ function CartDrawer({ open, items, onClose, onQty }) {
       shippingOpt, shippingCost, total,
     });
     saveOrder({ items, total, tier, tierSaving, codeApplied, codeSaving, subtotal, shippingOpt, shippingCost });
-    window.open(`https://wa.me/5491100000000?text=${msg}`, '_blank');
+    const phone = (D.config && D.config.whatsapp) || '5491100000000';
+    window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
   }
 
   const hasItems = items.length > 0;

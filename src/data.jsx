@@ -1,4 +1,11 @@
-/* Vcore website — catalog, discount tiers, shipping, promo codes. */
+/* Vcore website — catalog, discount tiers, shipping, promo codes.
+   Fuente de datos: Supabase cuando está configurado (window.VcoreBackend.isOn()),
+   con caché en memoria + espejo en localStorage (stale-while-revalidate).
+   Sin backend → modo demo (localStorage + catálogo _base). */
+function _readLS(key) {
+  try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : null; } catch { return null; }
+}
+
 window.VcoreData = {
 
   tiers: [
@@ -13,18 +20,52 @@ window.VcoreData = {
     { id: 'pickup',   label: 'Retiro en local',      base: 0,    freeFrom: 0     },
   ],
 
-  /* Códigos activos — el admin puede sobrescribir con vc-codes en localStorage */
-  get codes() {
+  /* caché en memoria, inicializada desde localStorage para mostrar al instante */
+  _cache: {
+    products: _readLS('vc-products'),
+    codes:    _readLS('vc-codes'),
+    config:   _readLS('vc-config'),
+  },
+
+  get _backendOn() { return !!(window.VcoreBackend && window.VcoreBackend.isOn()); },
+
+  /* Carga inicial desde Supabase → refresca caché + localStorage y avisa a la app */
+  async loadFromBackend() {
+    if (!this._backendOn) return;
     try {
-      const stored = localStorage.getItem('vc-codes');
-      if (stored) {
-        const arr = JSON.parse(stored);
-        const obj = {};
-        arr.filter(c => c.active).forEach(c => { obj[c.code] = c.value / 100; });
-        return obj;
-      }
-    } catch {}
-    return { 'VCORE10': 0.10, 'BIENVENIDO': 0.15 };
+      const [products, codes, config] = await Promise.all([
+        window.VcoreBackend.fetchProducts(),
+        window.VcoreBackend.fetchCodes(),
+        window.VcoreBackend.fetchConfig(),
+      ]);
+      if (products) { this._cache.products = products; localStorage.setItem('vc-products', JSON.stringify(products)); }
+      if (codes)    { this._cache.codes = codes;       localStorage.setItem('vc-codes', JSON.stringify(codes)); }
+      if (config)   { this._cache.config = config;     localStorage.setItem('vc-config', JSON.stringify(config)); }
+    } catch (e) {
+      console.error('[Vcore] loadFromBackend', e && e.message);
+    }
+    window.dispatchEvent(new CustomEvent('vc:data-loaded'));
+  },
+
+  /* Fuente cruda de productos: caché (backend) o localStorage/_base (demo) */
+  _rawProducts() {
+    if (this._backendOn) return this._cache.products || this._base;
+    return _readLS('vc-products') || this._base;
+  },
+
+  /* Códigos activos como mapa { CODIGO: fracción } */
+  get codes() {
+    let arr = this._backendOn ? this._cache.codes : _readLS('vc-codes');
+    if (!arr) return this._backendOn ? {} : { 'VCORE10': 0.10, 'BIENVENIDO': 0.15 };
+    const obj = {};
+    arr.filter(c => c.active).forEach(c => { obj[c.code] = c.value / 100; });
+    return obj;
+  },
+
+  /* Datos de contacto del negocio */
+  get config() {
+    if (this._backendOn && this._cache.config) return this._cache.config;
+    return _readLS('vc-config') || { whatsapp: '5491100000000', address: '', instagram: '', email: '' };
   },
 
   categories: ['Todo', 'Rendimiento', 'Recuperación', 'Vitaminas', 'Bienestar', 'Colágeno', 'Articulaciones'],
@@ -47,21 +88,13 @@ window.VcoreData = {
     return { ...p, variants, sizes: variants.map(v => v.label), price: minPrice };
   },
 
-  /* Catálogo base — el admin puede sobrescribir con vc-products en localStorage */
+  /* Catálogo visible (tienda) y completo (admin), normalizados */
   get products() {
-    try {
-      const stored = localStorage.getItem('vc-products');
-      if (stored) return JSON.parse(stored).filter(p => p.visible !== false).map(p => this._normalize(p));
-    } catch {}
-    return this._base.filter(p => p.visible !== false).map(p => this._normalize(p));
+    return this._rawProducts().filter(p => p.visible !== false).map(p => this._normalize(p));
   },
 
   get allProducts() {
-    try {
-      const stored = localStorage.getItem('vc-products');
-      if (stored) return JSON.parse(stored).map(p => this._normalize(p));
-    } catch {}
-    return this._base.map(p => this._normalize(p));
+    return this._rawProducts().map(p => this._normalize(p));
   },
 
   _base: [

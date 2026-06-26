@@ -215,7 +215,7 @@ function Footer() {
           <div>
             <h5>Ayuda</h5>
             <a style={{ cursor: 'pointer' }} onClick={() => nav('howto')}>Cómo comprar</a>
-            <a href="https://wa.me/5491100000000" target="_blank" rel="noopener">WhatsApp</a>
+            <a href={`https://wa.me/${(window.VcoreData && window.VcoreData.config && window.VcoreData.config.whatsapp) || '5491100000000'}`} target="_blank" rel="noopener">WhatsApp</a>
             <a style={{ cursor: 'pointer' }} onClick={() => nav('admin')}>Panel admin</a>
             <a style={{ cursor: 'pointer' }} onClick={() => nav('nosotros')}>Nosotros</a>
           </div>

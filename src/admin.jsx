@@ -52,6 +52,13 @@ function useLS(key, init) {
   return [val, set];
 }
 
+/* ¿Hay backend (Supabase) configurado? */
+function backendOn() { return !!(window.VcoreBackend && window.VcoreBackend.isOn()); }
+const BE = () => window.VcoreBackend;
+function readLS(key, fallback) {
+  try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : fallback; } catch { return fallback; }
+}
+
 /* ─── CSS ──────────────────────────────────────────────── */
 const ADMIN_CSS = `
 /* shell */
@@ -350,26 +357,52 @@ function Switch({ on, onChange, label }) {
 /* ─── Login ─────────────────────────────────────────────── */
 function AdminLogin({ onAuth }) {
   injectAdmin();
+  const secure = backendOn();
+  const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
-  const [err, setErr] = useState(false);
-  function submit() {
-    if (pw === 'vcore2026') { sessionStorage.setItem('vc-admin', '1'); onAuth(); }
-    else setErr(true);
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function submit() {
+    if (busy) return;
+    setErr('');
+    if (secure) {
+      if (!email.trim() || !pw) { setErr('Completá email y contraseña'); return; }
+      setBusy(true);
+      try {
+        await BE().login(email.trim(), pw);
+        onAuth();
+      } catch (e) {
+        setErr('Email o contraseña incorrectos');
+      } finally { setBusy(false); }
+    } else {
+      if (pw === 'vcore2026') { sessionStorage.setItem('vc-admin', '1'); onAuth(); }
+      else setErr('Contraseña incorrecta');
+    }
   }
+
   return (
     <div className="adm-login">
       <div className="adm-login__box">
         <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase',
           color: 'var(--green-600)' }}>Panel de administración</div>
         <h2>Ingresar</h2>
+        {secure && (
+          <input className="adm-login__inp" type="email" placeholder="Email" autoComplete="username"
+            value={email} onChange={e => { setEmail(e.target.value); setErr(''); }}
+            onKeyDown={e => e.key === 'Enter' && submit()} autoFocus
+            style={{ width: '100%', marginBottom: 10 }} />
+        )}
         <div className="adm-login__row">
-          <input className="adm-login__inp" type="password" placeholder="Contraseña"
-            value={pw} onChange={e => { setPw(e.target.value); setErr(false); }}
-            onKeyDown={e => e.key === 'Enter' && submit()} autoFocus />
-          <button className="adm-btn adm-btn--primary" onClick={submit}>Entrar</button>
+          <input className="adm-login__inp" type="password" placeholder="Contraseña" autoComplete="current-password"
+            value={pw} onChange={e => { setPw(e.target.value); setErr(''); }}
+            onKeyDown={e => e.key === 'Enter' && submit()} autoFocus={!secure} />
+          <button className="adm-btn adm-btn--primary" onClick={submit} disabled={busy}>
+            {busy ? '...' : 'Entrar'}
+          </button>
         </div>
-        {err && <div className="adm-login__err">Contraseña incorrecta</div>}
-        <div className="adm-login__hint">Contraseña: vcore2026</div>
+        {err && <div className="adm-login__err">{err}</div>}
+        {!secure && <div className="adm-login__hint">Modo demo · Contraseña: vcore2026</div>}
       </div>
     </div>
   );
@@ -493,10 +526,15 @@ function ProductEditor({ product, onSave, onClose }) {
     if (!file) return;
     setBusy(true);
     try {
-      const url = await fileToDataUrl(file);
+      let url;
+      if (backendOn() && BE().cloudinaryOn()) {
+        url = await BE().uploadImage(file);          // sube a Cloudinary, guarda la URL
+      } else {
+        url = await fileToDataUrl(file);             // modo demo: data URL local
+      }
       setP(v => ({ ...v, photo: url }));
-    } catch {
-      alert('No se pudo procesar la imagen. Probá con otro archivo.');
+    } catch (err) {
+      alert('No se pudo subir la imagen: ' + (err.message || 'probá con otro archivo.'));
     } finally {
       setBusy(false);
       e.target.value = '';
@@ -640,40 +678,87 @@ function ProductEditor({ product, onSave, onClose }) {
 }
 
 function AdminProducts() {
-  const [products, setProducts] = useLS('vc-products', D._base);
+  const [products, setProducts] = useState(() => window.VcoreData.allProducts);
   const [q, setQ] = useState('');
   const [editing, setEditing] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  function persistLocal(next) {
+    setProducts(next);
+    try { localStorage.setItem('vc-products', JSON.stringify(next)); } catch {}
+  }
+  async function reload() {
+    if (backendOn()) { const d = await BE().fetchProducts(); if (d) setProducts(d); }
+    else setProducts(readLS('vc-products', D._base));
+  }
+  useEffect(() => { reload(); }, []);
 
   const shown = products.filter(p =>
     !q || [p.name, p.sub, p.category].some(t => t && t.toLowerCase().includes(q.toLowerCase()))
   );
 
-  function save(p) {
-    setProducts(prev => {
-      const i = prev.findIndex(x => x.id === p.id);
-      return i >= 0 ? prev.map(x => x.id === p.id ? p : x) : [...prev, p];
-    });
+  async function save(p) {
+    if (backendOn()) {
+      try { await BE().saveProduct(p); await window.VcoreData.loadFromBackend(); await reload(); }
+      catch (e) { alert('No se pudo guardar: ' + (e.message || e)); return; }
+    } else {
+      const i = products.findIndex(x => x.id === p.id);
+      persistLocal(i >= 0 ? products.map(x => x.id === p.id ? p : x) : [...products, p]);
+    }
     setEditing(null); setCreating(false);
   }
-  function del(id) {
-    if (confirm('¿Eliminar este producto?')) setProducts(prev => prev.filter(p => p.id !== id));
+  async function del(id) {
+    if (!confirm('¿Eliminar este producto?')) return;
+    if (backendOn()) {
+      try { await BE().deleteProduct(id); await window.VcoreData.loadFromBackend(); await reload(); }
+      catch (e) { alert('No se pudo eliminar: ' + (e.message || e)); }
+    } else {
+      persistLocal(products.filter(p => p.id !== id));
+    }
   }
-  function toggle(id, field) {
-    setProducts(prev => prev.map(p => p.id === id ? { ...p, [field]: !p[field] } : p));
+  async function toggle(id, field) {
+    const p = products.find(x => x.id === id);
+    if (!p) return;
+    const updated = window.VcoreData._normalize({ ...p, [field]: !p[field] });
+    if (backendOn()) {
+      setProducts(prev => prev.map(x => x.id === id ? updated : x)); // optimista
+      try { await BE().saveProduct(updated); await window.VcoreData.loadFromBackend(); }
+      catch (e) { alert('No se pudo actualizar: ' + (e.message || e)); reload(); }
+    } else {
+      persistLocal(products.map(x => x.id === id ? updated : x));
+    }
+  }
+  async function importBase() {
+    if (!backendOn()) { alert('La importación requiere tener el backend configurado.'); return; }
+    if (!confirm('Se importarán los productos de ejemplo al catálogo en la nube. ¿Continuar?')) return;
+    setBusy(true);
+    try {
+      await BE().importProducts(D._base.map(p => window.VcoreData._normalize(p)));
+      await window.VcoreData.loadFromBackend(); await reload();
+      alert('Catálogo de ejemplo importado.');
+    } catch (e) { alert('No se pudo importar: ' + (e.message || e)); }
+    finally { setBusy(false); }
   }
 
   return (
     <div>
       <div className="adm-head">
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           <div>
             <div className="adm-eye">Gestión</div>
             <h1>Productos</h1>
           </div>
-          <button className="adm-btn adm-btn--primary" onClick={() => setCreating(true)}>
-            <IcoPlus size={15} /> Nuevo producto
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {backendOn() && (
+              <button className="adm-btn adm-btn--outline" onClick={importBase} disabled={busy}>
+                {busy ? 'Importando…' : 'Importar ejemplo'}
+              </button>
+            )}
+            <button className="adm-btn adm-btn--primary" onClick={() => setCreating(true)}>
+              <IcoPlus size={15} /> Nuevo producto
+            </button>
+          </div>
         </div>
       </div>
 
@@ -885,10 +970,20 @@ function OrderDetail({ order, onClose, onUpdateStatus, onDelete }) {
 }
 
 function AdminOrders() {
-  const [orders, setOrders] = useLS('vc-orders', []);
+  const [orders, setOrders] = useState(() => backendOn() ? [] : readLS('vc-orders', []));
   const [filter, setFilter] = useState('todos');
   const [selected, setSelected] = useState(null);
   const [q, setQ] = useState('');
+
+  function persistLocal(next) {
+    setOrders(next);
+    try { localStorage.setItem('vc-orders', JSON.stringify(next)); } catch {}
+  }
+  async function reload() {
+    if (backendOn()) setOrders(await BE().listOrders());
+    else setOrders(readLS('vc-orders', []));
+  }
+  useEffect(() => { reload(); }, []);
 
   const shown = orders.filter(o => {
     const matchFilter = filter === 'todos' || o.status === filter;
@@ -896,11 +991,20 @@ function AdminOrders() {
     return matchFilter && matchQ;
   }).sort((a, b) => (b.ts || 0) - (a.ts || 0));
 
-  function updateStatus(id, status) {
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
+  async function updateStatus(id, status) {
+    if (backendOn()) {
+      setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o)); // optimista
+      try { await BE().updateOrderStatus(id, status); } catch (e) { alert('No se pudo actualizar: ' + (e.message || e)); reload(); }
+    } else {
+      persistLocal(orders.map(o => o.id === id ? { ...o, status } : o));
+    }
   }
-  function delOrder(id) {
-    setOrders(prev => prev.filter(o => o.id !== id));
+  async function delOrder(id) {
+    if (backendOn()) {
+      try { await BE().deleteOrder(id); await reload(); } catch (e) { alert('No se pudo eliminar: ' + (e.message || e)); }
+    } else {
+      persistLocal(orders.filter(o => o.id !== id));
+    }
   }
 
   return (
@@ -1022,22 +1126,50 @@ function CodeEditor({ code, onSave, onClose }) {
 }
 
 function AdminCodes() {
-  const [codes, setCodes] = useLS('vc-codes', defaultCodes());
+  const [codes, setCodes] = useState(() => backendOn() ? [] : readLS('vc-codes', defaultCodes()));
   const [editing, setEditing] = useState(null);
   const [creating, setCreating] = useState(false);
 
-  function save(c) {
-    setCodes(prev => {
-      const i = prev.findIndex(x => x.id === c.id);
-      return i >= 0 ? prev.map(x => x.id === c.id ? c : x) : [...prev, c];
-    });
+  function persistLocal(next) {
+    setCodes(next);
+    try { localStorage.setItem('vc-codes', JSON.stringify(next)); } catch {}
+  }
+  async function reload() {
+    if (backendOn()) { const d = await BE().fetchCodes(); setCodes(d || []); }
+    else setCodes(readLS('vc-codes', defaultCodes()));
+  }
+  useEffect(() => { reload(); }, []);
+
+  async function save(c) {
+    if (backendOn()) {
+      try { await BE().saveCode(c); await window.VcoreData.loadFromBackend(); await reload(); }
+      catch (e) { alert('No se pudo guardar: ' + (e.message || e)); return; }
+    } else {
+      const i = codes.findIndex(x => x.id === c.id);
+      persistLocal(i >= 0 ? codes.map(x => x.id === c.id ? c : x) : [...codes, c]);
+    }
     setEditing(null); setCreating(false);
   }
-  function del(id) {
-    if (confirm('¿Eliminar este código?')) setCodes(prev => prev.filter(c => c.id !== id));
+  async function del(id) {
+    if (!confirm('¿Eliminar este código?')) return;
+    if (backendOn()) {
+      try { await BE().deleteCode(id); await window.VcoreData.loadFromBackend(); await reload(); }
+      catch (e) { alert('No se pudo eliminar: ' + (e.message || e)); }
+    } else {
+      persistLocal(codes.filter(c => c.id !== id));
+    }
   }
-  function toggle(id) {
-    setCodes(prev => prev.map(c => c.id === id ? { ...c, active: !c.active } : c));
+  async function toggle(id) {
+    const c = codes.find(x => x.id === id);
+    if (!c) return;
+    const updated = { ...c, active: !c.active };
+    if (backendOn()) {
+      setCodes(prev => prev.map(x => x.id === id ? updated : x));
+      try { await BE().saveCode(updated); await window.VcoreData.loadFromBackend(); }
+      catch (e) { alert('No se pudo actualizar: ' + (e.message || e)); reload(); }
+    } else {
+      persistLocal(codes.map(x => x.id === id ? updated : x));
+    }
   }
 
   return (
@@ -1091,16 +1223,34 @@ function AdminCodes() {
 }
 
 /* ─── Config ────────────────────────────────────────────── */
+const CONFIG_DEFAULT = {
+  whatsapp: '5491100000000',
+  address: 'Buenos Aires, Argentina',
+  instagram: 'https://instagram.com/vcorenutri',
+  email: 'hola@vcore.com.ar',
+};
+
 function AdminConfig() {
-  const [cfg, setCfg] = useLS('vc-config', {
-    whatsapp: '5491100000000',
-    address: 'Buenos Aires, Argentina',
-    instagram: 'https://instagram.com/vcorenutri',
-    email: 'hola@vcore.com.ar',
-  });
+  const [cfg, setCfg] = useState(() => readLS('vc-config', CONFIG_DEFAULT));
   const [saved, setSaved] = useState(false);
+  const [busy, setBusy] = useState(false);
   function f(k) { return e => setCfg(v => ({ ...v, [k]: e.target.value })); }
-  function save() { setSaved(true); setTimeout(() => setSaved(false), 2000); }
+
+  useEffect(() => {
+    if (backendOn()) BE().fetchConfig().then(d => { if (d) setCfg(d); });
+  }, []);
+
+  async function save() {
+    setBusy(true);
+    try {
+      if (backendOn()) await BE().saveConfig(cfg);
+      else localStorage.setItem('vc-config', JSON.stringify(cfg));
+      await window.VcoreData.loadFromBackend();
+      setSaved(true); setTimeout(() => setSaved(false), 2000);
+    } catch (e) {
+      alert('No se pudo guardar: ' + (e.message || e));
+    } finally { setBusy(false); }
+  }
 
   return (
     <div>
@@ -1127,7 +1277,9 @@ function AdminConfig() {
             <input value={cfg.email} onChange={f('email')} placeholder="hola@vcore.com.ar" />
           </div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <button className="adm-btn adm-btn--primary" onClick={save}>Guardar configuración</button>
+            <button className="adm-btn adm-btn--primary" onClick={save} disabled={busy}>
+              {busy ? 'Guardando…' : 'Guardar configuración'}
+            </button>
             {saved && <span style={{ fontSize: 13, color: 'var(--green-600)', fontWeight: 700 }}>✓ Guardado</span>}
           </div>
         </div>
@@ -1147,17 +1299,45 @@ const NAV = [
 
 function AdminPage({ onExit }) {
   injectAdmin();
-  const [auth, setAuth] = useState(() => sessionStorage.getItem('vc-admin') === '1');
+  const secure = backendOn();
+  const [auth, setAuth] = useState(() => secure ? false : sessionStorage.getItem('vc-admin') === '1');
+  const [checking, setChecking] = useState(secure);
   const [section, setSection] = useState('dashboard');
-  const [orders] = useLS('vc-orders', []);
-  const [products] = useLS('vc-products', D._base);
+  const [orders, setOrders] = useState([]);
+  const [products, setProducts] = useState(() => window.VcoreData.allProducts);
+
+  /* sesión real (Supabase) o demo (sessionStorage) */
+  useEffect(() => {
+    if (!secure) return;
+    let unsub = () => {};
+    BE().currentUser().then(u => { setAuth(!!u); setChecking(false); });
+    unsub = BE().onAuthChange(u => setAuth(!!u));
+    return unsub;
+  }, []);
+
+  /* datos del dashboard (pedidos + productos) */
+  useEffect(() => {
+    if (!auth) return;
+    if (secure) {
+      BE().listOrders().then(setOrders);
+      BE().fetchProducts().then(d => { if (d) setProducts(d); });
+    } else {
+      setOrders(readLS('vc-orders', []));
+      setProducts(window.VcoreData.allProducts);
+    }
+  }, [auth, section]);
 
   function logout() {
-    sessionStorage.removeItem('vc-admin');
+    if (secure) BE().logout(); else sessionStorage.removeItem('vc-admin');
     setAuth(false);
     if (onExit) onExit();
   }
 
+  if (checking) {
+    return <div className="adm-login"><div className="adm-login__box" style={{ textAlign: 'center' }}>
+      <div style={{ color: 'var(--ink-500)', fontSize: 14 }}>Cargando…</div>
+    </div></div>;
+  }
   if (!auth) return <AdminLogin onAuth={() => setAuth(true)} />;
 
   const Base = window.VcoreDesignSystem_8ff97c?.Logo;

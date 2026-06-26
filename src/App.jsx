@@ -8,6 +8,7 @@ export default function App() {
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [, setDataVersion] = useState(0);
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem('vcore-theme') || 'light'; } catch (e) { return 'light'; }
   });
@@ -20,6 +21,16 @@ export default function App() {
     function handler(e) { nav(e.detail); }
     window.addEventListener('vc:nav', handler);
     return () => window.removeEventListener('vc:nav', handler);
+  }, []);
+
+  /* re-render cuando el catálogo llega/cambia desde el backend */
+  useEffect(() => {
+    function onData() {
+      setDataVersion(v => v + 1);
+      setActive(a => (a && window.VcoreData.products.find(p => p.id === a.id)) || window.VcoreData.products[0]);
+    }
+    window.addEventListener('vc:data-loaded', onData);
+    return () => window.removeEventListener('vc:data-loaded', onData);
   }, []);
 
   function toggleTheme() { setTheme(t => t === 'dark' ? 'light' : 'dark'); }

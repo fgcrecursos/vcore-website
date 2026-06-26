@@ -1,10 +1,35 @@
-/* Vcore website — App shell + routing + cart state. */
+/* Vcore website — App shell + hash routing + cart state. */
 const React = window.React;
 const { useState, useEffect } = React;
 
+/* ── Hash routing ───────────────────────────────────────── */
+function pageToHash(pg, prod) {
+  if (pg === 'shop')     return '#/tienda';
+  if (pg === 'nosotros') return '#/nosotros';
+  if (pg === 'admin')    return '#/admin';
+  if (pg === 'product')  return '#/producto/' + (prod ? prod.id : '');
+  return '#/';
+}
+function parseHash() {
+  const h = (window.location.hash || '').replace(/^#\/?/, '');
+  const parts = h.split('/').filter(Boolean);
+  if (!parts.length) return { page: 'home' };
+  if (parts[0] === 'tienda')   return { page: 'shop' };
+  if (parts[0] === 'nosotros') return { page: 'nosotros' };
+  if (parts[0] === 'admin')    return { page: 'admin' };
+  if (parts[0] === 'producto') return { page: 'product', id: parts[1] || '' };
+  return { page: 'home' };
+}
+
 export default function App() {
-  const [page, setPage] = useState('home');
-  const [active, setActive] = useState(window.VcoreData.products[0]);
+  const initial = parseHash();
+  const [page, setPage] = useState(initial.page);
+  const [active, setActive] = useState(() => {
+    if (initial.page === 'product' && initial.id) {
+      return window.VcoreData.products.find(p => p.id === initial.id) || window.VcoreData.products[0];
+    }
+    return window.VcoreData.products[0];
+  });
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -17,6 +42,21 @@ export default function App() {
     try { localStorage.setItem('vcore-theme', theme); } catch (e) {}
   }, [theme]);
 
+  /* la URL (hash) es la fuente de verdad de la navegación */
+  useEffect(() => {
+    function applyRoute() {
+      const r = parseHash();
+      setPage(r.page);
+      if (r.page === 'product' && r.id) {
+        const prod = window.VcoreData.products.find(p => p.id === r.id);
+        if (prod) setActive(prod);
+      }
+      window.scrollTo({ top: 0 });
+    }
+    window.addEventListener('hashchange', applyRoute);
+    return () => window.removeEventListener('hashchange', applyRoute);
+  }, []);
+
   useEffect(() => {
     function handler(e) { nav(e.detail); }
     window.addEventListener('vc:nav', handler);
@@ -27,7 +67,13 @@ export default function App() {
   useEffect(() => {
     function onData() {
       setDataVersion(v => v + 1);
-      setActive(a => (a && window.VcoreData.products.find(p => p.id === a.id)) || window.VcoreData.products[0]);
+      const r = parseHash();
+      if (r.page === 'product' && r.id) {
+        const prod = window.VcoreData.products.find(p => p.id === r.id);
+        if (prod) setActive(prod);
+      } else {
+        setActive(a => (a && window.VcoreData.products.find(p => p.id === a.id)) || window.VcoreData.products[0]);
+      }
     }
     window.addEventListener('vc:data-loaded', onData);
     return () => window.removeEventListener('vc:data-loaded', onData);
@@ -61,31 +107,31 @@ export default function App() {
   }
 
   function openProduct(p) {
-    setActive(p);
-    setPage('product');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setActive(p);                          // respuesta inmediata
+    window.location.hash = pageToHash('product', p);
   }
 
   function nav(pg) {
     if (pg === 'howto') {
-      if (page !== 'home') {
-        setPage('home');
-        setTimeout(() => {
-          document.getElementById('como-comprar')?.scrollIntoView({ behavior: 'smooth' });
-        }, 120);
-      } else {
-        document.getElementById('como-comprar')?.scrollIntoView({ behavior: 'smooth' });
-      }
+      const scroll = () => document.getElementById('como-comprar')?.scrollIntoView({ behavior: 'smooth' });
+      if (page !== 'home') { window.location.hash = '#/'; setTimeout(scroll, 140); }
+      else scroll();
       return;
     }
     if (pg.startsWith('product-')) {
       const id = pg.replace('product-', '');
       const prod = window.VcoreData.products.find(p => p.id === id);
-      if (prod) openProduct(prod);
+      if (prod) setActive(prod);
+      window.location.hash = '#/producto/' + id;
       return;
     }
-    setPage(pg);
-    window.scrollTo({ top: 0 });
+    const target = pageToHash(pg);
+    if (window.location.hash === target || (target === '#/' && !window.location.hash)) {
+      // mismo destino: forzar aplicar ruta igual (ej. volver al home ya estando)
+      setPage(pg); window.scrollTo({ top: 0 });
+    } else {
+      window.location.hash = target;
+    }
   }
 
   const count = cart.reduce((s, it) => s + it.qty, 0);
@@ -112,7 +158,7 @@ export default function App() {
 
       {page === 'home'     && <Home onNav={nav} onAdd={addToCart} onOpen={openProduct} />}
       {page === 'shop'     && <Shop onAdd={addToCart} onOpen={openProduct} />}
-      {page === 'product'  && <Product product={active} onAdd={addToCart} />}
+      {page === 'product'  && <Product product={active} onAdd={addToCart} onOpen={openProduct} />}
       {page === 'nosotros' && <AboutPage />}
 
       <Footer />

@@ -691,7 +691,7 @@ function Shop({ onAdd, onOpen }) {
   );
 }
 
-function Product({ product, onAdd }) {
+function Product({ product, onAdd, onOpen }) {
   injectPages();
   const p = product || D.products[0];
   const [size, setSize] = useState(p.sizes[0]);
@@ -699,6 +699,14 @@ function Product({ product, onAdd }) {
   const stats = p.stats || D.products[0].stats;
 
   useEffect(() => { setSize(p.sizes[0]); setQty(1); }, [p.id]);
+
+  /* relacionados: misma categoría primero, completar con el resto */
+  const related = (() => {
+    const all = D.products.filter(x => x.id !== p.id);
+    const sameCat = all.filter(x => x.category === p.category);
+    const rest = all.filter(x => x.category !== p.category);
+    return [...sameCat, ...rest].slice(0, 4);
+  })();
 
   return (
     <main className="vc-wrap">
@@ -753,6 +761,20 @@ function Product({ product, onAdd }) {
           </div>
         </div>
       </section>
+
+      {related.length > 0 && onOpen && (
+        <section className="vc-section" style={{ paddingTop: 8 }}>
+          <div className="vc-section__head">
+            <div>
+              <Eyebrow tone="ink">También te puede interesar</Eyebrow>
+              <h2>Productos relacionados</h2>
+            </div>
+          </div>
+          <div className="vc-grid">
+            {related.map(rp => <ProductCard key={rp.id} p={rp} onOpen={onOpen} onAdd={onAdd} />)}
+          </div>
+        </section>
+      )}
     </main>
   );
 }

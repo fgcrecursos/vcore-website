@@ -62,7 +62,7 @@ function readLS(key, fallback) {
 /* ─── CSS ──────────────────────────────────────────────── */
 const ADMIN_CSS = `
 /* shell */
-.adm-shell { display: flex; min-height: 100vh; }
+.adm-shell { display: flex; min-height: 100vh; color: var(--ink-900); }
 .adm-side { width: 230px; flex: none; position: sticky; top: 0; height: 100vh; overflow-y: auto;
   background: var(--gradient-ink-bloom); display: flex; flex-direction: column; isolation: isolate; }
 .adm-side::before { content:""; position:absolute; inset:0; background:var(--vignette-soft); pointer-events:none; z-index:0; }
@@ -141,7 +141,7 @@ const ADMIN_CSS = `
 .adm-btn--primary { background: var(--green-500); color: #fff; }
 .adm-btn--primary:hover { background: var(--green-600); }
 .adm-btn--outline { background: transparent; border: 1.5px solid var(--border-default); color: var(--ink-800); }
-.adm-btn--outline:hover { border-color: var(--green-500); color: var(--green-700); }
+.adm-btn--outline:hover { border-color: var(--green-500); color: var(--text-brand); }
 .adm-btn--ghost { background: transparent; color: var(--ink-600); }
 .adm-btn--ghost:hover { background: var(--paper-100); color: var(--ink-900); }
 .adm-btn--danger { background: transparent; border: 1.5px solid #D32F2F44; color: #B71C1C; }
@@ -225,7 +225,8 @@ const ADMIN_CSS = `
 
 /* login */
 .adm-login { min-height: 100vh; display: flex; align-items: center; justify-content: center;
-  background: var(--gradient-paper-bloom); background-attachment: fixed; }
+  background: var(--surface-page); color: var(--ink-900); }
+.adm-login__box h2 { color: var(--ink-900); }
 .adm-login__box { background: var(--surface-card); border: 1px solid var(--border-default);
   border-radius: var(--radius-xl); padding: 44px 40px; width: min(380px, 90vw); }
 .adm-login__box h2 { font-family: var(--font-display); font-weight: 800; font-size: 28px;
@@ -260,7 +261,7 @@ const ADMIN_CSS = `
   padding: 10px 16px; border-radius: var(--radius-md); font-size: 13.5px; font-weight: 700;
   background: var(--surface-card); border: 1px solid var(--border-default);
   color: var(--ink-800); cursor: pointer; text-decoration: none; transition: border-color .15s, color .15s; }
-.adm-quick a:hover, .adm-quick button:hover { border-color: var(--green-500); color: var(--green-700); }
+.adm-quick a:hover, .adm-quick button:hover { border-color: var(--green-500); color: var(--text-brand); }
 
 /* empty state */
 .adm-empty { padding: 48px 24px; text-align: center; color: var(--ink-400); }
@@ -385,7 +386,7 @@ function AdminLogin({ onAuth }) {
     <div className="adm-login">
       <div className="adm-login__box">
         <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase',
-          color: 'var(--green-600)' }}>Panel de administración</div>
+          color: 'var(--text-brand)' }}>Panel de administración</div>
         <h2>Ingresar</h2>
         {secure && (
           <input className="adm-login__inp" type="email" placeholder="Email" autoComplete="username"
@@ -921,18 +922,18 @@ function OrderDetail({ order, onClose, onUpdateStatus, onDelete }) {
           <div style={{ background: 'var(--paper-100)', borderRadius: 'var(--radius-md)', padding: '12px 16px',
             fontSize: 13, display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
             {(order.tierDiscAmt > 0) && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--green-700)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-brand)' }}>
                 <span>Desc. {order.tierName}</span><span>-{fmt(order.tierDiscAmt)}</span>
               </div>
             )}
             {(order.couponDiscAmt > 0) && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--green-700)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-brand)' }}>
                 <span>Código {order.couponCode}</span><span>-{fmt(order.couponDiscAmt)}</span>
               </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>Envío ({order.shippingLabel})</span>
-              <span style={{ color: (order.shippingCost || 0) === 0 ? 'var(--green-600)' : undefined }}>
+              <span style={{ color: (order.shippingCost || 0) === 0 ? 'var(--text-brand)' : undefined }}>
                 {(order.shippingCost || 0) === 0 ? 'Gratis' : fmt(order.shippingCost)}
               </span>
             </div>
@@ -1192,7 +1193,7 @@ function AdminCodes() {
               {codes.map(c => (
                 <tr key={c.id}>
                   <td style={{ fontFamily: 'var(--font-display)', fontWeight: 800, letterSpacing: '.05em' }}>{c.code}</td>
-                  <td style={{ fontWeight: 800, color: 'var(--green-700)' }}>{c.value}%</td>
+                  <td style={{ fontWeight: 800, color: 'var(--text-brand)' }}>{c.value}%</td>
                   <td style={{ fontSize: 13, color: 'var(--ink-500)' }}>{c.note}</td>
                   <td><Switch on={c.active} onChange={() => toggle(c.id)} /></td>
                   <td>
@@ -1280,7 +1281,7 @@ function AdminConfig() {
             <button className="adm-btn adm-btn--primary" onClick={save} disabled={busy}>
               {busy ? 'Guardando…' : 'Guardar configuración'}
             </button>
-            {saved && <span style={{ fontSize: 13, color: 'var(--green-600)', fontWeight: 700 }}>✓ Guardado</span>}
+            {saved && <span style={{ fontSize: 13, color: 'var(--text-brand)', fontWeight: 700 }}>✓ Guardado</span>}
           </div>
         </div>
       </div>

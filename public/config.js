@@ -13,5 +13,5 @@ window.__VCORE_CONFIG__ = {
 
   // Cloudinary → Settings → Upload → Upload presets (unsigned)
   cloudinaryCloudName: 'dbmmvwezb',
-  cloudinaryUploadPreset: '', // ← falta: el preset Unsigned (ej. vcore_unsigned)
+  cloudinaryUploadPreset: 'vcore_unsigned',
 };

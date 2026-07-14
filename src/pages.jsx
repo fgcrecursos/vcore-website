@@ -388,21 +388,45 @@ const SLIDES = [
   },
 ];
 
+/* Convierte un banner del backend (texto plano) al shape que el render usa. */
+function bannerToSlide(b) {
+  return {
+    eyebrow: b.eyebrow || '',
+    title: b.title || '',
+    body: b.subtitle || '',
+    bg: b.bg || 'var(--gradient-ink-bloom)',
+    photo: b.photo || '',
+    ctas: b.ctaLabel ? [{
+      label: b.ctaLabel,
+      nav: (b.ctaHref || '').replace(/^#\/?/, '').replace('tienda', 'shop').replace('nosotros', 'nosotros') || 'shop',
+      primary: true,
+    }] : [],
+  };
+}
+
 function HeroBanner({ onNav }) {
   injectPages();
-  const n = SLIDES.length;
+  /* Usa banners del backend si hay; si no, cae a los slides del código. */
+  const backendBanners = D.banners;
+  const slides = (backendBanners && backendBanners.length)
+    ? backendBanners.map(bannerToSlide)
+    : SLIDES;
+  const n = slides.length;
   const [slide, setSlide] = useState(0);
 
   useEffect(() => {
+    if (n <= 1) return;
     const t = setTimeout(() => setSlide(s => (s + 1) % n), 6000);
     return () => clearTimeout(t);
-  }, [slide]);
+  }, [slide, n]);
+
+  useEffect(() => { if (slide >= n) setSlide(0); }, [n]);
 
   function go(dir) { setSlide(s => (s + dir + n) % n); }
 
   return (
     <div className="vc-banner">
-      {SLIDES.map((s, i) => (
+      {slides.map((s, i) => (
         <div key={i} className={`vc-slide${i === slide ? ' active' : ''}`}>
           <div className="vc-slide__bg" style={{ background: s.bg }} />
           <div className="vc-slide__vignette" />
@@ -470,7 +494,7 @@ function HeroBanner({ onNav }) {
       </button>
 
       <div className="vc-banner__dots">
-        {SLIDES.map((_, i) => (
+        {slides.map((_, i) => (
           <button key={i} className={`vc-banner__dot${i === slide ? ' active' : ''}`}
             onClick={() => setSlide(i)} aria-label={`Slide ${i + 1}`} />
         ))}

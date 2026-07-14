@@ -157,12 +157,22 @@ function TierProgress({ subtotal }) {
   );
 }
 
-function buildWAMsg({ items, tier, codeApplied, codeDiscount, subtotal, tierSaving, codeSaving, shippingOpt, shippingCost, total }) {
+function buildWAMsg({ items, tier, codeApplied, codeDiscount, subtotal, tierSaving, codeSaving, shippingOpt, shippingCost, total, customer }) {
   const lines = items.map(it =>
     `• ${it.product.name} (${it.size}) ×${it.qty} — ${D.fmt(unitOf(it) * it.qty)}`
   ).join('\n');
 
-  let msg = `Hola Vcore! Quiero hacer un pedido:\n\n${lines}\n\nSubtotal: ${D.fmt(subtotal)}\n`;
+  let msg = `Hola Vcore! Quiero hacer un pedido:\n\n`;
+  if (customer && (customer.name || customer.phone)) {
+    msg += `*Datos:*\n`;
+    if (customer.name)    msg += `• Nombre: ${customer.name}\n`;
+    if (customer.phone)   msg += `• Tel: ${customer.phone}\n`;
+    if (customer.email)   msg += `• Email: ${customer.email}\n`;
+    if (customer.city)    msg += `• Ciudad: ${customer.city}\n`;
+    if (customer.address) msg += `• Dirección: ${customer.address}\n`;
+    msg += `\n`;
+  }
+  msg += `${lines}\n\nSubtotal: ${D.fmt(subtotal)}\n`;
   if (tierSaving > 0) msg += `Desc. ${tier.label} (${tier.badge}): -${D.fmt(tierSaving)}\n`;
   if (codeSaving > 0) msg += `Código ${codeApplied}: -${D.fmt(codeSaving)}\n`;
   msg += `Envío (${shippingOpt.label}): ${shippingCost === 0 ? 'Gratis' : D.fmt(shippingCost)}\n`;
@@ -170,7 +180,7 @@ function buildWAMsg({ items, tier, codeApplied, codeDiscount, subtotal, tierSavi
   return encodeURIComponent(msg);
 }
 
-function saveOrder({ items, total, tier, tierSaving, codeApplied, codeSaving, subtotal, shippingOpt, shippingCost }) {
+function saveOrder({ items, total, tier, tierSaving, codeApplied, codeSaving, subtotal, shippingOpt, shippingCost, customer }) {
   const summary = items.map(it => `${it.product.name} ×${it.qty}`).join(', ');
   const order = {
     id: 'VC' + Date.now().toString(36).toUpperCase(),
@@ -187,6 +197,12 @@ function saveOrder({ items, total, tier, tierSaving, codeApplied, codeSaving, su
     shippingCost,
     total,
     status: 'nuevo',
+    customer_name: (customer && customer.name) || '',
+    customer_phone: (customer && customer.phone) || '',
+    customer_email: (customer && customer.email) || '',
+    customer_address: (customer && customer.address) || '',
+    customer_city: (customer && customer.city) || '',
+    origen: 'web',
   };
   /* Backend (Supabase) → pedido centralizado, visible desde cualquier dispositivo.
      Demo (sin backend) → guardado local. */
@@ -208,6 +224,17 @@ function CartDrawer({ open, items, onClose, onQty }) {
   const [code, setCode] = useState('');
   const [codeApplied, setCodeApplied] = useState(null);
   const [codeErr, setCodeErr] = useState(false);
+  /* Datos del cliente (para CRM + cuenta corriente) */
+  const [customer, setCustomer] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('vc-customer') || '{}'); } catch { return {}; }
+  });
+  function setC(k, v) {
+    setCustomer(prev => {
+      const next = { ...prev, [k]: v };
+      try { localStorage.setItem('vc-customer', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }
 
   const subtotal = items.reduce((s, it) => s + unitOf(it) * it.qty, 0);
   const tier = D.getTier(subtotal);
@@ -234,12 +261,16 @@ function CartDrawer({ open, items, onClose, onQty }) {
   }
 
   function checkout() {
+    if (!customer.name || !customer.phone) {
+      alert('Completá al menos nombre y teléfono para poder coordinar el pedido.');
+      return;
+    }
     const msg = buildWAMsg({
       items, tier, codeApplied, codeDiscount,
       subtotal, tierSaving, codeSaving,
-      shippingOpt, shippingCost, total,
+      shippingOpt, shippingCost, total, customer,
     });
-    saveOrder({ items, total, tier, tierSaving, codeApplied, codeSaving, subtotal, shippingOpt, shippingCost });
+    saveOrder({ items, total, tier, tierSaving, codeApplied, codeSaving, subtotal, shippingOpt, shippingCost, customer });
     const phone = (D.config && D.config.whatsapp) || '5491100000000';
     window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
   }
@@ -303,6 +334,28 @@ function CartDrawer({ open, items, onClose, onQty }) {
             </div>
 
             <div className="vc-cart__ft">
+              {/* Datos del cliente */}
+              <div style={{ marginBottom: 14 }}>
+                <div className="vc-ft-label">Datos de contacto</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <input className="vc-code-input" style={{ textTransform: 'none', letterSpacing: 0 }}
+                    placeholder="Nombre y apellido *" value={customer.name || ''}
+                    onChange={e => setC('name', e.target.value)} />
+                  <input className="vc-code-input" style={{ textTransform: 'none', letterSpacing: 0 }}
+                    placeholder="Teléfono *" value={customer.phone || ''}
+                    onChange={e => setC('phone', e.target.value)} />
+                  <input className="vc-code-input" style={{ textTransform: 'none', letterSpacing: 0, gridColumn: '1/-1' }}
+                    placeholder="Email (opcional)" value={customer.email || ''}
+                    onChange={e => setC('email', e.target.value)} />
+                  <input className="vc-code-input" style={{ textTransform: 'none', letterSpacing: 0 }}
+                    placeholder="Ciudad" value={customer.city || ''}
+                    onChange={e => setC('city', e.target.value)} />
+                  <input className="vc-code-input" style={{ textTransform: 'none', letterSpacing: 0 }}
+                    placeholder="Dirección" value={customer.address || ''}
+                    onChange={e => setC('address', e.target.value)} />
+                </div>
+              </div>
+
               {/* Shipping selector */}
               <div style={{ marginBottom: 14 }}>
                 <div className="vc-ft-label">Envío</div>

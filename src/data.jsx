@@ -25,6 +25,7 @@ window.VcoreData = {
     products: _readLS('vc-products'),
     codes:    _readLS('vc-codes'),
     config:   _readLS('vc-config'),
+    banners:  _readLS('vc-banners'),
   },
 
   get _backendOn() { return !!(window.VcoreBackend && window.VcoreBackend.isOn()); },
@@ -33,18 +34,31 @@ window.VcoreData = {
   async loadFromBackend() {
     if (!this._backendOn) return;
     try {
-      const [products, codes, config] = await Promise.all([
+      const [products, codes, config, bannersRaw] = await Promise.all([
         window.VcoreBackend.fetchProducts(),
         window.VcoreBackend.fetchCodes(),
         window.VcoreBackend.fetchConfig(),
+        window.VcoreBackend.fetchBanners(),
       ]);
       if (products) { this._cache.products = products; localStorage.setItem('vc-products', JSON.stringify(products)); }
       if (codes)    { this._cache.codes = codes;       localStorage.setItem('vc-codes', JSON.stringify(codes)); }
       if (config)   { this._cache.config = config;     localStorage.setItem('vc-config', JSON.stringify(config)); }
+      if (bannersRaw) {
+        const banners = bannersRaw.map(r => window.VcoreBackend._mapBanner(r));
+        this._cache.banners = banners;
+        localStorage.setItem('vc-banners', JSON.stringify(banners));
+      }
     } catch (e) {
       console.error('[Vcore] loadFromBackend', e && e.message);
     }
     window.dispatchEvent(new CustomEvent('vc:data-loaded'));
+  },
+
+  /* Banners activos del hero (ordenados por sort) */
+  get banners() {
+    let arr = this._backendOn ? this._cache.banners : _readLS('vc-banners');
+    if (!arr || !arr.length) return null;    // null → home usa los slides hardcoded
+    return arr.filter(b => b.active !== false).sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
   },
 
   /* Fuente cruda de productos: caché (backend) o localStorage/_base (demo) */

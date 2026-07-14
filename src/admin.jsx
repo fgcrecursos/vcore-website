@@ -340,6 +340,11 @@ const IcoEdit   = ({ size }) => <Ico size={size} d={<><path d="M11 4H4a2 2 0 00-
 const IcoClose  = ({ size }) => <Ico size={size} d={<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>} />;
 const IcoPrint  = ({ size }) => <Ico size={size} d={<><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></>} />;
 const IcoDown   = ({ size }) => <Ico size={size} d={<><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>} />;
+const IcoImage  = ({ size }) => <Ico size={size} d={<><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></>} />;
+const IcoUsers  = ({ size }) => <Ico size={size} d={<><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></>} />;
+const IcoWallet = ({ size }) => <Ico size={size} d={<><path d="M20 12V8H6a2 2 0 010-4h12v4"/><path d="M4 6v12a2 2 0 002 2h14v-4"/><path d="M18 12a2 2 0 000 4h4v-4z"/></>} />;
+const IcoChart  = ({ size }) => <Ico size={size} d={<><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></>} />;
+const IcoCheck  = ({ size }) => <Ico size={size} d={<polyline points="20 6 9 17 4 12"/>} />;
 const IcoWA     = ({ size }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
@@ -1295,13 +1300,570 @@ function AdminConfig() {
   );
 }
 
+/* ─── Banners ────────────────────────────────────────────── */
+function emptyBanner() {
+  return { id: '', eyebrow: '', title: '', subtitle: '', ctaLabel: '', ctaHref: '#/tienda',
+    photo: '', bg: 'var(--gradient-ink-bloom)', active: true, sort: 0 };
+}
+const BG_PRESETS = [
+  { label: 'Ink bloom (marca oscura)', value: 'var(--gradient-ink-bloom)' },
+  { label: 'Verde oscuro → menta',     value: 'linear-gradient(130deg, #0b2d1c 0%, #0d3d25 40%, #156638 72%, #1e8a4e 100%)' },
+  { label: 'Green bloom',              value: 'var(--gradient-green-bloom)' },
+  { label: 'Sage bloom',               value: 'var(--gradient-sage-bloom)' },
+  { label: 'Paper bloom (claro)',      value: 'var(--gradient-paper-bloom)' },
+];
+
+function BannerEditor({ banner, onSave, onClose }) {
+  const [b, setB] = useState(banner || emptyBanner());
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef(null);
+  function f(k) { return e => setB(v => ({ ...v, [k]: e.target.value })); }
+  async function handleFile(e) {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    setBusy(true);
+    try {
+      const url = (backendOn() && BE().cloudinaryOn()) ? await BE().uploadImage(file) : await fileToDataUrl(file);
+      setB(v => ({ ...v, photo: url }));
+    } catch (err) { alert('No se pudo subir: ' + err.message); }
+    finally { setBusy(false); e.target.value = ''; }
+  }
+  function save() {
+    if (!b.title.trim()) { alert('El banner necesita un título.'); return; }
+    onSave({ ...b, id: b.id || uid(), sort: parseInt(b.sort, 10) || 0 });
+  }
+  return (
+    <div className="adm-modal-ov" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="adm-modal">
+        <div className="adm-modal__hd">
+          <h3>{banner ? 'Editar banner' : 'Nuevo banner'}</h3>
+          <button className="adm-close" onClick={onClose}><IcoClose size={15} /></button>
+        </div>
+        <div className="adm-modal__body">
+          <div className="adm-field">
+            <label>Imagen del banner (opcional)</label>
+            <div className="adm-img-edit">
+              <div className="adm-img-preview">
+                {b.photo ? <img src={b.photo} alt="preview" /> : <div className="adm-img-ph">Sin imagen<br/><span>se usa fondo de color</span></div>}
+              </div>
+              <div className="adm-img-actions">
+                <button type="button" className="adm-btn adm-btn--outline adm-btn--sm" onClick={() => fileRef.current && fileRef.current.click()} disabled={busy}>
+                  <IcoDown size={13} /> {busy ? 'Procesando…' : 'Subir imagen'}
+                </button>
+                {b.photo && <button type="button" className="adm-btn adm-btn--danger adm-btn--sm" onClick={() => setB(v => ({ ...v, photo: '' }))}>Quitar</button>}
+                <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleFile} />
+              </div>
+            </div>
+          </div>
+          <div className="adm-field-row">
+            <div className="adm-field"><label>Eyebrow (chip superior)</label>
+              <input value={b.eyebrow} onChange={f('eyebrow')} placeholder="Ej. Nutrición & Rendimiento" />
+            </div>
+            <div className="adm-field"><label>Orden</label>
+              <input type="number" value={b.sort} onChange={f('sort')} min={0} />
+            </div>
+          </div>
+          <div className="adm-field"><label>Título principal</label>
+            <input value={b.title} onChange={f('title')} placeholder="Ej. Más rendimiento, menos complicaciones." />
+          </div>
+          <div className="adm-field"><label>Subtítulo / descripción</label>
+            <textarea value={b.subtitle} onChange={f('subtitle')} rows={2} />
+          </div>
+          <div className="adm-field-row">
+            <div className="adm-field"><label>Texto del botón</label>
+              <input value={b.ctaLabel} onChange={f('ctaLabel')} placeholder="Ver productos" />
+            </div>
+            <div className="adm-field"><label>Link del botón</label>
+              <input value={b.ctaHref} onChange={f('ctaHref')} placeholder="#/tienda" />
+            </div>
+          </div>
+          <div className="adm-field"><label>Fondo</label>
+            <select value={b.bg} onChange={f('bg')}>
+              {BG_PRESETS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+            </select>
+          </div>
+          <Switch on={b.active !== false} onChange={v => setB(x => ({ ...x, active: v }))} label="Activo (visible en la home)" />
+        </div>
+        <div className="adm-modal__ft">
+          <button className="adm-btn adm-btn--outline" onClick={onClose}>Cancelar</button>
+          <button className="adm-btn adm-btn--primary" onClick={save}>Guardar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdminBanners() {
+  const [banners, setBanners] = useState([]);
+  const [editing, setEditing] = useState(null);
+  const [creating, setCreating] = useState(false);
+  async function reload() {
+    if (backendOn()) {
+      const d = await BE().fetchBanners();
+      setBanners((d || []).map(r => BE()._mapBanner(r)));
+    }
+  }
+  useEffect(() => { reload(); }, []);
+  async function save(b) {
+    try { await BE().saveBanner(b); await window.VcoreData.loadFromBackend(); await reload(); }
+    catch (e) { alert('No se pudo guardar: ' + e.message); return; }
+    setEditing(null); setCreating(false);
+  }
+  async function del(id) {
+    if (!confirm('¿Eliminar este banner?')) return;
+    try { await BE().deleteBanner(id); await window.VcoreData.loadFromBackend(); await reload(); }
+    catch (e) { alert('No se pudo eliminar: ' + e.message); }
+  }
+  async function toggle(id) {
+    const b = banners.find(x => x.id === id); if (!b) return;
+    const updated = { ...b, active: !b.active };
+    setBanners(prev => prev.map(x => x.id === id ? updated : x));
+    try { await BE().saveBanner(updated); await window.VcoreData.loadFromBackend(); }
+    catch (e) { alert('No se pudo actualizar: ' + e.message); reload(); }
+  }
+  const activos = banners.filter(b => b.active !== false).length;
+  return (
+    <div>
+      <div className="adm-head">
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+          <div><div className="adm-eye">Home</div><h1>Banners del hero</h1></div>
+          <button className="adm-btn adm-btn--primary" onClick={() => setCreating(true)}>
+            <IcoPlus size={15} /> Nuevo banner
+          </button>
+        </div>
+      </div>
+      <div className="adm-panel">
+        {banners.length === 0 ? (
+          <div className="adm-empty"><IcoImage size={32} /><div>Sin banners cargados. Si no hay ninguno activo, el home usa los banners por defecto.</div></div>
+        ) : (
+          <table className="adm-tbl">
+            <thead><tr><th>Vista previa</th><th>Título</th><th>Botón</th><th>Orden</th><th>Activo</th><th></th></tr></thead>
+            <tbody>
+              {[...banners].sort((a,b) => (a.sort ?? 0) - (b.sort ?? 0)).map(b => (
+                <tr key={b.id}>
+                  <td>
+                    <div style={{ width: 88, height: 44, borderRadius: 8, background: b.bg, backgroundSize: 'cover',
+                      backgroundImage: b.photo ? `url(${b.photo})` : undefined, backgroundPosition: 'center' }} />
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 800, fontSize: 14 }}>{b.title}</div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-500)' }}>{b.eyebrow}</div>
+                  </td>
+                  <td style={{ fontSize: 13 }}>{b.ctaLabel || <span style={{color:'var(--ink-400)'}}>—</span>}</td>
+                  <td style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}>{b.sort ?? 0}</td>
+                  <td><Switch on={b.active !== false} onChange={() => toggle(b.id)} /></td>
+                  <td>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button className="adm-btn adm-btn--ghost adm-btn--sm" onClick={() => setEditing(b)}><IcoEdit size={13} /></button>
+                      <button className="adm-btn adm-btn--danger adm-btn--sm" onClick={() => del(b.id)}><IcoTrash size={13} /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+      <div style={{ fontSize: 12.5, color: 'var(--ink-500)', marginTop: 12 }}>
+        {activos} banner{activos !== 1 ? 's' : ''} activo{activos !== 1 ? 's' : ''} · rotan automáticamente cada 6 segundos.
+      </div>
+      {(editing || creating) && (
+        <BannerEditor banner={editing} onSave={save} onClose={() => { setEditing(null); setCreating(false); }} />
+      )}
+    </div>
+  );
+}
+
+/* ─── Clientes (CRM) ─────────────────────────────────────── */
+function groupCustomers(orders) {
+  const map = new Map();
+  orders.forEach(o => {
+    const key = (o.customerPhone || o.customerEmail || (o.customerName || '').toLowerCase()).trim();
+    if (!key) return;
+    if (!map.has(key)) {
+      map.set(key, {
+        key, name: o.customerName || '', phone: o.customerPhone || '', email: o.customerEmail || '',
+        dni: o.customerDni || '', address: o.customerAddress || '', city: o.customerCity || '',
+        postal: o.customerPostalCode || '',
+        orderCount: 0, totalSpent: 0, totalPaid: 0, totalPending: 0,
+        firstOrder: o.ts, lastOrder: o.ts, orders: [],
+      });
+    }
+    const c = map.get(key);
+    const total = Number(o.total) || 0;
+    const paid = (o.payments || []).reduce((s, p) => s + (Number(p.monto) || 0), 0);
+    const anulado = o.status === 'anulado' || o.paymentStatus === 'anulado';
+    c.orderCount++;
+    c.totalSpent += total; c.totalPaid += paid;
+    if (!anulado) c.totalPending += Math.max(total - paid, 0);
+    if (o.ts < c.firstOrder) c.firstOrder = o.ts;
+    if (o.ts > c.lastOrder) {
+      c.lastOrder = o.ts;
+      if (o.customerName)  c.name = o.customerName;
+      if (o.customerPhone) c.phone = o.customerPhone;
+      if (o.customerEmail) c.email = o.customerEmail;
+    }
+    c.orders.push(o);
+  });
+  return [...map.values()].sort((a, b) => b.lastOrder - a.lastOrder);
+}
+
+function AdminClientes() {
+  const [orders, setOrders] = useState([]);
+  const [q, setQ] = useState('');
+  const [detail, setDetail] = useState(null);
+  useEffect(() => { if (backendOn()) BE().listOrders().then(setOrders); else setOrders(readLS('vc-orders', [])); }, []);
+  const customers = groupCustomers(orders);
+  const shown = customers.filter(c => !q ||
+    [c.name, c.phone, c.email, c.city].some(t => (t || '').toLowerCase().includes(q.toLowerCase())));
+  return (
+    <div>
+      <div className="adm-head">
+        <div className="adm-eye">Gestión</div>
+        <h1>Clientes</h1>
+      </div>
+      <div className="adm-panel">
+        <div className="adm-bar">
+          <div className="adm-search"><IcoSearch size={14} />
+            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar por nombre, teléfono, email..." />
+          </div>
+          <span style={{ fontSize: 12.5, color: 'var(--ink-400)', marginLeft: 'auto' }}>
+            {shown.length} cliente{shown.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+        {shown.length === 0 ? (
+          <div className="adm-empty"><IcoUsers size={32} /><div>Sin clientes aún. Se registran automáticamente al confirmar un pedido con nombre y teléfono.</div></div>
+        ) : (
+          <table className="adm-tbl">
+            <thead><tr><th>Cliente</th><th>Contacto</th><th>Pedidos</th><th>Gastado</th><th>Pagado</th><th>Debe</th><th></th></tr></thead>
+            <tbody>
+              {shown.map(c => (
+                <tr key={c.key} style={{ cursor: 'pointer' }} onClick={() => setDetail(c)}>
+                  <td>
+                    <div style={{ fontWeight: 800, fontSize: 14 }}>{c.name || <span style={{color:'var(--ink-400)'}}>(sin nombre)</span>}</div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-500)' }}>{c.city || ''}</div>
+                  </td>
+                  <td style={{ fontSize: 13 }}>
+                    <div>{c.phone || '—'}</div>
+                    <div style={{ color: 'var(--ink-500)', fontSize: 12 }}>{c.email}</div>
+                  </td>
+                  <td style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}>{c.orderCount}</td>
+                  <td style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}>{fmt(c.totalSpent)}</td>
+                  <td style={{ fontFamily: 'var(--font-display)', fontWeight: 800, color: 'var(--text-brand)' }}>{fmt(c.totalPaid)}</td>
+                  <td style={{ fontFamily: 'var(--font-display)', fontWeight: 800, color: c.totalPending > 0 ? '#B71C1C' : 'var(--ink-500)' }}>{fmt(c.totalPending)}</td>
+                  <td onClick={e => e.stopPropagation()}>
+                    <button className="adm-btn adm-btn--ghost adm-btn--sm" onClick={() => setDetail(c)}><IcoEdit size={13} /></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+      {detail && <CustomerDetail customer={detail} onClose={() => setDetail(null)} />}
+    </div>
+  );
+}
+
+function CustomerDetail({ customer, onClose }) {
+  return (
+    <div className="adm-modal-ov" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="adm-modal" style={{ width: 'min(680px, 98vw)' }}>
+        <div className="adm-modal__hd">
+          <h3>{customer.name || '(sin nombre)'}</h3>
+          <button className="adm-close" onClick={onClose}><IcoClose size={15} /></button>
+        </div>
+        <div className="adm-order-detail">
+          <div style={{ padding: '16px 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 13 }}>
+            <div><strong>Teléfono:</strong> {customer.phone || '—'}</div>
+            <div><strong>Email:</strong> {customer.email || '—'}</div>
+            <div><strong>Dirección:</strong> {customer.address || '—'}</div>
+            <div><strong>Ciudad:</strong> {customer.city || '—'}</div>
+            <div><strong>Primer pedido:</strong> {new Date(customer.firstOrder).toLocaleDateString('es-AR')}</div>
+            <div><strong>Último pedido:</strong> {new Date(customer.lastOrder).toLocaleDateString('es-AR')}</div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, margin: '12px 0' }}>
+            <div className="adm-stat"><h4>Pedidos</h4><p className="sv">{customer.orderCount}</p></div>
+            <div className="adm-stat"><h4>Total gastado</h4><p className="sv">{fmt(customer.totalSpent)}</p></div>
+            <div className="adm-stat"><h4>Pendiente</h4><p className="sv" style={{ color: customer.totalPending > 0 ? '#B71C1C' : undefined }}>{fmt(customer.totalPending)}</p></div>
+          </div>
+          <h4>Historial</h4>
+          <table className="adm-order-items">
+            <thead><tr><th>ID</th><th>Fecha</th><th>Estado</th><th style={{ textAlign: 'right' }}>Total</th></tr></thead>
+            <tbody>
+              {[...customer.orders].sort((a,b) => b.ts - a.ts).map(o => (
+                <tr key={o.id}>
+                  <td style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 12 }}>{o.id}</td>
+                  <td style={{ fontSize: 12, color: 'var(--ink-500)' }}>{new Date(o.date).toLocaleDateString('es-AR')}</td>
+                  <td><span className={`adm-chip ${STATUS_COLORS[o.status] || 'adm-chip--nuevo'}`}>{o.status || 'nuevo'}</span></td>
+                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-display)', fontWeight: 800 }}>{fmt(o.total)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="adm-modal__ft">
+          <button className="adm-btn adm-btn--outline" onClick={onClose}>Cerrar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Cuenta corriente ───────────────────────────────────── */
+function paidOf(o) { return (o.payments || []).reduce((s, p) => s + (Number(p.monto) || 0), 0); }
+
+function AdminCuentaCorriente() {
+  const [orders, setOrders] = useState([]);
+  const [payFor, setPayFor] = useState(null); // orden seleccionada para registrar pago
+  async function reload() {
+    if (backendOn()) setOrders(await BE().listOrders());
+    else setOrders(readLS('vc-orders', []));
+  }
+  useEffect(() => { reload(); }, []);
+
+  const vigentes = orders.filter(o => o.status !== 'anulado');
+  const facturado = vigentes.reduce((s, o) => s + (Number(o.total) || 0), 0);
+  const cobrado   = vigentes.reduce((s, o) => s + Math.min(paidOf(o), Number(o.total) || 0), 0);
+  const porCobrar = Math.max(facturado - cobrado, 0);
+  const pendientes = vigentes.filter(o => paidOf(o) < (Number(o.total) || 0))
+    .sort((a, b) => b.ts - a.ts);
+
+  return (
+    <div>
+      <div className="adm-head">
+        <div className="adm-eye">Cobranzas</div>
+        <h1>Cuenta corriente</h1>
+      </div>
+      <div className="adm-stats">
+        <div className="adm-stat"><h4>Facturado</h4><p className="sv">{fmt(facturado)}</p><p className="adm-stat__desc">Total de pedidos vigentes</p></div>
+        <div className="adm-stat"><h4>Cobrado</h4><p className="sv" style={{ color: 'var(--text-brand)' }}>{fmt(cobrado)}</p><p className="adm-stat__desc">Pagos recibidos</p></div>
+        <div className="adm-stat"><h4>Por cobrar</h4><p className="sv" style={{ color: '#B71C1C' }}>{fmt(porCobrar)}</p><p className="adm-stat__desc">Saldo pendiente</p></div>
+        <div className="adm-stat"><h4>Pedidos abiertos</h4><p className="sv">{pendientes.length}</p><p className="adm-stat__desc">Con saldo &gt; 0</p></div>
+      </div>
+      <div className="adm-panel">
+        <div className="adm-panel__hd"><h3>Pedidos con saldo pendiente</h3></div>
+        {pendientes.length === 0 ? (
+          <div className="adm-empty"><IcoCheck size={32} /><div>Todo cobrado. No hay pedidos con saldo pendiente.</div></div>
+        ) : (
+          <table className="adm-tbl">
+            <thead><tr><th>Pedido</th><th>Cliente</th><th>Fecha</th><th style={{textAlign:'right'}}>Total</th><th style={{textAlign:'right'}}>Pagado</th><th style={{textAlign:'right'}}>Saldo</th><th></th></tr></thead>
+            <tbody>
+              {pendientes.map(o => {
+                const paid = paidOf(o); const saldo = Math.max((o.total || 0) - paid, 0);
+                return (
+                  <tr key={o.id}>
+                    <td style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 12 }}>{o.id}</td>
+                    <td style={{ fontSize: 13 }}>{o.customerName || <span style={{color:'var(--ink-400)'}}>—</span>}</td>
+                    <td style={{ fontSize: 12, color: 'var(--ink-500)' }}>{new Date(o.date).toLocaleDateString('es-AR')}</td>
+                    <td style={{ textAlign: 'right', fontFamily: 'var(--font-display)', fontWeight: 800 }}>{fmt(o.total)}</td>
+                    <td style={{ textAlign: 'right', color: 'var(--text-brand)' }}>{fmt(paid)}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 800, color: '#B71C1C' }}>{fmt(saldo)}</td>
+                    <td>
+                      <button className="adm-btn adm-btn--primary adm-btn--sm" onClick={() => setPayFor(o)}>Registrar pago</button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+      {payFor && <PaymentModal order={payFor} onClose={() => setPayFor(null)} onSaved={() => { setPayFor(null); reload(); }} />}
+    </div>
+  );
+}
+
+function PaymentModal({ order, onClose, onSaved }) {
+  const paidAlready = paidOf(order);
+  const saldo = Math.max((order.total || 0) - paidAlready, 0);
+  const [monto, setMonto] = useState(saldo);
+  const [metodo, setMetodo] = useState('transferencia');
+  const [nota, setNota] = useState('');
+  const [busy, setBusy] = useState(false);
+  async function save() {
+    const m = parseFloat(monto) || 0;
+    if (m <= 0) { alert('Ingresá un monto mayor a 0'); return; }
+    setBusy(true);
+    try {
+      const payments = [...(order.payments || []), {
+        id: 'p' + Date.now(), monto: m, metodo, nota,
+        fecha: new Date().toISOString(),
+      }];
+      const paidTotal = payments.reduce((s, p) => s + p.monto, 0);
+      const paymentStatus = paidTotal >= (order.total || 0) ? 'pagado' : 'parcial';
+      await BE().updateOrder(order.id, { payments, paymentStatus });
+      onSaved();
+    } catch (e) { alert('No se pudo registrar: ' + e.message); }
+    finally { setBusy(false); }
+  }
+  return (
+    <div className="adm-modal-ov" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="adm-modal" style={{ maxWidth: 460 }}>
+        <div className="adm-modal__hd">
+          <h3>Registrar pago · {order.id}</h3>
+          <button className="adm-close" onClick={onClose}><IcoClose size={15} /></button>
+        </div>
+        <div className="adm-modal__body">
+          <div style={{ background: 'var(--paper-100)', padding: 12, borderRadius: 8, fontSize: 13 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Total del pedido:</span><strong>{fmt(order.total)}</strong></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Ya pagado:</span><strong style={{ color: 'var(--text-brand)' }}>{fmt(paidAlready)}</strong></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--paper-200)', paddingTop: 6, marginTop: 6 }}><span>Saldo:</span><strong style={{ color: '#B71C1C' }}>{fmt(saldo)}</strong></div>
+          </div>
+          <div className="adm-field-row">
+            <div className="adm-field"><label>Monto</label>
+              <input type="number" value={monto} onChange={e => setMonto(e.target.value)} min={0} />
+            </div>
+            <div className="adm-field"><label>Método</label>
+              <select value={metodo} onChange={e => setMetodo(e.target.value)}>
+                <option value="transferencia">Transferencia</option>
+                <option value="efectivo">Efectivo</option>
+                <option value="mercadopago">Mercado Pago</option>
+                <option value="tarjeta">Tarjeta</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
+          </div>
+          <div className="adm-field"><label>Nota (opcional)</label>
+            <input value={nota} onChange={e => setNota(e.target.value)} placeholder="Ej. señó por WhatsApp" />
+          </div>
+          {(order.payments || []).length > 0 && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--ink-500)', marginBottom: 6 }}>Historial</div>
+              <table className="adm-order-items">
+                <thead><tr><th>Fecha</th><th>Método</th><th style={{textAlign:'right'}}>Monto</th></tr></thead>
+                <tbody>
+                  {(order.payments || []).map(p => (
+                    <tr key={p.id}>
+                      <td style={{fontSize:12}}>{new Date(p.fecha).toLocaleDateString('es-AR')}</td>
+                      <td style={{fontSize:12}}>{p.metodo}</td>
+                      <td style={{fontSize:12, textAlign:'right'}}>{fmt(p.monto)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+        <div className="adm-modal__ft">
+          <button className="adm-btn adm-btn--outline" onClick={onClose}>Cancelar</button>
+          <button className="adm-btn adm-btn--primary" onClick={save} disabled={busy}>{busy ? 'Guardando…' : 'Registrar pago'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Facturación / Reportes ────────────────────────────── */
+function AdminFacturacion() {
+  const [orders, setOrders] = useState([]);
+  const [periodo, setPeriodo] = useState('mes-actual');
+  useEffect(() => { if (backendOn()) BE().listOrders().then(setOrders); else setOrders(readLS('vc-orders', [])); }, []);
+
+  const now = new Date();
+  const cutoffs = {
+    'mes-actual': new Date(now.getFullYear(), now.getMonth(), 1).getTime(),
+    'mes-anterior': new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime(),
+    '30d': now.getTime() - 30 * 24 * 3600 * 1000,
+    '90d': now.getTime() - 90 * 24 * 3600 * 1000,
+    'todo': 0,
+  };
+  const cutoffEnd = periodo === 'mes-anterior' ? new Date(now.getFullYear(), now.getMonth(), 1).getTime() : Infinity;
+
+  const filtered = orders.filter(o => o.status !== 'anulado' && o.ts >= cutoffs[periodo] && o.ts < cutoffEnd);
+  const facturado = filtered.reduce((s, o) => s + (o.total || 0), 0);
+  const cobrado = filtered.reduce((s, o) => s + Math.min(paidOf(o), o.total || 0), 0);
+  const cantidad = filtered.length;
+  const ticket = cantidad ? Math.round(facturado / cantidad) : 0;
+
+  /* Top productos por unidades vendidas */
+  const productAgg = new Map();
+  filtered.forEach(o => (o.items || []).forEach(it => {
+    const k = it.name + ' — ' + (it.sub || '');
+    const cur = productAgg.get(k) || { name: k, qty: 0, revenue: 0 };
+    cur.qty += it.qty || 0; cur.revenue += (it.price || 0) * (it.qty || 0);
+    productAgg.set(k, cur);
+  }));
+  const topProducts = [...productAgg.values()].sort((a, b) => b.qty - a.qty).slice(0, 8);
+
+  function exportCSV() {
+    const header = ['ID', 'Fecha', 'Cliente', 'Teléfono', 'Total', 'Pagado', 'Estado', 'Resumen'];
+    const rows = filtered.map(o => [
+      o.id, new Date(o.date).toLocaleDateString('es-AR'),
+      (o.customerName || '').replace(/;/g, ','), (o.customerPhone || ''),
+      o.total, paidOf(o), o.status, (o.summary || '').replace(/;/g, ',').replace(/\n/g, ' '),
+    ]);
+    const csv = [header, ...rows].map(r => r.map(v => `"${(v ?? '').toString().replace(/"/g, '""')}"`).join(';')).join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `facturacion_${periodo}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+  }
+
+  const options = [
+    { v: 'mes-actual',   l: 'Mes en curso' },
+    { v: 'mes-anterior', l: 'Mes anterior' },
+    { v: '30d',          l: 'Últimos 30 días' },
+    { v: '90d',          l: 'Últimos 90 días' },
+    { v: 'todo',         l: 'Histórico total' },
+  ];
+
+  return (
+    <div>
+      <div className="adm-head">
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+          <div><div className="adm-eye">Reportes</div><h1>Facturación</h1></div>
+          <button className="adm-btn adm-btn--outline" onClick={exportCSV} disabled={!filtered.length}>
+            <IcoDown size={13} /> Exportar CSV
+          </button>
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 20 }}>
+        {options.map(o => (
+          <button key={o.v} className={`adm-btn adm-btn--sm ${periodo === o.v ? 'adm-btn--primary' : 'adm-btn--ghost'}`} onClick={() => setPeriodo(o.v)}>{o.l}</button>
+        ))}
+      </div>
+      <div className="adm-stats">
+        <div className="adm-stat"><h4>Facturado</h4><p className="sv">{fmt(facturado)}</p><p className="adm-stat__desc">{cantidad} pedido{cantidad !== 1 ? 's' : ''}</p></div>
+        <div className="adm-stat"><h4>Cobrado</h4><p className="sv" style={{ color: 'var(--text-brand)' }}>{fmt(cobrado)}</p><p className="adm-stat__desc">Pagos recibidos</p></div>
+        <div className="adm-stat"><h4>Ticket promedio</h4><p className="sv">{cantidad ? fmt(ticket) : '—'}</p><p className="adm-stat__desc">Por pedido</p></div>
+        <div className="adm-stat"><h4>Por cobrar</h4><p className="sv" style={{ color: '#B71C1C' }}>{fmt(facturado - cobrado)}</p><p className="adm-stat__desc">Del período</p></div>
+      </div>
+      <div className="adm-panel">
+        <div className="adm-panel__hd"><h3>Top productos del período</h3></div>
+        {topProducts.length === 0 ? (
+          <div className="adm-empty"><IcoChart size={30} /><div>Sin ventas en el período.</div></div>
+        ) : (
+          <table className="adm-tbl">
+            <thead><tr><th>#</th><th>Producto</th><th style={{textAlign:'right'}}>Unidades</th><th style={{textAlign:'right'}}>Facturación</th></tr></thead>
+            <tbody>
+              {topProducts.map((p, i) => (
+                <tr key={p.name}>
+                  <td style={{ fontFamily: 'var(--font-display)', fontWeight: 800, color: 'var(--ink-400)' }}>{i + 1}</td>
+                  <td style={{ fontSize: 13 }}>{p.name}</td>
+                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-display)', fontWeight: 800 }}>{p.qty}</td>
+                  <td style={{ textAlign: 'right', fontFamily: 'var(--font-display)', fontWeight: 800 }}>{fmt(p.revenue)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ─── Shell ─────────────────────────────────────────────── */
 const NAV = [
-  { id: 'dashboard', label: 'Dashboard', icon: IcoGrid },
-  { id: 'products',  label: 'Productos',  icon: IcoBox  },
-  { id: 'orders',    label: 'Pedidos',    icon: IcoCart },
-  { id: 'codes',     label: 'Códigos',    icon: IcoTag  },
-  { id: 'config',    label: 'Config',     icon: IcoCog  },
+  { id: 'dashboard',   label: 'Dashboard',   icon: IcoGrid },
+  { id: 'products',    label: 'Productos',   icon: IcoBox  },
+  { id: 'banners',     label: 'Banners',     icon: IcoImage },
+  { id: 'orders',      label: 'Pedidos',     icon: IcoCart },
+  { id: 'clientes',    label: 'Clientes',    icon: IcoUsers },
+  { id: 'cuenta',      label: 'Cuenta corriente', icon: IcoWallet },
+  { id: 'facturacion', label: 'Facturación', icon: IcoChart },
+  { id: 'codes',       label: 'Códigos',     icon: IcoTag  },
+  { id: 'config',      label: 'Config',      icon: IcoCog  },
 ];
 
 function AdminPage({ onExit }) {
@@ -1374,11 +1936,15 @@ function AdminPage({ onExit }) {
 
       {/* Main */}
       <div className="adm-main">
-        {section === 'dashboard' && <AdminDashboard orders={orders} products={products} onNav={setSection} />}
-        {section === 'products'  && <AdminProducts />}
-        {section === 'orders'    && <AdminOrders />}
-        {section === 'codes'     && <AdminCodes />}
-        {section === 'config'    && <AdminConfig />}
+        {section === 'dashboard'   && <AdminDashboard orders={orders} products={products} onNav={setSection} />}
+        {section === 'products'    && <AdminProducts />}
+        {section === 'banners'     && <AdminBanners />}
+        {section === 'orders'      && <AdminOrders />}
+        {section === 'clientes'    && <AdminClientes />}
+        {section === 'cuenta'      && <AdminCuentaCorriente />}
+        {section === 'facturacion' && <AdminFacturacion />}
+        {section === 'codes'       && <AdminCodes />}
+        {section === 'config'      && <AdminConfig />}
       </div>
     </div>
   );

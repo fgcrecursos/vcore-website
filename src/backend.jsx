@@ -115,22 +115,23 @@ const Backend = {
     const c = sb(); if (!c) return false;
     const row = {
       id: o.id, customer_name: o.customer_name || '', customer_phone: o.customer_phone || '',
+      customer_email: o.customer_email || '', customer_dni: o.customer_dni || '',
+      customer_address: o.customer_address || '', customer_city: o.customer_city || '',
+      customer_postal_code: o.customer_postal_code || '',
       summary: o.summary || '', items: o.items || [], subtotal: o.subtotal || 0,
       tier_name: o.tierName || '', tier_disc: o.tierDiscAmt || 0,
       coupon_code: o.couponCode || '', coupon_disc: o.couponDiscAmt || 0,
       shipping_label: o.shippingLabel || '', shipping_cost: o.shippingCost || 0,
       total: o.total || 0, status: o.status || 'nuevo',
+      payments: o.payments || [], payment_status: o.paymentStatus || 'pendiente',
+      origen: o.origen || 'web', notes: o.notes || '',
     };
     const { error } = await c.from('orders').insert(row);
     if (error) { console.error('[Vcore] createOrder', error.message); return false; }
     return true;
   },
-  async listOrders() {
-    const c = sb(); if (!c) return [];
-    const { data, error } = await c.from('orders').select('*').order('created_at', { ascending: false });
-    if (error) { console.error('[Vcore] listOrders', error.message); return []; }
-    // map snake_case → the shape the admin UI expects
-    return (data || []).map(r => ({
+  _mapOrder(r) {
+    return {
       id: r.id, date: r.created_at, ts: new Date(r.created_at).getTime(),
       summary: r.summary, items: r.items || [], subtotal: r.subtotal,
       tierName: r.tier_name, tierDiscAmt: r.tier_disc,
@@ -138,17 +139,77 @@ const Backend = {
       shippingLabel: r.shipping_label, shippingCost: r.shipping_cost,
       total: r.total, status: r.status,
       customerName: r.customer_name, customerPhone: r.customer_phone,
-    }));
+      customerEmail: r.customer_email, customerDni: r.customer_dni,
+      customerAddress: r.customer_address, customerCity: r.customer_city,
+      customerPostalCode: r.customer_postal_code,
+      payments: r.payments || [], paymentStatus: r.payment_status || 'pendiente',
+      origen: r.origen || 'web', notes: r.notes || '',
+    };
+  },
+  async listOrders() {
+    const c = sb(); if (!c) return [];
+    const { data, error } = await c.from('orders').select('*').order('created_at', { ascending: false });
+    if (error) { console.error('[Vcore] listOrders', error.message); return []; }
+    return (data || []).map(r => this._mapOrder(r));
   },
   async updateOrderStatus(id, status) {
     const c = sb(); if (!c) throw new Error('Backend no configurado');
     const { error } = await c.from('orders').update({ status }).eq('id', id);
     if (error) throw error;
   },
+  /* Actualización parcial (pagos, notas, datos del cliente, etc.) */
+  async updateOrder(id, patch) {
+    const c = sb(); if (!c) throw new Error('Backend no configurado');
+    const row = {};
+    if (patch.status != null)              row.status = patch.status;
+    if (patch.paymentStatus != null)       row.payment_status = patch.paymentStatus;
+    if (patch.payments != null)            row.payments = patch.payments;
+    if (patch.notes != null)               row.notes = patch.notes;
+    if (patch.customerName != null)        row.customer_name = patch.customerName;
+    if (patch.customerPhone != null)       row.customer_phone = patch.customerPhone;
+    if (patch.customerEmail != null)       row.customer_email = patch.customerEmail;
+    if (patch.customerDni != null)         row.customer_dni = patch.customerDni;
+    if (patch.customerAddress != null)     row.customer_address = patch.customerAddress;
+    if (patch.customerCity != null)        row.customer_city = patch.customerCity;
+    if (patch.customerPostalCode != null)  row.customer_postal_code = patch.customerPostalCode;
+    const { error } = await c.from('orders').update(row).eq('id', id);
+    if (error) throw error;
+  },
   async deleteOrder(id) {
     const c = sb(); if (!c) throw new Error('Backend no configurado');
     const { error } = await c.from('orders').delete().eq('id', id);
     if (error) throw error;
+  },
+
+  /* ── banners ────────────────────────────────────────── */
+  async fetchBanners() {
+    const c = sb(); if (!c) return null;
+    const { data, error } = await c.from('banners').select('*').order('sort', { ascending: true });
+    if (error) { console.error('[Vcore] fetchBanners', error.message); return null; }
+    return data;
+  },
+  async saveBanner(b) {
+    const c = sb(); if (!c) throw new Error('Backend no configurado');
+    const row = {
+      id: b.id, eyebrow: b.eyebrow || '', title: b.title || '',
+      subtitle: b.subtitle || '', cta_label: b.ctaLabel || '', cta_href: b.ctaHref || '',
+      photo: b.photo || '', bg: b.bg || 'var(--gradient-ink-bloom)',
+      active: b.active !== false, sort: b.sort ?? 0,
+    };
+    const { error } = await c.from('banners').upsert(row, { onConflict: 'id' });
+    if (error) throw error;
+  },
+  async deleteBanner(id) {
+    const c = sb(); if (!c) throw new Error('Backend no configurado');
+    const { error } = await c.from('banners').delete().eq('id', id);
+    if (error) throw error;
+  },
+  _mapBanner(r) {
+    return {
+      id: r.id, eyebrow: r.eyebrow, title: r.title, subtitle: r.subtitle,
+      ctaLabel: r.cta_label, ctaHref: r.cta_href, photo: r.photo,
+      bg: r.bg, active: r.active, sort: r.sort,
+    };
   },
 
   /* ── Cloudinary image upload (unsigned) ─────────────── */

@@ -168,8 +168,9 @@ function buildWAMsg({ items, tier, codeApplied, codeDiscount, subtotal, tierSavi
     if (customer.name)    msg += `• Nombre: ${customer.name}\n`;
     if (customer.phone)   msg += `• Tel: ${customer.phone}\n`;
     if (customer.email)   msg += `• Email: ${customer.email}\n`;
-    if (customer.city)    msg += `• Ciudad: ${customer.city}\n`;
+    if (customer.dni)     msg += `• DNI: ${customer.dni}\n`;
     if (customer.address) msg += `• Dirección: ${customer.address}\n`;
+    if (customer.city)    msg += `• Ciudad: ${customer.city}${customer.postal ? ` (CP ${customer.postal})` : ''}\n`;
     msg += `\n`;
   }
   msg += `${lines}\n\nSubtotal: ${D.fmt(subtotal)}\n`;
@@ -180,8 +181,13 @@ function buildWAMsg({ items, tier, codeApplied, codeDiscount, subtotal, tierSavi
   return encodeURIComponent(msg);
 }
 
+/* El panel trabaja con tipos de entrega (sucursal / domicilio / local); el carrito
+   con opciones de envío. Este mapa las mantiene alineadas. */
+const ENTREGA_DE_ENVIO = { andreani: 'sucursal', home: 'domicilio', pickup: 'local' };
+
 function saveOrder({ items, total, tier, tierSaving, codeApplied, codeSaving, subtotal, shippingOpt, shippingCost, customer }) {
   const summary = items.map(it => `${it.product.name} ×${it.qty}`).join(', ');
+  const c = customer || {};
   const order = {
     id: 'VC' + Date.now().toString(36).toUpperCase(),
     date: new Date().toISOString(),
@@ -195,13 +201,19 @@ function saveOrder({ items, total, tier, tierSaving, codeApplied, codeSaving, su
     couponDiscAmt: codeSaving,
     shippingLabel: shippingOpt.label,
     shippingCost,
+    entregaTipo: ENTREGA_DE_ENVIO[shippingOpt.id] || 'sucursal',
     total,
     status: 'nuevo',
-    customer_name: (customer && customer.name) || '',
-    customer_phone: (customer && customer.phone) || '',
-    customer_email: (customer && customer.email) || '',
-    customer_address: (customer && customer.address) || '',
-    customer_city: (customer && customer.city) || '',
+    /* El DNI es lo que permite agrupar al cliente en el CRM y en el control de
+       pagos aunque escriba el nombre distinto en cada compra. */
+    customer_name: c.name || '',
+    customer_phone: c.phone || '',
+    customer_email: c.email || '',
+    customer_dni: c.dni || '',
+    customer_address: c.address || '',
+    customer_city: c.city || '',
+    customer_postal_code: c.postal || '',
+    payments: [], paymentStatus: 'pendiente', creditNotes: [],
     origen: 'web',
   };
   /* Backend (Supabase) → pedido centralizado, visible desde cualquier dispositivo.
@@ -344,15 +356,21 @@ function CartDrawer({ open, items, onClose, onQty }) {
                   <input className="vc-code-input" style={{ textTransform: 'none', letterSpacing: 0 }}
                     placeholder="Teléfono *" value={customer.phone || ''}
                     onChange={e => setC('phone', e.target.value)} />
-                  <input className="vc-code-input" style={{ textTransform: 'none', letterSpacing: 0, gridColumn: '1/-1' }}
+                  <input className="vc-code-input" style={{ textTransform: 'none', letterSpacing: 0 }}
                     placeholder="Email (opcional)" value={customer.email || ''}
                     onChange={e => setC('email', e.target.value)} />
+                  <input className="vc-code-input" style={{ textTransform: 'none', letterSpacing: 0 }}
+                    placeholder="DNI / CUIT" value={customer.dni || ''}
+                    onChange={e => setC('dni', e.target.value)} />
+                  <input className="vc-code-input" style={{ textTransform: 'none', letterSpacing: 0, gridColumn: '1/-1' }}
+                    placeholder="Dirección" value={customer.address || ''}
+                    onChange={e => setC('address', e.target.value)} />
                   <input className="vc-code-input" style={{ textTransform: 'none', letterSpacing: 0 }}
                     placeholder="Ciudad" value={customer.city || ''}
                     onChange={e => setC('city', e.target.value)} />
                   <input className="vc-code-input" style={{ textTransform: 'none', letterSpacing: 0 }}
-                    placeholder="Dirección" value={customer.address || ''}
-                    onChange={e => setC('address', e.target.value)} />
+                    placeholder="Código postal" value={customer.postal || ''}
+                    onChange={e => setC('postal', e.target.value)} />
                 </div>
               </div>
 

@@ -105,19 +105,29 @@ const Backend = {
   async saveConfig(cfg) {
     const c = sb(); if (!c) throw new Error('Backend no configurado');
     const row = { id: 1, whatsapp: cfg.whatsapp || '', address: cfg.address || '',
-      instagram: cfg.instagram || '', email: cfg.email || '' };
+      instagram: cfg.instagram || '', email: cfg.email || '',
+      /* datos que imprime el remito */
+      banco: cfg.banco || '', alias: cfg.alias || '', cuit: cfg.cuit || '',
+      titular: cfg.titular || '', remito_leyenda: cfg.remito_leyenda || '',
+      remito_despacho: cfg.remito_despacho || '', retiro: cfg.retiro || '' };
     const { error } = await c.from('config').upsert(row, { onConflict: 'id' });
     if (error) throw error;
   },
 
   /* ── orders ─────────────────────────────────────────── */
-  async createOrder(o) {
-    const c = sb(); if (!c) return false;
+  /* Fila de la tabla `orders` a partir de un pedido del dominio.
+     Se usa tanto para el alta desde la tienda como para los pedidos manuales
+     que nacen de la remitera del panel. */
+  _orderRow(o) {
     const row = {
-      id: o.id, customer_name: o.customer_name || '', customer_phone: o.customer_phone || '',
-      customer_email: o.customer_email || '', customer_dni: o.customer_dni || '',
-      customer_address: o.customer_address || '', customer_city: o.customer_city || '',
-      customer_postal_code: o.customer_postal_code || '',
+      id: o.id,
+      customer_name: o.customerName ?? o.customer_name ?? '',
+      customer_phone: o.customerPhone ?? o.customer_phone ?? '',
+      customer_email: o.customerEmail ?? o.customer_email ?? '',
+      customer_dni: o.customerDni ?? o.customer_dni ?? '',
+      customer_address: o.customerAddress ?? o.customer_address ?? '',
+      customer_city: o.customerCity ?? o.customer_city ?? '',
+      customer_postal_code: o.customerPostalCode ?? o.customer_postal_code ?? '',
       summary: o.summary || '', items: o.items || [], subtotal: o.subtotal || 0,
       tier_name: o.tierName || '', tier_disc: o.tierDiscAmt || 0,
       coupon_code: o.couponCode || '', coupon_disc: o.couponDiscAmt || 0,
@@ -125,10 +135,26 @@ const Backend = {
       total: o.total || 0, status: o.status || 'nuevo',
       payments: o.payments || [], payment_status: o.paymentStatus || 'pendiente',
       origen: o.origen || 'web', notes: o.notes || '',
+      remito: o.remito ?? null, credit_notes: o.creditNotes || [],
+      credit_applied: o.creditApplied || 0, admin_notes: o.adminNotes || '',
+      entrega_tipo: o.entregaTipo || 'sucursal', notas_cliente: o.notasCliente || '',
     };
-    const { error } = await c.from('orders').insert(row);
+    /* Un remito manual puede fecharse en el pasado: respetamos su ts. */
+    if (o.ts) row.created_at = new Date(o.ts).toISOString();
+    return row;
+  },
+  async createOrder(o) {
+    const c = sb(); if (!c) return false;
+    const { error } = await c.from('orders').insert(this._orderRow(o));
     if (error) { console.error('[Vcore] createOrder', error.message); return false; }
     return true;
+  },
+  /* Alta o actualización completa del pedido. La remitera escribe la fila entera
+     desde el estado local: así no hay race SELECT→UPDATE entre guardados. */
+  async upsertOrder(o) {
+    const c = sb(); if (!c) throw new Error('Backend no configurado');
+    const { error } = await c.from('orders').upsert(this._orderRow(o), { onConflict: 'id' });
+    if (error) throw error;
   },
   _mapOrder(r) {
     return {
@@ -144,6 +170,9 @@ const Backend = {
       customerPostalCode: r.customer_postal_code,
       payments: r.payments || [], paymentStatus: r.payment_status || 'pendiente',
       origen: r.origen || 'web', notes: r.notes || '',
+      remito: r.remito || null, creditNotes: r.credit_notes || [],
+      creditApplied: Number(r.credit_applied) || 0, adminNotes: r.admin_notes || '',
+      entregaTipo: r.entrega_tipo || 'sucursal', notasCliente: r.notas_cliente || '',
     };
   },
   async listOrders() {
@@ -157,21 +186,25 @@ const Backend = {
     const { error } = await c.from('orders').update({ status }).eq('id', id);
     if (error) throw error;
   },
-  /* Actualización parcial (pagos, notas, datos del cliente, etc.) */
+  /* Actualización parcial (pagos, remito, notas, datos del cliente, etc.) */
   async updateOrder(id, patch) {
     const c = sb(); if (!c) throw new Error('Backend no configurado');
+    const MAP = {
+      status: 'status', paymentStatus: 'payment_status', payments: 'payments',
+      notes: 'notes', summary: 'summary', items: 'items', subtotal: 'subtotal',
+      total: 'total', tierName: 'tier_name', tierDiscAmt: 'tier_disc',
+      couponCode: 'coupon_code', couponDiscAmt: 'coupon_disc',
+      shippingLabel: 'shipping_label', shippingCost: 'shipping_cost',
+      customerName: 'customer_name', customerPhone: 'customer_phone',
+      customerEmail: 'customer_email', customerDni: 'customer_dni',
+      customerAddress: 'customer_address', customerCity: 'customer_city',
+      customerPostalCode: 'customer_postal_code',
+      remito: 'remito', creditNotes: 'credit_notes', creditApplied: 'credit_applied',
+      adminNotes: 'admin_notes', entregaTipo: 'entrega_tipo', notasCliente: 'notas_cliente',
+    };
     const row = {};
-    if (patch.status != null)              row.status = patch.status;
-    if (patch.paymentStatus != null)       row.payment_status = patch.paymentStatus;
-    if (patch.payments != null)            row.payments = patch.payments;
-    if (patch.notes != null)               row.notes = patch.notes;
-    if (patch.customerName != null)        row.customer_name = patch.customerName;
-    if (patch.customerPhone != null)       row.customer_phone = patch.customerPhone;
-    if (patch.customerEmail != null)       row.customer_email = patch.customerEmail;
-    if (patch.customerDni != null)         row.customer_dni = patch.customerDni;
-    if (patch.customerAddress != null)     row.customer_address = patch.customerAddress;
-    if (patch.customerCity != null)        row.customer_city = patch.customerCity;
-    if (patch.customerPostalCode != null)  row.customer_postal_code = patch.customerPostalCode;
+    Object.keys(MAP).forEach(k => { if (patch[k] != null) row[MAP[k]] = patch[k]; });
+    if (!Object.keys(row).length) return;
     const { error } = await c.from('orders').update(row).eq('id', id);
     if (error) throw error;
   },
@@ -210,6 +243,76 @@ const Backend = {
       ctaLabel: r.cta_label, ctaHref: r.cta_href, photo: r.photo,
       bg: r.bg, active: r.active, sort: r.sort,
     };
+  },
+
+  /* ── usuarios del panel (roles y permisos) ──────────── */
+  /* Fila de vc_users del email logueado. Define qué puede hacer en el panel.
+     Si la tabla todavía no existe o la consulta falla, el panel cae al fallback
+     de VC_SUPERADMINS (ver src/permissions.jsx): un error de base no puede dejar
+     a los dueños afuera de su propio panel. */
+  async fetchMe(email) {
+    const c = sb(); if (!c) return null;
+    const mail = (email || '').trim().toLowerCase();
+    if (!mail) return null;
+    const { data, error } = await c.from('vc_users').select('*').eq('email', mail).maybeSingle();
+    if (error) { console.warn('[Vcore] vc_users:', error.message); return undefined; } // undefined = no se pudo leer
+    return data || null;
+  },
+  async fetchUsers() {
+    const c = sb(); if (!c) return [];
+    const { data, error } = await c.from('vc_users').select('*').order('created_at', { ascending: true });
+    if (error) { console.error('[Vcore] fetchUsers', error.message); return []; }
+    return data || [];
+  },
+  /* Alta: crea la cuenta en Supabase Auth y su fila de permisos.
+     El signUp usa un cliente APARTE (persistSession:false) porque supabase-js
+     reemplaza la sesión activa al registrar a alguien: sin ese aislamiento, el
+     admin que crea el usuario quedaría logueado como el nuevo. */
+  async createUser({ email, password, nombre, rol, permisos }) {
+    const c = sb(); if (!c) return { error: 'Backend no configurado' };
+    const mail = (email || '').trim().toLowerCase();
+    if (!mail) return { error: 'Falta el email.' };
+    if (!password || password.length < 6) return { error: 'La contraseña debe tener al menos 6 caracteres.' };
+
+    let warning = '';
+    try {
+      const tmp = createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, {
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      });
+      const { error } = await tmp.auth.signUp({ email: mail, password });
+      if (error) {
+        /* "already registered" no es un problema: la persona ya tiene cuenta y
+           solo le estamos dando permisos en el panel. */
+        if (/already|registered|exists/i.test(error.message)) {
+          warning = 'Ya existía una cuenta con ese email: se mantuvo su contraseña actual y solo se asignaron los permisos.';
+        } else {
+          return { error: 'No se pudo crear la cuenta de acceso: ' + error.message };
+        }
+      }
+    } catch (e) {
+      return { error: 'No se pudo crear la cuenta de acceso: ' + (e.message || e) };
+    }
+
+    const { error: rowErr } = await c.from('vc_users').upsert({
+      email: mail, nombre: nombre || '', rol: rol || 'lectura',
+      permisos: permisos || [], activo: true,
+    }, { onConflict: 'email' });
+    if (rowErr) return { error: 'La cuenta se creó, pero no se pudieron guardar los permisos: ' + rowErr.message };
+    return { ok: true, warning };
+  },
+  async updateUser(email, fields) {
+    const c = sb(); if (!c) return { error: 'Backend no configurado' };
+    const mail = (email || '').trim().toLowerCase();
+    const { error } = await c.from('vc_users').update(fields).eq('email', mail);
+    if (error) return { error: 'No se pudo guardar: ' + error.message };
+    return { ok: true };
+  },
+  async deleteUser(email) {
+    const c = sb(); if (!c) return { error: 'Backend no configurado' };
+    const mail = (email || '').trim().toLowerCase();
+    const { error } = await c.from('vc_users').delete().eq('email', mail);
+    if (error) return { error: 'No se pudo eliminar: ' + error.message };
+    return { ok: true };
   },
 
   /* ── Cloudinary image upload (unsigned) ─────────────── */

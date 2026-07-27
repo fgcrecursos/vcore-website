@@ -84,20 +84,26 @@ window.VcoreData = {
 
   categories: ['Todo', 'Rendimiento', 'Recuperación', 'Vitaminas', 'Bienestar', 'Colágeno', 'Articulaciones'],
 
-  /* Normaliza un producto: garantiza variants [{label, price}], sizes [labels]
-     y price (precio "desde" = el menor). Compatible con productos legacy que
-     traían sizes + un único price. */
+  /* Normaliza un producto: garantiza variants [{label, price, priceMayorista}],
+     sizes [labels] y price (precio "desde" = el menor). Compatible con productos
+     legacy que traían sizes + un único price.
+     `priceMayorista` es opcional y solo lo usa la remitera del panel (lista de
+     precios mayorista); la tienda siempre cotiza con `price`. */
   _normalize(p) {
     let variants;
     if (Array.isArray(p.variants) && p.variants.length) {
       variants = p.variants
-        .map(v => ({ label: String(v.label || '').trim(), price: Number(v.price) || 0 }))
+        .map(v => ({
+          label: String(v.label || '').trim(),
+          price: Number(v.price) || 0,
+          priceMayorista: Number(v.priceMayorista) || 0,
+        }))
         .filter(v => v.label);
     } else {
       const sizes = (p.sizes && p.sizes.length) ? p.sizes : ['Único'];
-      variants = sizes.map(label => ({ label: String(label).trim(), price: Number(p.price) || 0 }));
+      variants = sizes.map(label => ({ label: String(label).trim(), price: Number(p.price) || 0, priceMayorista: 0 }));
     }
-    if (!variants.length) variants = [{ label: 'Único', price: Number(p.price) || 0 }];
+    if (!variants.length) variants = [{ label: 'Único', price: Number(p.price) || 0, priceMayorista: 0 }];
     const minPrice = Math.min(...variants.map(v => v.price));
     return { ...p, variants, sizes: variants.map(v => v.label), price: minPrice };
   },

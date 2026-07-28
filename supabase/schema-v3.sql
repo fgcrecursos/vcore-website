@@ -55,32 +55,60 @@ create table if not exists public.vc_users (
 
 alter table public.vc_users enable row level security;
 
+-- ¿El que consulta puede gestionar usuarios?
+-- Va en una función SECURITY DEFINER a propósito: si la política de vc_users
+-- consultara vc_users directamente, Postgres vuelve a aplicar la política sobre
+-- esa lectura y aborta con "infinite recursion detected in policy" (42P17). La
+-- función definer corre como su dueño y NO reevalúa RLS, que es lo que corta el
+-- ciclo. Mismo criterio que ss_is_superadmin() en Somos Setas.
+create or replace function public.vc_can_manage_users()
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.vc_users u
+    where u.email = lower(auth.jwt() ->> 'email')
+      and u.activo
+      and (u.rol = 'superadmin' or u.permisos ? 'usuarios.gestionar')
+  );
+$$;
+
+revoke all on function public.vc_can_manage_users() from public;
+grant execute on function public.vc_can_manage_users() to authenticated;
+
 -- Cualquier usuario autenticado puede LEER la tabla: necesita conocer sus propios
 -- permisos para dibujar el panel. La escritura queda restringida a quien tenga el
 -- permiso 'usuarios.gestionar' (rol superadmin, o permiso suelto).
-drop policy if exists vc_users_read  on public.vc_users;
-drop policy if exists vc_users_write on public.vc_users;
+--
+-- Las políticas de escritura van una por comando (insert / update / delete) en vez
+-- de una sola FOR ALL: una FOR ALL también se evalúa en los SELECT, así que un
+-- error suyo rompe hasta la lectura de la tabla.
+drop policy if exists vc_users_read   on public.vc_users;
+drop policy if exists vc_users_write  on public.vc_users;
+drop policy if exists vc_users_insert on public.vc_users;
+drop policy if exists vc_users_update on public.vc_users;
+drop policy if exists vc_users_delete on public.vc_users;
 
 create policy vc_users_read on public.vc_users for select
-  using (auth.role() = 'authenticated');
+  to authenticated
+  using (true);
 
-create policy vc_users_write on public.vc_users for all
-  using (
-    exists (
-      select 1 from public.vc_users u
-      where u.email = lower(auth.jwt() ->> 'email')
-        and u.activo
-        and (u.rol = 'superadmin' or u.permisos ? 'usuarios.gestionar')
-    )
-  )
-  with check (
-    exists (
-      select 1 from public.vc_users u
-      where u.email = lower(auth.jwt() ->> 'email')
-        and u.activo
-        and (u.rol = 'superadmin' or u.permisos ? 'usuarios.gestionar')
-    )
-  );
+create policy vc_users_insert on public.vc_users for insert
+  to authenticated
+  with check (public.vc_can_manage_users());
+
+create policy vc_users_update on public.vc_users for update
+  to authenticated
+  using (public.vc_can_manage_users())
+  with check (public.vc_can_manage_users());
+
+-- Nadie puede borrar a un superadmin (misma regla que aplica el panel).
+create policy vc_users_delete on public.vc_users for delete
+  to authenticated
+  using (public.vc_can_manage_users() and rol <> 'superadmin');
 
 -- ---------- SEMILLA: primer acceso total ------------------------------------
 -- Cambiá el email por el tuyo antes de correrlo si usás otra cuenta. Sin al menos

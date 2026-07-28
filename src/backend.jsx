@@ -5,6 +5,38 @@ import { createClient } from '@supabase/supabase-js';
 
 const CFG = (typeof window !== 'undefined' && window.__VCORE_CONFIG__) || {};
 
+/* Traduce los errores del alta de usuarios a algo accionable. Los mensajes crudos
+   de Supabase ("email rate limit exceeded", "42P17") no le dicen nada a quien está
+   cargando un usuario, y sin el detalle no se sabe si hay que esperar, revisar
+   permisos o correr una migración. Siempre se conserva el texto original al final. */
+function explicarErrorAlta(err, contexto) {
+  const msg    = String((err && (err.message || err.msg)) || err || '').trim();
+  const codigo = String((err && (err.code || err.status)) || '');
+  const t      = msg.toLowerCase();
+
+  let ayuda = '';
+  if (/rate limit|too many requests/.test(t) || codigo === '429') {
+    ayuda = 'Supabase limita los mails de confirmación por hora y ya se alcanzó el tope. ' +
+            'Esperá un rato y reintentá, o desactivá "Confirm email" en Authentication → Providers → Email ' +
+            '(o configurá un SMTP propio) para que las altas no dependan del envío de mails.';
+  } else if (/infinite recursion/.test(t) || codigo === '42P17') {
+    ayuda = 'La política RLS de vc_users se consulta a sí misma. Corré supabase/fix-vc-users-rls.sql en el SQL Editor.';
+  } else if (/row-level security|violates/.test(t) || codigo === '42501') {
+    ayuda = 'Tu usuario no figura como superadmin ACTIVO en vc_users, así que la base rechaza la escritura ' +
+            'aunque el panel te deje entrar por el fallback de VC_SUPERADMINS. Corré supabase/fix-vc-users-rls.sql, ' +
+            'que además deja tu fila cargada.';
+  } else if (/schema cache|does not exist|relation .* does not exist/.test(t) || codigo === '42P01') {
+    ayuda = 'Falta la tabla en la base: corré supabase/schema-v3.sql en el SQL Editor.';
+  } else if (/password/.test(t)) {
+    ayuda = 'Supabase rechazó la contraseña: revisá el largo mínimo configurado en Authentication → Policies.';
+  } else if (/invalid|email/.test(t) && /format|valid/.test(t)) {
+    ayuda = 'El email no tiene un formato válido para Supabase.';
+  }
+
+  const detalle = [msg, codigo && `(código ${codigo})`].filter(Boolean).join(' ');
+  return [contexto + '.', ayuda, detalle && 'Detalle: ' + detalle].filter(Boolean).join(' ');
+}
+
 let _sb = null;
 function sb() {
   if (_sb) return _sb;
@@ -290,18 +322,23 @@ const Backend = {
         if (/already|registered|exists/i.test(error.message)) {
           warning = 'Ya existía una cuenta con ese email: se mantuvo su contraseña actual y solo se asignaron los permisos.';
         } else {
-          return { error: 'No se pudo crear la cuenta de acceso: ' + error.message };
+          console.error('[Vcore] createUser signUp', error);
+          return { error: explicarErrorAlta(error, 'No se pudo crear la cuenta de acceso') };
         }
       }
     } catch (e) {
-      return { error: 'No se pudo crear la cuenta de acceso: ' + (e.message || e) };
+      console.error('[Vcore] createUser signUp', e);
+      return { error: explicarErrorAlta(e, 'No se pudo crear la cuenta de acceso') };
     }
 
     const { error: rowErr } = await c.from('vc_users').upsert({
       email: mail, nombre: nombre || '', rol: rol || 'lectura',
       permisos: permisos || [], activo: true,
     }, { onConflict: 'email' });
-    if (rowErr) return { error: 'La cuenta se creó, pero no se pudieron guardar los permisos: ' + rowErr.message };
+    if (rowErr) {
+      console.error('[Vcore] createUser vc_users', rowErr);
+      return { error: explicarErrorAlta(rowErr, 'La cuenta de acceso se creó, pero no se pudieron guardar los permisos') };
+    }
     return { ok: true, warning };
   },
   async updateUser(email, fields) {

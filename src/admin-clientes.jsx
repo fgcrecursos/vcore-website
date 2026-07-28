@@ -725,6 +725,8 @@ function AdminClientes({ store }) {
   const [search, setSearch] = useState('');
   const [selectedKeys, setSelectedKeys] = useState(() => new Set());
   const [detailKey, setDetailKey] = useState(null);
+  const [editKey, setEditKey] = useState(null);   // cliente con el editor abierto
+  const puedeEditar = store.can('clientes.editar');
 
   const [fCategoria, setFCategoria] = useState('todas');
   const [fTag, setFTag] = useState('todas');
@@ -790,6 +792,17 @@ function AdminClientes({ store }) {
   /* La ficha se relee de `customers` en cada render para que se actualice sola al
      editar los datos o registrar un pago. */
   const detalle = detailKey ? customers.find(c => c.key === detailKey) : null;
+  /* Cliente que se edita desde el botón de la fila, sin pasar por la ficha. */
+  const editando = editKey ? customers.find(c => c.key === editKey) : null;
+
+  /* La ficha se abre DEBAJO de la tabla: con cientos de clientes queda fuera de la
+     pantalla y parece que el clic no hizo nada. La traemos a la vista. */
+  const detalleRef = React.useRef(null);
+  useEffect(() => {
+    if (detalle && detalleRef.current) {
+      detalleRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [detailKey]);
 
   const toggle = (key) => setSelectedKeys(prev => {
     const n = new Set(prev);
@@ -892,6 +905,7 @@ function AdminClientes({ store }) {
                 <ThOrden campo="ticketPromedio" align="right">Ticket prom.</ThOrden>
                 <ThOrden campo="totalPending" align="right">Saldo</ThOrden>
                 <ThOrden campo="lastOrder">Última compra</ThOrden>
+                <th style={{ textAlign: 'right' }}>Acciones</th>
               </tr></thead>
               <tbody>
                 {filtered.map(c => (
@@ -940,10 +954,22 @@ function AdminClientes({ store }) {
                         {c.diasSinComprar === 0 ? 'hoy' : `hace ${c.diasSinComprar} d.`}
                       </div>
                     </td>
+                    {/* Editar sin pasar por la ficha: abre el formulario directo. */}
+                    <td onClick={e => e.stopPropagation()} style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        <button className="adm-btn adm-btn--outline adm-btn--xs"
+                          onClick={() => setDetailKey(detailKey === c.key ? null : c.key)}
+                          title="Ver ficha, historial y estado de cuenta">Ficha</button>
+                        {puedeEditar && (
+                          <button className="adm-btn adm-btn--primary adm-btn--xs" onClick={() => setEditKey(c.key)}
+                            title="Editar los datos de este cliente"><IcoEdit size={12} /> Editar</button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))}
                 {!filtered.length && (
-                  <tr><td colSpan={10} className="adm-empty" style={{ textAlign: 'center' }}>
+                  <tr><td colSpan={11} className="adm-empty" style={{ textAlign: 'center' }}>
                     Ningún cliente coincide con la búsqueda y los filtros aplicados.
                   </td></tr>
                 )}
@@ -954,8 +980,17 @@ function AdminClientes({ store }) {
       </div>
 
       {detalle && (
-        <ClienteDetail customer={detalle} store={store}
-          onKeyChange={setDetailKey} onClose={() => setDetailKey(null)} />
+        <div ref={detalleRef} style={{ scrollMarginTop: 16 }}>
+          <ClienteDetail customer={detalle} store={store}
+            onKeyChange={setDetailKey} onClose={() => setDetailKey(null)} />
+        </div>
+      )}
+
+      {/* Editor abierto desde el botón de la fila */}
+      {editando && (
+        <ClienteEditor customer={editando} store={store}
+          onSaved={(k) => { if (detailKey) setDetailKey(k); }}
+          onClose={() => setEditKey(null)} />
       )}
     </div>
   );

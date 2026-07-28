@@ -138,6 +138,8 @@ const Backend = {
       remito: o.remito ?? null, credit_notes: o.creditNotes || [],
       credit_applied: o.creditApplied || 0, admin_notes: o.adminNotes || '',
       entrega_tipo: o.entregaTipo || 'sucursal', notas_cliente: o.notasCliente || '',
+      /* Ficha ampliada del cliente (CRM). Se replica en cada pedido suyo. */
+      customer_meta: o.customerMeta || {},
     };
     /* Un remito manual puede fecharse en el pasado: respetamos su ts. */
     if (o.ts) row.created_at = new Date(o.ts).toISOString();
@@ -173,6 +175,7 @@ const Backend = {
       remito: r.remito || null, creditNotes: r.credit_notes || [],
       creditApplied: Number(r.credit_applied) || 0, adminNotes: r.admin_notes || '',
       entregaTipo: r.entrega_tipo || 'sucursal', notasCliente: r.notas_cliente || '',
+      customerMeta: r.customer_meta || {},
     };
   },
   async listOrders() {
@@ -201,6 +204,7 @@ const Backend = {
       customerPostalCode: 'customer_postal_code',
       remito: 'remito', creditNotes: 'credit_notes', creditApplied: 'credit_applied',
       adminNotes: 'admin_notes', entregaTipo: 'entrega_tipo', notasCliente: 'notas_cliente',
+      customerMeta: 'customer_meta',
     };
     const row = {};
     Object.keys(MAP).forEach(k => { if (patch[k] != null) row[MAP[k]] = patch[k]; });

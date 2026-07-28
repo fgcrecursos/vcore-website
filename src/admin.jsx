@@ -157,6 +157,16 @@ const ADMIN_CSS = `
 .adm-chip--entregado { background: #E6F5E9; color: #1A6B35; }
 .adm-chip--anulado { background: var(--paper-200); color: var(--ink-500); }
 
+/* etiquetas libres del CRM de clientes */
+.adm-tag { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px;
+  border-radius: var(--radius-pill); background: var(--green-100); color: var(--green-700);
+  font-size: 11px; font-weight: 800; letter-spacing: .01em; white-space: nowrap; }
+.adm-tag--muted { background: var(--paper-200); color: var(--ink-500); }
+.adm-tag--warn { background: #FBF0E0; color: #8A5E1A; }
+.adm-tag--danger { background: #FDE7E7; color: #B71C1C; }
+.adm-tag__x { background: none; border: 0; padding: 0; cursor: pointer; color: inherit;
+  font-size: 14px; line-height: 1; }
+
 /* filter chips */
 .adm-chiprow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .adm-chiprow__lbl { font-size: 11px; font-weight: 800; text-transform: uppercase;

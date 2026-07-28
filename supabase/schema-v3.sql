@@ -19,6 +19,12 @@ alter table public.orders add column if not exists admin_notes    text    defaul
 alter table public.orders add column if not exists entrega_tipo   text    default 'sucursal'; -- sucursal | domicilio | local
 alter table public.orders add column if not exists notas_cliente  text    default '';
 
+-- Ficha ampliada del cliente (CRM). Los clientes no viven en una tabla propia: se
+-- derivan de los pedidos, así que la ficha se replica en cada pedido del cliente.
+-- Va en un solo jsonb para no sumar una columna por dato: { razonSocial, condIva,
+-- provincia, instagram, cumple, categoria, canal, tags[], activo, notasLog[] }.
+alter table public.orders add column if not exists customer_meta  jsonb   default '{}'::jsonb;
+
 -- Los pedidos manuales se crean desde el panel con una fecha propia: sin esto,
 -- created_at siempre sería "ahora" y el pedido caería en el mes equivocado.
 alter table public.orders alter column created_at set default now();

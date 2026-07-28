@@ -46,7 +46,7 @@ window.VC_PERM_GROUPS = [
     id: 'clientes', label: 'Clientes',
     perms: [
       { id: 'clientes.ver',    label: 'Ver clientes',            desc: 'Listado de clientes, su historial y su estado de cuenta.' },
-      { id: 'clientes.editar', label: 'Editar datos de clientes', desc: 'Corregir o completar nombre, DNI, contacto y domicilio.' },
+      { id: 'clientes.editar', label: 'Editar datos de clientes', desc: 'Completar la ficha (contacto, facturación, etiquetas) y cargar notas de seguimiento.' },
     ],
   },
   {

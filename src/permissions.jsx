@@ -34,7 +34,7 @@ window.VC_PERM_GROUPS = [
     id: 'pedidos', label: 'Pedidos y remitos',
     perms: [
       { id: 'pedidos.ver',       label: 'Ver pedidos',              desc: 'Acceso a la lista de pedidos y a ver los remitos.' },
-      { id: 'pedidos.estado',    label: 'Cambiar estado',           desc: 'Pasar un pedido de nuevo → confirmado → enviado → entregado.' },
+      { id: 'pedidos.estado',    label: 'Cambiar estado',           desc: 'Pasar un pedido de nuevo → confirmado → en preparación → enviado → entregado.' },
       { id: 'pedidos.editar',    label: 'Editar remitos',           desc: 'Modificar ítems, precios, descuentos y datos de un remito.' },
       { id: 'remitos.crear',     label: 'Crear remitos manuales',   desc: 'Generar un pedido/remito sin una compra previa de la tienda.' },
       { id: 'pedidos.anular',    label: 'Anular pedidos',           desc: 'Marcar un pedido como anulado (no se borra).' },

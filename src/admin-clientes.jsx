@@ -7,7 +7,7 @@
 const React = window.React;
 const { useState, useEffect, useMemo } = React;
 const K = window.VcoreAdminKit;
-const { fmt, searchNormalize, IcoSearch, IcoClose, IcoEdit, IcoUsers, IcoDown, STATUS_COLORS } = K;
+const { fmt, searchNormalize, IcoSearch, IcoClose, IcoEdit, IcoUsers, IcoDown, STATUS_COLORS, statusLabel } = K;
 
 /* ── normalización de identidad ── */
 const normDni   = (s) => String(s == null ? '' : s).replace(/\D/g, '');
@@ -689,7 +689,7 @@ function ClienteDetail({ customer, store, onClose, onKeyChange }) {
                       <td style={{ textAlign: 'right', color: 'var(--text-brand)' }}>{fmt(paid)}</td>
                       <td style={{ textAlign: 'right', fontWeight: saldo > 0 ? 800 : 400,
                         color: saldo > 0 ? '#B71C1C' : 'var(--ink-400)' }}>{fmt(saldo)}</td>
-                      <td><span className={`adm-chip ${STATUS_COLORS[o.status] || 'adm-chip--nuevo'}`}>{o.status || 'nuevo'}</span></td>
+                      <td><span className={`adm-chip ${STATUS_COLORS[o.status] || 'adm-chip--nuevo'}`}>{statusLabel(o.status)}</span></td>
                       <td><span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase',
                         color: pagoColor[pago] || 'var(--ink-400)' }}>
                         {pago === 'cuenta-corriente' ? 'cta. corriente' : pago}

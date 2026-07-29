@@ -12,7 +12,7 @@ const K = window.VcoreAdminKit;
 const D = window.VcoreData;
 const {
   fmt, searchNormalize, paidOf, IcoSearch, IcoClose, IcoPlus, IcoPrint, IcoDown,
-  IcoCart, IcoFile, STATUSES, STATUS_COLORS,
+  IcoCart, IcoFile, STATUSES, STATUS_COLORS, statusLabel,
 } = K;
 
 /* ── Constantes del negocio ─────────────────────────────── */
@@ -1183,7 +1183,7 @@ function AdminOrders({ store }) {
           <div className="adm-chiprow">
             {['todos', ...STATUSES, 'anulado'].map(s => (
               <button key={s} className={`adm-fchip${filter === s ? ' on' : ''}`} onClick={() => setFilter(s)}>
-                {s.charAt(0).toUpperCase() + s.slice(1)}
+                {(l => l.charAt(0).toUpperCase() + l.slice(1))(statusLabel(s))}
                 {s === 'nuevo' && nuevosCount > 0 ? ` (${nuevosCount})` : ''}
               </button>
             ))}
@@ -1288,12 +1288,12 @@ function AdminOrders({ store }) {
                           <span className="adm-chip adm-chip--anulado">Anulado</span>
                         ) : !canEstado ? (
                           <span className={`adm-chip ${STATUS_COLORS[o.status] || 'adm-chip--nuevo'}`}>
-                            {(o.status || 'nuevo')}
+                            {statusLabel(o.status)}
                           </span>
                         ) : (
                           <select className={`adm-statussel${esConfirmado ? ' on' : ''}`} value={o.status || 'nuevo'}
                             onChange={e => store.updateOrderStatus(o.id, e.target.value)}>
-                            {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                            {STATUSES.map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}
                           </select>
                         )}
                       </td>

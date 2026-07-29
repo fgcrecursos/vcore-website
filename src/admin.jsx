@@ -153,6 +153,7 @@ const ADMIN_CSS = `
   padding: 3px 10px; border-radius: var(--radius-pill); }
 .adm-chip--nuevo { background: #E8F4FF; color: #1A5FA0; }
 .adm-chip--confirmado { background: var(--green-100); color: var(--green-700); }
+.adm-chip--preparacion { background: #F3ECFB; color: #6A3FA0; }
 .adm-chip--enviado { background: #FBF0E0; color: #8A5E1A; }
 .adm-chip--entregado { background: #E6F5E9; color: #1A6B35; }
 .adm-chip--anulado { background: var(--paper-200); color: var(--ink-500); }
@@ -532,12 +533,17 @@ window.VcoreAdminSections = window.VcoreAdminSections || {};
    y del usuario logueado (rol + permisos). Funciona con backend
    (Supabase) y en modo demo (localStorage).
    ═══════════════════════════════════════════════════════════ */
-const STATUSES = ['nuevo', 'confirmado', 'enviado', 'entregado'];
+const STATUSES = ['nuevo', 'confirmado', 'preparacion', 'enviado', 'entregado'];
 const STATUS_COLORS = {
   nuevo: 'adm-chip--nuevo', confirmado: 'adm-chip--confirmado',
+  preparacion: 'adm-chip--preparacion',
   enviado: 'adm-chip--enviado', entregado: 'adm-chip--entregado',
   anulado: 'adm-chip--anulado',
 };
+/* El estado se guarda sin tildes ni espacios (va a la columna `status`); lo que se
+   muestra sale de acá. Los pedidos viejos sin estado se leen como "nuevo". */
+const STATUS_LABELS = { preparacion: 'en preparación' };
+const statusLabel = (s) => STATUS_LABELS[s] || s || 'nuevo';
 
 const CONFIG_DEFAULT = {
   whatsapp: '5491100000000',
@@ -966,6 +972,7 @@ function PeriodFilter({ periodo, onChange, months }) {
 window.VcoreAdminKit.periods = { monthKey, monthLabel, monthLabelShort, periodBounds, periodoLabel, PeriodFilter, MESES };
 window.VcoreAdminKit.STATUSES = STATUSES;
 window.VcoreAdminKit.STATUS_COLORS = STATUS_COLORS;
+window.VcoreAdminKit.statusLabel = statusLabel;
 
 /* ═══════════════════ Dashboard ═══════════════════════════ */
 function AdminDashboard({ store, onNav }) {
@@ -1093,7 +1100,7 @@ function AdminDashboard({ store, onNav }) {
                     </td>
                     <td style={{ fontSize: 13 }}>{(o.items || []).reduce((s, i) => s + (Number(i.qty) || 0), 0)} u.</td>
                     <td className="num">{fmt(o.total)}</td>
-                    <td><span className={`adm-chip ${STATUS_COLORS[o.status] || 'adm-chip--nuevo'}`}>{o.status || 'nuevo'}</span></td>
+                    <td><span className={`adm-chip ${STATUS_COLORS[o.status] || 'adm-chip--nuevo'}`}>{statusLabel(o.status)}</span></td>
                   </tr>
                 ))}
               </tbody>

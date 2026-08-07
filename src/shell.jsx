@@ -72,6 +72,32 @@ const SITE_CSS = `
   font-size: 12.5px; color: rgba(255,255,255,.5); }
 .vc-ft__news { display: flex; gap: 8px; margin-top: 16px; }
 
+/* ───────── Botón cruzado a Somos Setas (colores de esa marca) ─────────
+   Naranja #ef7911 / #c75e08 — tokens de marca de somossetas.com.ar      */
+.vc-ft .vc-xb { display: flex; align-items: center; gap: 20px; margin: 44px 0 0; padding: 18px 22px;
+  border-radius: var(--radius-lg); background: #ef7911; color: #fff; text-decoration: none;
+  border: 1px solid rgba(255,255,255,.16); box-shadow: 0 12px 32px rgba(239,121,17,.24);
+  transition: background var(--duration-fast, .18s) var(--ease-standard, ease),
+              transform var(--duration-fast, .18s) var(--ease-standard, ease),
+              box-shadow var(--duration-fast, .18s) var(--ease-standard, ease); }
+.vc-ft .vc-xb:hover { background: #c75e08; transform: translateY(-2px); box-shadow: 0 18px 40px rgba(239,121,17,.32); text-decoration: none; color: #fff; }
+.vc-xb__logo { height: 34px; width: auto; flex: none; display: block; }
+.vc-xb__bar { width: 1px; align-self: stretch; background: rgba(255,255,255,.3); flex: none; }
+.vc-xb__txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.vc-xb__eyebrow { font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.8); }
+.vc-xb__cta { font-family: var(--font-display); font-weight: 800; font-size: 19px; letter-spacing: -.01em; line-height: 1.2; }
+.vc-xb__arrow { margin-left: auto; width: 38px; height: 38px; flex: none; border-radius: 50%;
+  background: rgba(255,255,255,.18); display: flex; align-items: center; justify-content: center;
+  transition: background .18s ease, transform .18s ease; }
+.vc-ft .vc-xb:hover .vc-xb__arrow { background: rgba(255,255,255,.3); transform: translateX(3px); }
+@media (max-width: 560px) {
+  .vc-ft .vc-xb { flex-wrap: wrap; gap: 14px; padding: 16px 18px; margin-top: 32px; }
+  .vc-xb__bar { display: none; }
+  .vc-xb__logo { height: 28px; }
+  .vc-xb__txt { flex: 1 1 100%; order: 3; }
+  .vc-xb__cta { font-size: 17px; }
+}
+
 /* hamburger + mobile menu (hidden on desktop) */
 .vc-hd__burger { display: none; }
 .vc-hd__menu { display: none; }
@@ -192,12 +218,34 @@ function ProductImage({ product, className = '' }) {
   );
 }
 
+/* Botón cruzado: desde Vcore hacia Somos Setas, con los colores de esa marca. */
+function CrossBrandSomosSetas() {
+  const base = (window.__VCORE_ASSET_BASE__ || '/assets/');
+  return (
+    <a className="vc-xb" href="https://somossetas.com.ar" target="_blank" rel="noopener"
+       aria-label="Ir a Somos Setas — Comprá hongos adaptógenos">
+      <img className="vc-xb__logo" src={base + 'somos-setas-wordmark-white.png'} alt="Somos Setas" />
+      <span className="vc-xb__bar" />
+      <span className="vc-xb__txt">
+        <span className="vc-xb__eyebrow">También te puede interesar</span>
+        <span className="vc-xb__cta">Comprá hongos adaptógenos</span>
+      </span>
+      <span className="vc-xb__arrow">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 12h14M13 6l6 6-6 6" />
+        </svg>
+      </span>
+    </a>
+  );
+}
+
 function Footer() {
   injectSite();
   const nav = (pg) => window.dispatchEvent(new CustomEvent('vc:nav', { detail: pg }));
   return (
     <footer className="vc-ft">
       <div className="vc-wrap">
+        <CrossBrandSomosSetas />
         <div className="vc-ft__grid">
           <div>
             <Logo variant="wordmark" tone="paper" height={30} />

@@ -16,9 +16,31 @@ window.VcoreData = {
 
   shipping: [
     { id: 'andreani', label: 'Andreani — Sucursal', base: 5000, freeFrom: 50000 },
-    { id: 'home',     label: 'A domicilio',          base: 8000, freeFrom: null  },
+    { id: 'home',     label: 'A domicilio',          base: 8800, freeFrom: null  },
     { id: 'pickup',   label: 'Retiro en local',      base: 0,    freeFrom: 0     },
   ],
+
+  /* Envío a domicilio en zona de Mendoza: varía según localidad (ver zonaEnvio).
+     `base` de 'home' arriba queda como default conservador para la remitera manual
+     del admin, que no conoce la zona hasta que se carga a mano (mismo patrón que
+     REMITO_SHIP_DOMICILIO en Somos Setas). */
+  ZONAS_ENVIO: [
+    { id: 'mendoza-ciudad',        label: 'Ciudad de Mendoza',                                    costo: 3000 },
+    { id: 'godoy-cruz',            label: 'Godoy Cruz',                                            costo: 3000 },
+    { id: 'las-heras',             label: 'Las Heras (Centro y El Plumerillo)',                    costo: 3500 },
+    { id: 'las-heras-algarrobal',  label: 'Las Heras (Algarrobal, Panquegua, Borbollón)',           costo: 4000 },
+    { id: 'guaymallen',            label: 'Guaymallén (Centro y Villanueva)',                      costo: 3500 },
+    { id: 'guaymallen-corralitos', label: 'Guaymallén (Corralitos, Rodeo de la Cruz, Corralitos)',  costo: 4000 },
+    { id: 'maipu',                 label: 'Maipú',                                                 costo: 3500 },
+    { id: 'lujan',                 label: 'Luján de Cuyo (Centro y Carrodilla)',                   costo: 3500 },
+    { id: 'lujan-chacras',         label: 'Luján de Cuyo (Chacras, Vistalba, Mayor Drummond)',      costo: 4000 },
+    { id: 'perdriel',              label: 'Perdriel',                                               costo: 4500 },
+    { id: 'otra',                  label: 'Resto de la provincia / país',                           costo: 8800 },
+  ],
+
+  zonaEnvio(zonaId) {
+    return this.ZONAS_ENVIO.find(z => z.id === zonaId) || this.ZONAS_ENVIO.find(z => z.id === 'otra');
+  },
 
   /* caché en memoria, inicializada desde localStorage para mostrar al instante */
   _cache: {
@@ -354,10 +376,11 @@ window.VcoreData = {
     return this.tiers.find(t => t.min > subtotal) || null;
   },
 
-  getShippingCost(shippingId, subtotalAfterDiscount) {
+  getShippingCost(shippingId, subtotalAfterDiscount, zonaId) {
     const opt = this.shipping.find(s => s.id === shippingId);
     if (!opt) return 0;
     if (opt.freeFrom !== null && subtotalAfterDiscount >= opt.freeFrom) return 0;
+    if (shippingId === 'home') return this.zonaEnvio(zonaId).costo;
     return opt.base;
   },
 };

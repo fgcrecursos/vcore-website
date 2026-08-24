@@ -233,6 +233,7 @@ function CartDrawer({ open, items, onClose, onQty }) {
   injectCart();
 
   const [ship, setShip] = useState('andreani');
+  const [zona, setZona] = useState('');
   const [code, setCode] = useState('');
   const [codeApplied, setCodeApplied] = useState(null);
   const [codeErr, setCodeErr] = useState(false);
@@ -257,8 +258,10 @@ function CartDrawer({ open, items, onClose, onQty }) {
   const codeSaving = Math.round(afterTier * codeDiscount);
   const afterCode = afterTier - codeSaving;
 
-  const shippingOpt = D.shipping.find(s => s.id === ship) || D.shipping[0];
-  const shippingCost = D.getShippingCost(ship, afterCode);
+  const baseShippingOpt = D.shipping.find(s => s.id === ship) || D.shipping[0];
+  const shippingCost = D.getShippingCost(ship, afterCode, zona);
+  const zonaInfo = ship === 'home' && zona ? D.zonaEnvio(zona) : null;
+  const shippingOpt = zonaInfo ? { ...baseShippingOpt, label: `${baseShippingOpt.label} — ${zonaInfo.label}` } : baseShippingOpt;
   const total = afterCode + shippingCost;
 
   function applyCode() {
@@ -379,8 +382,9 @@ function CartDrawer({ open, items, onClose, onQty }) {
                 <div className="vc-ft-label">Envío</div>
                 <div className="vc-ship-opts">
                   {D.shipping.map(opt => {
-                    const cost = D.getShippingCost(opt.id, afterCode);
-                    const isFree = opt.freeFrom === 0 || cost === 0;
+                    const isHome = opt.id === 'home';
+                    const cost = D.getShippingCost(opt.id, afterCode, zona);
+                    const isFree = opt.freeFrom === 0 || (opt.freeFrom !== null && afterCode >= opt.freeFrom);
                     return (
                       <div
                         key={opt.id}
@@ -389,12 +393,19 @@ function CartDrawer({ open, items, onClose, onQty }) {
                       >
                         <span className="vc-ship-opt__name">{opt.label}</span>
                         <span className={`vc-ship-opt__cost${isFree ? ' free' : ''}`}>
-                          {isFree ? 'Gratis' : D.fmt(opt.base)}
+                          {isFree ? 'Gratis' : (isHome && !zona ? 'Según zona' : D.fmt(cost))}
                         </span>
                       </div>
                     );
                   })}
                 </div>
+                {ship === 'home' && (
+                  <select className="vc-code-input" style={{ textTransform: 'none', letterSpacing: 0, width: '100%', marginTop: 7 }}
+                    value={zona} onChange={e => setZona(e.target.value)}>
+                    <option value="">Elegí tu localidad</option>
+                    {D.ZONAS_ENVIO.map(z => <option key={z.id} value={z.id}>{z.label}</option>)}
+                  </select>
+                )}
               </div>
 
               {/* Discount code */}
@@ -436,7 +447,7 @@ function CartDrawer({ open, items, onClose, onQty }) {
                   </div>
                 )}
                 <div className="vc-b-row">
-                  <span>Envío</span>
+                  <span>Envío{zonaInfo ? ` (${zonaInfo.label})` : ''}</span>
                   <span style={shippingCost === 0 ? { color: 'var(--green-600)', fontWeight: 700 } : {}}>
                     {shippingCost === 0 ? 'Gratis' : D.fmt(shippingCost)}
                   </span>

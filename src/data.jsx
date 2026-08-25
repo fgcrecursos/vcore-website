@@ -15,7 +15,7 @@ window.VcoreData = {
   ],
 
   shipping: [
-    { id: 'andreani', label: 'Andreani — Sucursal', base: 5000, freeFrom: 50000 },
+    { id: 'andreani', label: 'Andreani — Sucursal', base: 7500, freeFrom: 50000 },
     { id: 'home',     label: 'A domicilio',          base: 8800, freeFrom: null  },
     { id: 'pickup',   label: 'Retiro en local',      base: 0,    freeFrom: 0     },
   ],

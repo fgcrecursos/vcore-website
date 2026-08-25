@@ -8,10 +8,14 @@ function _readLS(key) {
 
 window.VcoreData = {
 
+  /* Umbrales y descuentos iguales a Somos Setas: Mayorista paga $250.000 con -30%
+     (250000/0.70 ≈ 357143 de subtotal crudo) y Distribuidor paga $500.000 con -40%
+     (500000/0.60 ≈ 833334 de subtotal crudo). Ver T_MAYORISTA/T_DISTRIBUIDOR en
+     store.jsx de Somos Setas. */
   tiers: [
     { id: 'retail',      label: 'Minorista',   min: 0,       discount: 0,    badge: null },
-    { id: 'wholesale',   label: 'Mayorista',    min: 50000,   discount: 0.20, badge: '−20%' },
-    { id: 'distributor', label: 'Distribuidor', min: 100000,  discount: 0.35, badge: '−35%' },
+    { id: 'wholesale',   label: 'Mayorista',    min: 357143,  discount: 0.30, badge: '−30%' },
+    { id: 'distributor', label: 'Distribuidor', min: 833334,  discount: 0.40, badge: '−40%' },
   ],
 
   shipping: [

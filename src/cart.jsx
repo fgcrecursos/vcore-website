@@ -259,7 +259,7 @@ function CartDrawer({ open, items, onClose, onQty }) {
   const afterCode = afterTier - codeSaving;
 
   const baseShippingOpt = D.shipping.find(s => s.id === ship) || D.shipping[0];
-  const shippingCost = D.getShippingCost(ship, afterCode, zona);
+  const shippingCost = D.getShippingCost(ship, subtotal, zona);
   const zonaInfo = ship === 'home' && zona ? D.zonaEnvio(zona) : null;
   const shippingOpt = zonaInfo ? { ...baseShippingOpt, label: `${baseShippingOpt.label} — ${zonaInfo.label}` } : baseShippingOpt;
   const total = afterCode + shippingCost;
@@ -383,8 +383,8 @@ function CartDrawer({ open, items, onClose, onQty }) {
                 <div className="vc-ship-opts">
                   {D.shipping.map(opt => {
                     const isHome = opt.id === 'home';
-                    const cost = D.getShippingCost(opt.id, afterCode, zona);
-                    const isFree = opt.freeFrom === 0 || (opt.freeFrom !== null && afterCode >= opt.freeFrom);
+                    const cost = D.getShippingCost(opt.id, subtotal, zona);
+                    const isFree = opt.freeFrom === 0 || (opt.freeFrom !== null && subtotal >= opt.freeFrom);
                     return (
                       <div
                         key={opt.id}

@@ -18,10 +18,13 @@ window.VcoreData = {
     { id: 'distributor', label: 'Distribuidor', min: 833334,  discount: 0.40, badge: '−40%' },
   ],
 
+  /* Pisos de envio gratis iguales a Somos Setas (FREE_SUCURSAL_FROM/FREE_DOMICILIO_FROM
+     en su store.jsx): se evaluan sobre el subtotal crudo, no sobre el monto post-descuento
+     (ver getShippingCost). */
   shipping: [
-    { id: 'andreani', label: 'Andreani — Sucursal', base: 7500, freeFrom: 50000 },
-    { id: 'home',     label: 'A domicilio',          base: 8800, freeFrom: null  },
-    { id: 'pickup',   label: 'Retiro en local',      base: 0,    freeFrom: 0     },
+    { id: 'andreani', label: 'Andreani — Sucursal', base: 7500, freeFrom: 150000 },
+    { id: 'home',     label: 'A domicilio',          base: 8800, freeFrom: 280000 },
+    { id: 'pickup',   label: 'Retiro en local',      base: 0,    freeFrom: 0      },
   ],
 
   /* Envío a domicilio en zona de Mendoza: varía según localidad (ver zonaEnvio).
@@ -380,10 +383,13 @@ window.VcoreData = {
     return this.tiers.find(t => t.min > subtotal) || null;
   },
 
-  getShippingCost(shippingId, subtotalAfterDiscount, zonaId) {
+  /* `subtotal` es el subtotal crudo del carrito (antes de descuentos), igual que en
+     Somos Setas: ahi los pisos de envio gratis se evaluan contra el subtotal, no
+     contra el monto ya descontado. */
+  getShippingCost(shippingId, subtotal, zonaId) {
     const opt = this.shipping.find(s => s.id === shippingId);
     if (!opt) return 0;
-    if (opt.freeFrom !== null && subtotalAfterDiscount >= opt.freeFrom) return 0;
+    if (opt.freeFrom !== null && subtotal >= opt.freeFrom) return 0;
     if (shippingId === 'home') return this.zonaEnvio(zonaId).costo;
     return opt.base;
   },

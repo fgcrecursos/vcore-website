@@ -181,6 +181,42 @@ const ADMIN_CSS = `
   background: var(--surface-card); color: var(--ink-700); font-family: var(--font-body);
   font-size: 12.5px; font-weight: 700; cursor: pointer; }
 
+/* mini calendario para elegir un día concreto dentro del filtro de período.
+   Propio y no un <input type="date">: el nativo se dibuja con los colores del
+   sistema y no acepta CSS, así que rompía la paleta del panel. */
+.adm-cal { position: relative; display: inline-flex; }
+.adm-cal__btn { display: inline-flex; align-items: center; gap: 6px; }
+.adm-cal__btn svg { opacity: .7; }
+.adm-cal__btn.on svg { opacity: 1; }
+
+.adm-cal__pop { position: absolute; top: calc(100% + 8px); left: 0; z-index: 60; width: 264px; padding: 14px;
+  background: var(--surface-card); border: 1px solid var(--border-default); border-radius: var(--radius-md);
+  box-shadow: 0 18px 44px rgba(32, 32, 32, .16); }
+.adm-cal__head { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+.adm-cal__mes { flex: 1; text-align: center; font-family: var(--font-body); font-size: 13.5px; font-weight: 800;
+  letter-spacing: .01em; color: var(--ink-900); }
+.adm-cal__nav { width: 27px; height: 27px; display: grid; place-items: center; border-radius: var(--radius-pill);
+  border: 1.5px solid var(--border-default); background: transparent; color: var(--ink-600); cursor: pointer; transition: all .15s; }
+.adm-cal__nav:hover:not(:disabled) { border-color: var(--green-500); color: var(--text-brand); background: var(--green-050); }
+.adm-cal__nav:disabled { opacity: .3; cursor: default; }
+
+.adm-cal__grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.adm-cal__dow { text-align: center; font-size: 9.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-500); padding-bottom: 6px; }
+.adm-cal__dia { height: 31px; border: 0; background: none; border-radius: var(--radius-pill); font-family: var(--font-body);
+  font-size: 12.5px; font-weight: 600; color: var(--ink-800); cursor: pointer; transition: background .12s, color .12s; }
+.adm-cal__dia:hover:not(:disabled) { background: var(--green-050); color: var(--text-brand); }
+.adm-cal__dia:disabled { color: var(--ink-500); opacity: .35; cursor: default; }
+.adm-cal__dia.hoy { color: var(--text-brand); font-weight: 800; }
+.adm-cal__dia.sel { background: var(--green-500); color: #fff; font-weight: 700; }
+.adm-cal__dia.sel:hover { background: var(--green-600); color: #fff; }
+
+.adm-cal__foot { display: flex; align-items: center; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-default); }
+.adm-cal__link { background: none; border: 0; padding: 4px 8px; border-radius: var(--radius-pill); font-family: var(--font-body);
+  font-size: 12px; font-weight: 700; color: var(--ink-600); cursor: pointer; }
+.adm-cal__link:hover { background: var(--paper-100); color: var(--ink-900); }
+.adm-cal__link--der { margin-left: auto; color: var(--text-brand); }
+
 /* badges de fila */
 .adm-badge { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 9.5px;
   font-weight: 800; letter-spacing: .04em; vertical-align: middle; margin-right: 6px; color: #fff; }
@@ -496,6 +532,9 @@ const IcoChart  = ({ size }) => <Ico size={size} d={<><line x1="12" y1="20" x2="
 const IcoCheck  = ({ size }) => <Ico size={size} d={<polyline points="20 6 9 17 4 12"/>} />;
 const IcoShield = ({ size }) => <Ico size={size} d={<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></>} />;
 const IcoFile   = ({ size }) => <Ico size={size} d={<><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></>} />;
+const IcoCal    = ({ size }) => <Ico size={size} d={<><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="16" y1="2.5" x2="16" y2="6.5"/></>} />;
+const IcoLeft   = ({ size }) => <Ico size={size} d={<polyline points="15 5 8 12 15 19"/>} />;
+const IcoRight  = ({ size }) => <Ico size={size} d={<polyline points="9 5 16 12 9 19"/>} />;
 
 function Switch({ on, onChange, label }) {
   return (
@@ -914,6 +953,112 @@ function monthLabelShort(ym) {
   const [y, m] = ym.split('-');
   return `${MESES[parseInt(m, 10) - 1].slice(0, 3)} ${y}`;
 }
+/* Además de los atajos y los meses, el período puede ser un día concreto
+   elegido en el mini calendario: AAAA-MM-DD. */
+const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+/* La semana argentina arranca el lunes, no el domingo */
+const DIAS_SEMANA = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'];
+
+const esDiaSuelto = periodo => /^\d{4}-\d{2}-\d{2}$/.test(periodo);
+const ymdDe = (a, m, d) => `${a}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+/* Hoy en AAAA-MM-DD, en hora local */
+function hoyISO() {
+  const d = new Date();
+  return ymdDe(d.getFullYear(), d.getMonth(), d.getDate());
+}
+/* "25 de agosto de 2026" */
+function dayLabel(ymd) {
+  const [y, m, d] = ymd.split('-').map(Number);
+  return `${d} de ${MESES[m - 1].toLowerCase()} de ${y}`;
+}
+/* "25 ago 2026" — la version corta que entra en un chip */
+function dayLabelShort(ymd) {
+  const [y, m, d] = ymd.split('-').map(Number);
+  return `${d} ${MESES_CORTOS[m - 1]} ${y}`;
+}
+
+/* Mini calendario propio. No es un <input type="date"> porque el calendario
+   nativo del navegador se dibuja con los colores del sistema y no acepta CSS:
+   rompía la estética del panel apenas se abría. */
+function CalendarioDia({ value, onChange }) {
+  const [abierto, setAbierto] = useState(false);
+  const cont = useRef(null);
+
+  const hoy = new Date();
+  const hoyYmd = hoyISO();
+  const [cursor, setCursor] = useState({ a: hoy.getFullYear(), m: hoy.getMonth() });
+
+  /* Al abrir, el calendario se para en el día elegido (o en el mes en curso) */
+  useEffect(() => {
+    if (!abierto) return;
+    if (value) { const [a, m] = value.split('-').map(Number); setCursor({ a, m: m - 1 }); }
+    else setCursor({ a: hoy.getFullYear(), m: hoy.getMonth() });
+  }, [abierto, value]);
+
+  /* Se cierra al tocar afuera o con Escape, como cualquier menú del panel */
+  useEffect(() => {
+    if (!abierto) return;
+    const fuera = e => { if (cont.current && !cont.current.contains(e.target)) setAbierto(false); };
+    const escape = e => { if (e.key === 'Escape') setAbierto(false); };
+    document.addEventListener('mousedown', fuera);
+    document.addEventListener('keydown', escape);
+    return () => { document.removeEventListener('mousedown', fuera); document.removeEventListener('keydown', escape); };
+  }, [abierto]);
+
+  /* Huecos del arranque + días del mes. Sin días del mes vecino: ensucian. */
+  const celdas = useMemo(() => {
+    const arranque = (new Date(cursor.a, cursor.m, 1).getDay() + 6) % 7;
+    const largo = new Date(cursor.a, cursor.m + 1, 0).getDate();
+    return [...Array(arranque).fill(null), ...Array.from({ length: largo }, (_, i) => i + 1)];
+  }, [cursor]);
+
+  const sinFuturo = cursor.a > hoy.getFullYear() || (cursor.a === hoy.getFullYear() && cursor.m >= hoy.getMonth());
+  const mover = paso => { const d = new Date(cursor.a, cursor.m + paso, 1); setCursor({ a: d.getFullYear(), m: d.getMonth() }); };
+  const elegir = ymd => { onChange(ymd); setAbierto(false); };
+
+  return (
+    <div className="adm-cal" ref={cont}>
+      <button type="button" className={`adm-fchip adm-cal__btn${value ? ' on' : ''}`} onClick={() => setAbierto(!abierto)} title="Elegir un día">
+        <IcoCal size={13} />
+        {value ? dayLabelShort(value) : 'Un día'}
+      </button>
+
+      {abierto && (
+        <div className="adm-cal__pop">
+          <div className="adm-cal__head">
+            <button type="button" className="adm-cal__nav" onClick={() => mover(-1)} title="Mes anterior"><IcoLeft size={15} /></button>
+            <div className="adm-cal__mes">{MESES[cursor.m]} {cursor.a}</div>
+            <button type="button" className="adm-cal__nav" onClick={() => mover(1)} disabled={sinFuturo} title="Mes siguiente"><IcoRight size={15} /></button>
+          </div>
+
+          <div className="adm-cal__grid">
+            {DIAS_SEMANA.map(d => <span key={d} className="adm-cal__dow">{d}</span>)}
+            {celdas.map((dia, i) => {
+              if (dia === null) return <span key={`h${i}`} />;
+              const ymd = ymdDe(cursor.a, cursor.m, dia);
+              return (
+                <button
+                  key={ymd}
+                  type="button"
+                  className={`adm-cal__dia${ymd === value ? ' sel' : ''}${ymd === hoyYmd && ymd !== value ? ' hoy' : ''}`}
+                  disabled={ymd > hoyYmd}
+                  onClick={() => elegir(ymd)}
+                >{dia}</button>
+              );
+            })}
+          </div>
+
+          <div className="adm-cal__foot">
+            <button type="button" className="adm-cal__link" onClick={() => elegir(hoyYmd)}>Hoy</button>
+            {value && <button type="button" className="adm-cal__link adm-cal__link--der" onClick={() => { onChange(null); setAbierto(false); }}>Quitar</button>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* Límites [from, to] del período elegido. null = histórico completo. */
 function periodBounds(periodo) {
   const now = new Date();
@@ -927,6 +1072,10 @@ function periodBounds(periodo) {
     const [yy, mm] = periodo.split('-').map(Number);
     return { from: new Date(yy, mm - 1, 1).getTime(), to: new Date(yy, mm, 1).getTime() - 1 };
   }
+  if (esDiaSuelto(periodo)) {
+    const [yy, mm, dd] = periodo.split('-').map(Number);
+    return { from: new Date(yy, mm - 1, dd).getTime(), to: new Date(yy, mm - 1, dd + 1).getTime() - 1 };
+  }
   return null;
 }
 function periodoLabel(periodo) {
@@ -936,6 +1085,7 @@ function periodoLabel(periodo) {
   if (periodo === 'ult-30') return 'Últimos 30 días';
   if (periodo === 'anio') return 'Año en curso';
   if (/^\d{4}-\d{2}$/.test(periodo)) return monthLabel(periodo);
+  if (esDiaSuelto(periodo)) return dayLabel(periodo);
   return '';
 }
 
@@ -953,6 +1103,8 @@ function PeriodFilter({ periodo, onChange, months }) {
           {opts.map(([v, l]) => (
             <button key={v} className={`adm-fchip${periodo === v ? ' on' : ''}`} onClick={() => onChange(v)}>{l}</button>
           ))}
+          <span className="adm-chiprow__lbl" style={{ marginLeft: 10 }}>Día:</span>
+          <CalendarioDia value={esDiaSuelto(periodo) ? periodo : null} onChange={dia => onChange(dia || 'mes-actual')} />
           {months.length > 0 && (
             <>
               <span className="adm-chiprow__lbl" style={{ marginLeft: 10 }}>Mes:</span>
@@ -969,7 +1121,7 @@ function PeriodFilter({ periodo, onChange, months }) {
   );
 }
 
-window.VcoreAdminKit.periods = { monthKey, monthLabel, monthLabelShort, periodBounds, periodoLabel, PeriodFilter, MESES };
+window.VcoreAdminKit.periods = { monthKey, monthLabel, monthLabelShort, dayLabel, dayLabelShort, esDiaSuelto, hoyISO, periodBounds, periodoLabel, PeriodFilter, CalendarioDia, MESES };
 window.VcoreAdminKit.STATUSES = STATUSES;
 window.VcoreAdminKit.STATUS_COLORS = STATUS_COLORS;
 window.VcoreAdminKit.statusLabel = statusLabel;

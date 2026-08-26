@@ -203,8 +203,10 @@ const ADMIN_CSS = `
 .adm-cal__btn svg { opacity: .7; }
 .adm-cal__btn.on svg { opacity: 1; }
 
-/* Va montado en <body>: .adm-panel tiene overflow oculto y lo cortaba */
-.adm-cal__pop { position: absolute; z-index: 80; width: 264px; padding: 14px;
+/* Va montado en <body>: .adm-panel tiene overflow oculto y lo cortaba.
+   El z-index tiene que ganarle al .adm-modal-ov (100) porque el calendario
+   también se abre adentro del modal de filtros. */
+.adm-cal__pop { position: absolute; z-index: 140; width: 264px; padding: 14px;
   background: var(--surface-card); border: 1px solid var(--border-default); border-radius: var(--radius-md);
   box-shadow: 0 18px 44px rgba(32, 32, 32, .16); }
 .adm-cal__head { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }

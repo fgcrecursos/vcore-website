@@ -1,8 +1,11 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import { createPortal } from 'react-dom';
 
 window.React = React;
-window.ReactDOM = { createRoot };
+/* createPortal lo usa el panel para montar desplegables fuera de los paneles,
+   que tienen overflow oculto y los cortarían. */
+window.ReactDOM = { createRoot, createPortal };
 
 function loadBundle() {
   return new Promise((resolve, reject) => {

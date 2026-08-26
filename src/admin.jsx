@@ -184,12 +184,12 @@ const ADMIN_CSS = `
 /* mini calendario para elegir un día concreto dentro del filtro de período.
    Propio y no un <input type="date">: el nativo se dibuja con los colores del
    sistema y no acepta CSS, así que rompía la paleta del panel. */
-.adm-cal { position: relative; display: inline-flex; }
 .adm-cal__btn { display: inline-flex; align-items: center; gap: 6px; }
 .adm-cal__btn svg { opacity: .7; }
 .adm-cal__btn.on svg { opacity: 1; }
 
-.adm-cal__pop { position: absolute; top: calc(100% + 8px); left: 0; z-index: 60; width: 264px; padding: 14px;
+/* Va montado en <body>: .adm-panel tiene overflow oculto y lo cortaba */
+.adm-cal__pop { position: absolute; z-index: 80; width: 264px; padding: 14px;
   background: var(--surface-card); border: 1px solid var(--border-default); border-radius: var(--radius-md);
   box-shadow: 0 18px 44px rgba(32, 32, 32, .16); }
 .adm-cal__head { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
@@ -978,16 +978,25 @@ function dayLabelShort(ymd) {
   return `${d} ${MESES_CORTOS[m - 1]} ${y}`;
 }
 
+/* Medidas del desplegable, fijas porque el contenido siempre es el mismo */
+const CAL_ANCHO = 264, CAL_ALTO = 345, CAL_MARGEN = 10;
+
 /* Mini calendario propio. No es un <input type="date"> porque el calendario
    nativo del navegador se dibuja con los colores del sistema y no acepta CSS:
-   rompía la estética del panel apenas se abría. */
+   rompía la estética del panel apenas se abría.
+
+   El desplegable se monta en <body> (portal) y no al lado del botón: .adm-panel
+   tiene `overflow: hidden` y la barra de filtros scrollea en pantallas chicas,
+   así que ahí adentro el calendario aparecía cortado. */
 function CalendarioDia({ value, onChange }) {
   const [abierto, setAbierto] = useState(false);
-  const cont = useRef(null);
+  const btn = useRef(null);
+  const pop = useRef(null);
 
   const hoy = new Date();
   const hoyYmd = hoyISO();
   const [cursor, setCursor] = useState({ a: hoy.getFullYear(), m: hoy.getMonth() });
+  const [pos, setPos] = useState({ top: 0, left: 0 });
 
   /* Al abrir, el calendario se para en el día elegido (o en el mes en curso) */
   useEffect(() => {
@@ -996,10 +1005,38 @@ function CalendarioDia({ value, onChange }) {
     else setCursor({ a: hoy.getFullYear(), m: hoy.getMonth() });
   }, [abierto, value]);
 
+  /* Lo pega debajo del botón, en coordenadas de la página. Si abajo no entra
+     lo pasa arriba, y si se pasa de un borde lo corre hacia adentro. */
+  useEffect(() => {
+    if (!abierto) return;
+    const ubicar = () => {
+      const r = btn.current && btn.current.getBoundingClientRect();
+      if (!r) return;
+      const anchoVista = document.documentElement.clientWidth;
+      const altoVista = document.documentElement.clientHeight;
+      const abajoEntra = r.bottom + 8 + CAL_ALTO <= altoVista - CAL_MARGEN;
+      const arribaEntra = r.top - 8 - CAL_ALTO >= CAL_MARGEN;
+      const preferido = (abajoEntra || !arribaEntra) ? r.bottom + 8 : r.top - 8 - CAL_ALTO;
+      /* En una ventana muy baja no entra de ningún lado: ahí se pega al borde */
+      const top = Math.max(CAL_MARGEN, Math.min(preferido, altoVista - CAL_ALTO - CAL_MARGEN));
+      const left = Math.max(CAL_MARGEN, Math.min(r.left, anchoVista - CAL_ANCHO - CAL_MARGEN));
+      setPos({ top: top + window.scrollY, left: left + window.scrollX });
+    };
+    ubicar();
+    /* El scroll puede venir de la página o de un contenedor con scroll propio */
+    window.addEventListener('scroll', ubicar, true);
+    window.addEventListener('resize', ubicar);
+    return () => { window.removeEventListener('scroll', ubicar, true); window.removeEventListener('resize', ubicar); };
+  }, [abierto]);
+
   /* Se cierra al tocar afuera o con Escape, como cualquier menú del panel */
   useEffect(() => {
     if (!abierto) return;
-    const fuera = e => { if (cont.current && !cont.current.contains(e.target)) setAbierto(false); };
+    const fuera = e => {
+      if (btn.current && btn.current.contains(e.target)) return;
+      if (pop.current && pop.current.contains(e.target)) return;
+      setAbierto(false);
+    };
     const escape = e => { if (e.key === 'Escape') setAbierto(false); };
     document.addEventListener('mousedown', fuera);
     document.addEventListener('keydown', escape);
@@ -1018,14 +1055,14 @@ function CalendarioDia({ value, onChange }) {
   const elegir = ymd => { onChange(ymd); setAbierto(false); };
 
   return (
-    <div className="adm-cal" ref={cont}>
-      <button type="button" className={`adm-fchip adm-cal__btn${value ? ' on' : ''}`} onClick={() => setAbierto(!abierto)} title="Elegir un día">
+    <>
+      <button ref={btn} type="button" className={`adm-fchip adm-cal__btn${value ? ' on' : ''}`} onClick={() => setAbierto(!abierto)} title="Elegir un día">
         <IcoCal size={13} />
         {value ? dayLabelShort(value) : 'Un día'}
       </button>
 
-      {abierto && (
-        <div className="adm-cal__pop">
+      {abierto && window.ReactDOM.createPortal(
+        <div className="adm-cal__pop" ref={pop} style={{ top: pos.top, left: pos.left }}>
           <div className="adm-cal__head">
             <button type="button" className="adm-cal__nav" onClick={() => mover(-1)} title="Mes anterior"><IcoLeft size={15} /></button>
             <div className="adm-cal__mes">{MESES[cursor.m]} {cursor.a}</div>
@@ -1053,9 +1090,10 @@ function CalendarioDia({ value, onChange }) {
             <button type="button" className="adm-cal__link" onClick={() => elegir(hoyYmd)}>Hoy</button>
             {value && <button type="button" className="adm-cal__link adm-cal__link--der" onClick={() => { onChange(null); setAbierto(false); }}>Quitar</button>}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }
 

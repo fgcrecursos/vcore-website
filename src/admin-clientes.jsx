@@ -41,6 +41,8 @@ const CATEGORIAS_CLIENTE = [
   { id: 'distribuidor', label: 'Distribuidor' },
   { id: 'revendedor',   label: 'Revendedor' },
 ];
+const SALDO_CLIENTE_LABEL = { todos: 'Cualquier saldo', 'con-saldo': 'Con saldo pendiente', 'sin-saldo': 'Sin deuda', 'con-credito': 'Con crédito a favor' };
+const ESTADO_CLIENTE_LABEL = { activos: 'Activos', inactivos: 'Inactivos', todos: 'Activos e inactivos' };
 const categoriaLabel = (id) => (CATEGORIAS_CLIENTE.find(c => c.id === id) || CATEGORIAS_CLIENTE[0]).label;
 const ETIQUETAS_SUGERIDAS = ['VIP', 'Frecuente', 'Moroso', 'Mayorista', 'Instagram', 'Mercado Libre', 'Recomendado', 'No contactar'];
 const CANALES_CLIENTE = ['', 'Instagram', 'WhatsApp', 'Local', 'Recomendado', 'Mercado Libre', 'Web', 'Feria / evento'];
@@ -853,35 +855,49 @@ function AdminClientes({ store }) {
       </div>
 
       <div className="adm-panel">
-        <div className="adm-bar" style={{ flexWrap: 'wrap', gap: 8 }}>
-          <div className="adm-search" style={{ maxWidth: 320 }}>
-            <IcoSearch size={14} />
-            <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar por nombre, DNI, email, etiqueta o nota…" />
-          </div>
-          <select className="adm-fsel" value={fCategoria} onChange={e => setFCategoria(e.target.value)} title="Filtrar por categoría">
-            <option value="todas">Todas las categorías</option>
-            {CATEGORIAS_CLIENTE.filter(c => c.id).map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-            <option value="">Sin clasificar</option>
-          </select>
-          {tagsEnUso.length > 0 && (
-            <select className="adm-fsel" value={fTag} onChange={e => setFTag(e.target.value)} title="Filtrar por etiqueta">
-              <option value="todas">Todas las etiquetas</option>
-              {tagsEnUso.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-          )}
-          <select className="adm-fsel" value={fSaldo} onChange={e => setFSaldo(e.target.value)} title="Filtrar por estado de cuenta">
-            <option value="todos">Cualquier saldo</option>
-            <option value="con-saldo">Con saldo pendiente</option>
-            <option value="sin-saldo">Sin deuda</option>
-            <option value="con-credito">Con crédito a favor</option>
-          </select>
-          <select className="adm-fsel" value={fEstado} onChange={e => setFEstado(e.target.value)} title="Activos o archivados">
-            <option value="activos">Activos</option>
-            <option value="inactivos">Inactivos</option>
-            <option value="todos">Activos e inactivos</option>
-          </select>
-          <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--ink-400)' }}>
+        <div className="adm-bar" style={{ flexWrap: 'wrap', gap: 10 }}>
+          <K.ui.BarraFiltros
+            search={search}
+            setSearch={setSearch}
+            placeholder="Buscar por nombre, DNI, email, etiqueta o nota…"
+            activos={[
+              ...(fCategoria !== 'todas' ? [(CATEGORIAS_CLIENTE.find(c => c.id === fCategoria) || {}).label || 'Sin clasificar'] : []),
+              ...(fTag !== 'todas' ? [fTag] : []),
+              ...(fSaldo !== 'todos' ? [SALDO_CLIENTE_LABEL[fSaldo]] : []),
+              ...(fEstado !== 'activos' ? [ESTADO_CLIENTE_LABEL[fEstado]] : []),
+            ]}
+            onLimpiar={() => { setFCategoria('todas'); setFTag('todas'); setFSaldo('todos'); setFEstado('activos'); }}
+          >
+            <K.ui.GrupoFiltro titulo="Categoría">
+              <button className={`adm-fchip${fCategoria === 'todas' ? ' on' : ''}`} onClick={() => setFCategoria('todas')}>Todas</button>
+              {CATEGORIAS_CLIENTE.filter(c => c.id).map(c => (
+                <button key={c.id} className={`adm-fchip${fCategoria === c.id ? ' on' : ''}`} onClick={() => setFCategoria(c.id)}>{c.label}</button>
+              ))}
+              <button className={`adm-fchip${fCategoria === '' ? ' on' : ''}`} onClick={() => setFCategoria('')}>Sin clasificar</button>
+            </K.ui.GrupoFiltro>
+
+            {tagsEnUso.length > 0 && (
+              <K.ui.GrupoFiltro titulo="Etiqueta">
+                <button className={`adm-fchip${fTag === 'todas' ? ' on' : ''}`} onClick={() => setFTag('todas')}>Todas</button>
+                {tagsEnUso.map(t => (
+                  <button key={t} className={`adm-fchip${fTag === t ? ' on' : ''}`} onClick={() => setFTag(t)}>{t}</button>
+                ))}
+              </K.ui.GrupoFiltro>
+            )}
+
+            <K.ui.GrupoFiltro titulo="Estado de cuenta">
+              {Object.keys(SALDO_CLIENTE_LABEL).map(v => (
+                <button key={v} className={`adm-fchip${fSaldo === v ? ' on' : ''}`} onClick={() => setFSaldo(v)}>{SALDO_CLIENTE_LABEL[v]}</button>
+              ))}
+            </K.ui.GrupoFiltro>
+
+            <K.ui.GrupoFiltro titulo="Activos o archivados">
+              {Object.keys(ESTADO_CLIENTE_LABEL).map(v => (
+                <button key={v} className={`adm-fchip${fEstado === v ? ' on' : ''}`} onClick={() => setFEstado(v)}>{ESTADO_CLIENTE_LABEL[v]}</button>
+              ))}
+            </K.ui.GrupoFiltro>
+          </K.ui.BarraFiltros>
+          <span style={{ fontSize: 12, color: 'var(--ink-400)' }}>
             {filtered.length} de {customers.length}
           </span>
         </div>

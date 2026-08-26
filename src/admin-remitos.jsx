@@ -1179,49 +1179,55 @@ function AdminOrders({ store }) {
       )}
 
       <div className="adm-panel">
-        <div className="adm-bar adm-bar--stack">
-          <div className="adm-chiprow">
-            {['todos', ...STATUSES, 'anulado'].map(s => (
-              <button key={s} className={`adm-fchip${filter === s ? ' on' : ''}`} onClick={() => setFilter(s)}>
-                {(l => l.charAt(0).toUpperCase() + l.slice(1))(statusLabel(s))}
-                {s === 'nuevo' && nuevosCount > 0 ? ` (${nuevosCount})` : ''}
-              </button>
-            ))}
-          </div>
-          <div className="adm-chiprow">
-            <span className="adm-chiprow__lbl">Fecha:</span>
-            <button className={`adm-fchip${dateFilter === 'todos' ? ' on' : ''}`}
-              onClick={() => { setDateFilter('todos'); setSelectedMonth(''); }}>Todas</button>
-            <button className={`adm-fchip${dateFilter === 'semana' ? ' on' : ''}`}
-              onClick={() => { setDateFilter('semana'); setSelectedMonth(''); }}>Última semana</button>
-            <button className={`adm-fchip${dateFilter === 'mes' ? ' on' : ''}`}
-              onClick={() => { setDateFilter('mes'); setSelectedMonth(''); }}>Último mes</button>
-            <select className="adm-fsel"
-              value={dateFilter === 'mes-especifico' ? selectedMonth : ''}
-              onChange={e => {
-                if (e.target.value) { setDateFilter('mes-especifico'); setSelectedMonth(e.target.value); }
-                else { setDateFilter('todos'); setSelectedMonth(''); }
-              }}>
-              <option value="">— Mes específico —</option>
-              {availableMonths.map(ym => <option key={ym} value={ym}>{K.periods.monthLabelShort(ym)}</option>)}
-            </select>
-            <span style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--ink-400)' }}>
-              {filtered.length} de {store.orders.length}
-            </span>
-          </div>
-          <div className="adm-chiprow">
-            <span className="adm-chiprow__lbl">Cliente:</span>
-            {['todos', ...D.tiers.map(t => t.id)].map(t => (
-              <button key={t} className={`adm-fchip${tipoCliente === t ? ' on' : ''}`} onClick={() => setTipoCliente(t)}>
-                {t === 'todos' ? 'Todos' : TIPO_CLIENTE_LABEL[t]}
-              </button>
-            ))}
-          </div>
-          <div className="adm-search adm-search--wide">
-            <IcoSearch size={14} />
-            <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar por nombre, DNI, email, teléfono, ciudad o N° de remito…" />
-          </div>
+        <div className="adm-bar">
+          <K.ui.BarraFiltros
+            search={search}
+            setSearch={setSearch}
+            placeholder="Buscar por nombre, DNI, email, teléfono, ciudad o N° de remito…"
+            activos={[
+              ...(filter !== 'todos' ? [statusLabel(filter)] : []),
+              ...(dateFilter === 'semana' ? ['Última semana'] : []),
+              ...(dateFilter === 'mes' ? ['Último mes'] : []),
+              ...(dateFilter === 'mes-especifico' && selectedMonth ? [K.periods.monthLabelShort(selectedMonth)] : []),
+              ...(tipoCliente !== 'todos' ? [(D.tiers.find(t => t.id === tipoCliente) || {}).label || tipoCliente] : []),
+            ]}
+            onLimpiar={() => { setFilter('todos'); setDateFilter('todos'); setSelectedMonth(''); setTipoCliente('todos'); }}
+          >
+            <K.ui.GrupoFiltro titulo="Estado del pedido">
+              {['todos', ...STATUSES, 'anulado'].map(s => (
+                <button key={s} className={`adm-fchip${filter === s ? ' on' : ''}`} onClick={() => setFilter(s)}>
+                  {(l => l.charAt(0).toUpperCase() + l.slice(1))(statusLabel(s))}
+                  {s === 'nuevo' && nuevosCount > 0 ? ` (${nuevosCount})` : ''}
+                </button>
+              ))}
+            </K.ui.GrupoFiltro>
+
+            <K.ui.GrupoFiltro titulo="Fecha">
+              <button className={`adm-fchip${dateFilter === 'todos' ? ' on' : ''}`}
+                onClick={() => { setDateFilter('todos'); setSelectedMonth(''); }}>Todas</button>
+              <button className={`adm-fchip${dateFilter === 'semana' ? ' on' : ''}`}
+                onClick={() => { setDateFilter('semana'); setSelectedMonth(''); }}>Última semana</button>
+              <button className={`adm-fchip${dateFilter === 'mes' ? ' on' : ''}`}
+                onClick={() => { setDateFilter('mes'); setSelectedMonth(''); }}>Último mes</button>
+              {availableMonths.slice(0, 12).map(ym => (
+                <button key={ym}
+                  className={`adm-fchip${dateFilter === 'mes-especifico' && selectedMonth === ym ? ' on' : ''}`}
+                  onClick={() => { setDateFilter('mes-especifico'); setSelectedMonth(ym); }}>
+                  {K.periods.monthLabelShort(ym)}
+                </button>
+              ))}
+            </K.ui.GrupoFiltro>
+            <K.ui.GrupoFiltro titulo="Tipo de cliente">
+              {['todos', ...D.tiers.map(t => t.id)].map(t => (
+                <button key={t} className={`adm-fchip${tipoCliente === t ? ' on' : ''}`} onClick={() => setTipoCliente(t)}>
+                  {t === 'todos' ? 'Todos' : TIPO_CLIENTE_LABEL[t]}
+                </button>
+              ))}
+            </K.ui.GrupoFiltro>
+          </K.ui.BarraFiltros>
+          <span style={{ fontSize: 11.5, color: 'var(--ink-400)' }}>
+            {filtered.length} de {store.orders.length}
+          </span>
         </div>
 
         {filtered.length === 0 ? (

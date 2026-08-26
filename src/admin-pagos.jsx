@@ -955,6 +955,8 @@ function CustomerAccountDetail({ customer, monthFilter, store, onClose }) {
 }
 
 /* ═══════════════ Control de pagos ════════════════════════ */
+const SALDO_LABEL = { todos: 'Todos', 'con-saldo': 'Con deuda', 'sin-saldo': 'Saldadas', 'cuenta-corriente': 'Cuenta corriente' };
+
 function AdminCuentaCorriente({ store }) {
   const [selectedKey, setSelectedKey] = useState(null);
   const [monthFilter, setMonthFilter] = useState('todos');
@@ -1033,26 +1035,34 @@ function AdminCuentaCorriente({ store }) {
       </div>
 
       <div className="adm-panel">
-        <div className="adm-bar adm-bar--stack">
-          <div className="adm-chiprow">
-            <span className="adm-chiprow__lbl">Mes:</span>
-            <button className={`adm-fchip${monthFilter === 'todos' ? ' on' : ''}`} onClick={() => setMonthFilter('todos')}>Todos</button>
-            {months.slice(0, 6).map(ym => (
-              <button key={ym} className={`adm-fchip${monthFilter === ym ? ' on' : ''}`} onClick={() => setMonthFilter(ym)}>
-                {K.periods.monthLabelShort(ym)}
-              </button>
-            ))}
-            <span className="adm-chiprow__lbl" style={{ marginLeft: 12 }}>Saldo:</span>
-            <button className={`adm-fchip${filterSaldo === 'todos' ? ' on' : ''}`} onClick={() => setFilterSaldo('todos')}>Todos</button>
-            <button className={`adm-fchip${filterSaldo === 'con-saldo' ? ' on' : ''}`} onClick={() => setFilterSaldo('con-saldo')}>Con deuda</button>
-            <button className={`adm-fchip${filterSaldo === 'sin-saldo' ? ' on' : ''}`} onClick={() => setFilterSaldo('sin-saldo')}>Saldadas</button>
-            <button className={`adm-fchip${filterSaldo === 'cuenta-corriente' ? ' on' : ''}`} onClick={() => setFilterSaldo('cuenta-corriente')}>Cuenta corriente</button>
-          </div>
-          <div className="adm-search adm-search--wide">
-            <IcoSearch size={14} />
-            <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar por nombre, DNI o N° de remito…" />
-          </div>
+        <div className="adm-bar">
+          <K.ui.BarraFiltros
+            search={search}
+            setSearch={setSearch}
+            placeholder="Buscar por nombre, DNI o N° de remito…"
+            activos={[
+              ...(monthFilter !== 'todos' ? [K.periods.monthLabelShort(monthFilter)] : []),
+              ...(filterSaldo !== 'todos' ? [SALDO_LABEL[filterSaldo]] : []),
+            ]}
+            onLimpiar={() => { setMonthFilter('todos'); setFilterSaldo('todos'); }}
+          >
+            <K.ui.GrupoFiltro titulo="Mes">
+              <button className={`adm-fchip${monthFilter === 'todos' ? ' on' : ''}`} onClick={() => setMonthFilter('todos')}>Todos</button>
+              {months.slice(0, 12).map(ym => (
+                <button key={ym} className={`adm-fchip${monthFilter === ym ? ' on' : ''}`} onClick={() => setMonthFilter(ym)}>
+                  {K.periods.monthLabelShort(ym)}
+                </button>
+              ))}
+            </K.ui.GrupoFiltro>
+
+            <K.ui.GrupoFiltro titulo="Saldo">
+              {Object.keys(SALDO_LABEL).map(v => (
+                <button key={v} className={`adm-fchip${filterSaldo === v ? ' on' : ''}`} onClick={() => setFilterSaldo(v)}>
+                  {SALDO_LABEL[v]}
+                </button>
+              ))}
+            </K.ui.GrupoFiltro>
+          </K.ui.BarraFiltros>
         </div>
 
         {monthTotals && (

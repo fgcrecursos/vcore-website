@@ -181,6 +181,21 @@ const ADMIN_CSS = `
   background: var(--surface-card); color: var(--ink-700); font-family: var(--font-body);
   font-size: 12.5px; font-weight: 700; cursor: pointer; }
 
+/* barra de filtros: buscador + botón que abre el modal con el resto */
+.adm-filtros-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: 1 1 320px; }
+.adm-search--flex { flex: 1 1 220px; min-width: 180px; max-width: 380px; }
+.adm-fchip--filtrar { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.adm-fchip--filtrar svg { opacity: .75; }
+.adm-fchip--filtrar.on svg { opacity: 1; }
+.adm-fchip__num { display: inline-grid; place-items: center; min-width: 17px; height: 17px; padding: 0 5px;
+  border-radius: 9px; background: var(--green-500); color: #fff; font-size: 10.5px; font-weight: 800; }
+.adm-fchip--filtrar.on .adm-fchip__num { background: #fff; color: var(--text-brand); }
+
+/* grupos adentro del modal de filtros */
+.adm-fgrupo__tit { font-size: 11px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--ink-500); margin-bottom: 9px; }
+.adm-fgrupo__ayuda { font-size: 12px; color: var(--ink-500); margin: -4px 0 9px; }
+
 /* mini calendario para elegir un día concreto dentro del filtro de período.
    Propio y no un <input type="date">: el nativo se dibuja con los colores del
    sistema y no acepta CSS, así que rompía la paleta del panel. */
@@ -535,6 +550,7 @@ const IcoFile   = ({ size }) => <Ico size={size} d={<><path d="M14 2H6a2 2 0 00-
 const IcoCal    = ({ size }) => <Ico size={size} d={<><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="16" y1="2.5" x2="16" y2="6.5"/></>} />;
 const IcoLeft   = ({ size }) => <Ico size={size} d={<polyline points="15 5 8 12 15 19"/>} />;
 const IcoRight  = ({ size }) => <Ico size={size} d={<polyline points="9 5 16 12 9 19"/>} />;
+const IcoSliders= ({ size }) => <Ico size={size} d={<><line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/></>} />;
 
 function Switch({ on, onChange, label }) {
   return (
@@ -953,6 +969,65 @@ function monthLabelShort(ym) {
   const [y, m] = ym.split('-');
   return `${MESES[parseInt(m, 10) - 1].slice(0, 3)} ${y}`;
 }
+/* Barra de filtros de una sección: el buscador queda a la vista, que es lo que
+   más se usa, y el resto se guarda en un modal detrás del botón "Filtrar".
+   Antes cada sección apilaba tres o cuatro hileras de chips antes de la tabla.
+
+   Los filtros se aplican al tocarlos: el modal es dónde viven, no un
+   formulario que haya que confirmar. */
+function BarraFiltros({ search, setSearch, placeholder, activos, onLimpiar, children }) {
+  const [abierto, setAbierto] = useState(false);
+
+  return (
+    <div className="adm-filtros-bar">
+      {setSearch && (
+        <div className="adm-search adm-search--flex">
+          <IcoSearch size={14} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={placeholder || 'Buscar...'} />
+        </div>
+      )}
+
+      <button
+        type="button"
+        className={`adm-fchip adm-fchip--filtrar${activos.length ? ' on' : ''}`}
+        onClick={() => setAbierto(true)}
+        title={activos.length ? activos.join(' · ') : 'Sin filtros'}
+      >
+        <IcoSliders size={13} />
+        {/* Con un solo filtro puesto se lee cuál es sin tener que abrir nada */}
+        {activos.length === 1 ? `Filtrar · ${activos[0]}` : 'Filtrar'}
+        {activos.length > 1 && <span className="adm-fchip__num">{activos.length}</span>}
+      </button>
+
+      {abierto && (
+        <div className="adm-modal-ov" onClick={() => setAbierto(false)}>
+          <div className="adm-modal adm-modal--md" onClick={e => e.stopPropagation()}>
+            <div className="adm-modal__hd">
+              <h3>Filtros</h3>
+              <button className="adm-close" onClick={() => setAbierto(false)}><IcoClose size={15} /></button>
+            </div>
+            <div className="adm-modal__body">{children}</div>
+            <div className="adm-modal__ft">
+              <button className="adm-btn adm-btn--ghost" onClick={onLimpiar} disabled={!activos.length}>Limpiar filtros</button>
+              <button className="adm-btn adm-btn--primary" onClick={() => setAbierto(false)}>Listo</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GrupoFiltro({ titulo, ayuda, children }) {
+  return (
+    <div className="adm-fgrupo">
+      <div className="adm-fgrupo__tit">{titulo}</div>
+      {ayuda && <div className="adm-fgrupo__ayuda">{ayuda}</div>}
+      <div className="adm-chiprow">{children}</div>
+    </div>
+  );
+}
+
 /* Además de los atajos y los meses, el período puede ser un día concreto
    elegido en el mini calendario: AAAA-MM-DD. */
 const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -1136,29 +1211,37 @@ function PeriodFilter({ periodo, onChange, months }) {
   return (
     <div className="adm-panel">
       <div className="adm-bar">
-        <span className="adm-chiprow__lbl">Período:</span>
-        <div className="adm-chiprow">
-          {opts.map(([v, l]) => (
-            <button key={v} className={`adm-fchip${periodo === v ? ' on' : ''}`} onClick={() => onChange(v)}>{l}</button>
-          ))}
-          <span className="adm-chiprow__lbl" style={{ marginLeft: 10 }}>Día:</span>
-          <CalendarioDia value={esDiaSuelto(periodo) ? periodo : null} onChange={dia => onChange(dia || 'mes-actual')} />
+        <BarraFiltros
+          activos={periodo !== 'mes-actual' ? [periodoLabel(periodo)] : []}
+          onLimpiar={() => onChange('mes-actual')}
+        >
+          <GrupoFiltro titulo="Período">
+            {opts.map(([v, l]) => (
+              <button key={v} className={`adm-fchip${periodo === v ? ' on' : ''}`} onClick={() => onChange(v)}>{l}</button>
+            ))}
+          </GrupoFiltro>
+
+          <GrupoFiltro titulo="Un día concreto">
+            <CalendarioDia value={esDiaSuelto(periodo) ? periodo : null} onChange={dia => onChange(dia || 'mes-actual')} />
+          </GrupoFiltro>
+
           {months.length > 0 && (
-            <>
-              <span className="adm-chiprow__lbl" style={{ marginLeft: 10 }}>Mes:</span>
-              {months.slice(0, 6).map(ym => (
+            <GrupoFiltro titulo="Mes" ayuda="Los últimos meses con pedidos.">
+              {months.slice(0, 12).map(ym => (
                 <button key={ym} className={`adm-fchip${periodo === ym ? ' on' : ''}`} onClick={() => onChange(ym)}>
                   {monthLabelShort(ym)}
                 </button>
               ))}
-            </>
+            </GrupoFiltro>
           )}
-        </div>
+        </BarraFiltros>
+        <span style={{ fontSize: 12.5, color: 'var(--ink-400)' }}>{periodoLabel(periodo)}</span>
       </div>
     </div>
   );
 }
 
+window.VcoreAdminKit.ui = { BarraFiltros, GrupoFiltro };
 window.VcoreAdminKit.periods = { monthKey, monthLabel, monthLabelShort, dayLabel, dayLabelShort, esDiaSuelto, hoyISO, periodBounds, periodoLabel, PeriodFilter, CalendarioDia, MESES };
 window.VcoreAdminKit.STATUSES = STATUSES;
 window.VcoreAdminKit.STATUS_COLORS = STATUS_COLORS;

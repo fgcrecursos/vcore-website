@@ -1,12 +1,12 @@
 /* ==========================================================================
    Vcore · Typography tokens
-   Primary "Atyp BL" → display/headlines (substituted with Rubik).
-   Secondary neutral grotesque → body/labels (same family here).
+   Primary "Atyp BL" → display/headlines (substituted with Outfit).
+   Secondary neutral grotesque → body/labels (Hanken Grotesk).
    ========================================================================== */
 :root {
   /* families */
-  --font-display: 'Rubik', 'Helvetica Neue', Arial, sans-serif;
-  --font-body:    'Rubik', 'Helvetica Neue', Arial, sans-serif;
+  --font-display: 'Outfit', 'Helvetica Neue', Arial, sans-serif;
+  --font-body:    'Hanken Grotesk', 'Helvetica Neue', Arial, sans-serif;
 
   /* weights */
   --weight-light:    300;

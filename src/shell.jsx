@@ -44,7 +44,10 @@ const SITE_CSS = `
 
 .vc-pimg { position: relative; width: 100%; aspect-ratio: 4 / 5; border-radius: var(--radius-lg); overflow: hidden;
   isolation: isolate; }
-.vc-pimg > img.vc-pimg__photo { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Los packs van completos sobre una placa clara (#F2F1EF es el mismo fondo que
+   traen las fotos del catálogo), nunca recortados. */
+.vc-pimg > img.vc-pimg__photo { width: 100%; height: 100%; object-fit: contain; display: block;
+  background: #F2F1EF; padding: 10px; box-sizing: border-box; }
 .vc-pimg::after { content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; }
 .vc-pimg--tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
 .vc-pimg--tile::after { background: var(--vignette); }

@@ -1,41 +1,73 @@
 /* Vcore website — pages: HeroBanner, Home, Shop, Product, SearchOverlay, AdminPage. */
 const React = window.React;
-const { useState, useEffect } = React;
+const { useState, useEffect, useRef } = React;
 const { Button, Badge, Card, StatRing, Eyebrow, Tag } = window.VcoreDesignSystem_8ff97c;
 const I = window.VcoreIcons;
 const D = window.VcoreData;
 const ProductImage = window.VcoreProductImage;
 
 const PAGE_CSS = `
-/* ---- Hero: color panel + full-bleed photo, Instagram-tile style ---- */
-.vc-banner { position: relative; overflow: hidden; isolation: isolate; min-height: 640px; }
-.vc-slide { position: absolute; inset: 0; min-height: 640px; display: grid;
-  grid-template-columns: 44% 56%;
-  opacity: 0; transition: opacity .75s cubic-bezier(.4,0,.2,1); pointer-events: none; }
+/* ---- Reveal al entrar en viewport ---- */
+.vc-reveal { opacity: 0; transform: translateY(26px);
+  transition: opacity .75s cubic-bezier(.2,.8,.2,1), transform .75s cubic-bezier(.2,.8,.2,1); }
+.vc-reveal.is-in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .vc-reveal { opacity: 1; transform: none; transition: none; }
+}
+
+/* ---- Hero: campo de color + foto + pack flotante, en capas con parallax ---- */
+.vc-banner { position: relative; overflow: hidden; isolation: isolate; min-height: 780px; background: var(--ink-950); }
+.vc-slide { position: absolute; inset: 0; opacity: 0;
+  transition: opacity .8s cubic-bezier(.4,0,.2,1); pointer-events: none; }
 .vc-slide.active { opacity: 1; pointer-events: auto; }
-.vc-hero-panel { position: relative; z-index: 2; display: flex; align-items: center;
-  padding: 72px 64px; }
-.vc-hero-media { position: relative; overflow: hidden; background: var(--ink-900); }
-.vc-hero-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
-.vc-hero-media__stats { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr;
-  gap: 2px; padding: 56px; }
-.vc-hero-stat { display: flex; flex-direction: column; justify-content: center; }
-.vc-hero-stat__v { font-family: var(--font-display); font-weight: 800; line-height: .95;
-  font-size: clamp(30px, 3.6vw, 48px); color: #fff; }
-.vc-hero-stat__l { font-size: 12.5px; text-transform: uppercase; letter-spacing: .1em; font-weight: 700;
-  color: rgba(255,255,255,.68); margin-top: 8px; max-width: 14ch; }
-.vc-slide__content { color: #fff; max-width: 560px; }
-.vc-slide__content h1 { font-family: var(--font-display); font-weight: 800;
-  font-size: clamp(40px, 4.6vw, 68px); letter-spacing: -.03em; line-height: .95; margin: 20px 0 0; }
-.vc-slide__content h1 em { font-style: italic; font-weight: 600; color: var(--green-300); }
-.vc-slide__content p { font-size: 17px; line-height: 1.65; color: rgba(255,255,255,.78);
-  margin: 24px 0 34px; max-width: 460px; }
-.vc-slide__ctas { display: flex; gap: 12px; flex-wrap: wrap; }
-.vc-slide__outline-btn { font-family: var(--font-body); font-weight: 700; font-size: 15px;
-  padding: 0 22px; height: 48px; border-radius: var(--radius-pill);
-  border: 1.5px solid rgba(255,255,255,.4); background: rgba(255,255,255,.08);
-  color: #fff; cursor: pointer; transition: background .15s, border-color .15s; }
-.vc-slide__outline-btn:hover { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.55); }
+.vc-hero__field { position: absolute; inset: 0; }
+.vc-hero__mark { position: absolute; right: -190px; top: -150px; width: 860px; opacity: .055;
+  pointer-events: none; will-change: transform; z-index: 1; }
+.vc-hero__label { position: absolute; left: 44px; top: 50%; transform: translateY(-50%) rotate(180deg);
+  writing-mode: vertical-rl; font-size: 11.5px; font-weight: 700; letter-spacing: .32em;
+  text-transform: uppercase; color: rgba(255,255,255,.45); z-index: 4; }
+.vc-hero__photo { position: absolute; right: 60px; top: 122px; width: 432px; height: 610px;
+  border-radius: 26px; overflow: hidden; box-shadow: 0 50px 110px rgba(0,0,0,.5);
+  z-index: 2; will-change: transform; }
+.vc-hero__photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.vc-hero__pack { position: absolute; right: 374px; top: 442px; width: 262px; height: 330px;
+  border-radius: 20px; background: #F2F1EF; box-shadow: 0 40px 80px rgba(0,0,0,.42);
+  display: flex; align-items: center; justify-content: center; z-index: 3; will-change: transform; }
+.vc-hero__pack img { width: 86%; height: 86%; object-fit: contain; display: block; }
+/* Ojo: estos bloques también llevan .vc-wrap, así que el padding se declara por
+   eje para no pisar el padding lateral del contenedor. */
+.vc-hero__inner { position: relative; z-index: 4; min-height: 780px; display: flex;
+  flex-direction: column; justify-content: center; padding-top: 130px; padding-bottom: 56px;
+  box-sizing: border-box; }
+.vc-hero__copy { width: min(620px, 100%); color: #fff; }
+.vc-hero__l1, .vc-hero__l2, .vc-hero__l3 { display: block; }
+.vc-hero__l1, .vc-hero__l3 { font-family: var(--font-display); font-weight: 200;
+  font-size: clamp(32px, 4.3vw, 62px); line-height: 1; letter-spacing: -.025em; }
+.vc-hero__l1 { color: rgba(255,255,255,.9); }
+.vc-hero__l2 { font-family: var(--font-display); font-weight: 800;
+  font-size: clamp(56px, 7.5vw, 108px); line-height: .92; letter-spacing: -.05em;
+  color: #fff; margin: 2px 0 2px -6px; }
+.vc-hero__l3 { color: var(--green-300); }
+.vc-hero__copy p { font-size: 17px; line-height: 1.65; color: rgba(255,255,255,.74);
+  margin: 30px 0 0; max-width: 400px; }
+.vc-hero__ctas { display: flex; gap: 12px; margin-top: 34px; flex-wrap: wrap; }
+.vc-hero__btn { display: inline-flex; align-items: center; gap: 10px; height: 54px; padding: 0 30px;
+  border-radius: var(--radius-pill); background: #fff; color: #0B3327; border: 0; cursor: pointer;
+  font-family: var(--font-body); font-size: 15px; font-weight: 700;
+  transition: transform .18s ease, box-shadow .18s ease; }
+.vc-hero__btn:hover { transform: translateY(-2px); box-shadow: 0 16px 34px rgba(0,0,0,.28); }
+.vc-hero__btn--ghost { background: transparent; color: #fff; border: 1.5px solid rgba(255,255,255,.4); }
+.vc-hero__btn--ghost:hover { background: rgba(255,255,255,.12); }
+.vc-hero__stats { margin-top: auto; padding-top: 22px; width: min(620px, 100%);
+  border-top: 1px solid rgba(255,255,255,.16); display: flex; gap: 52px; }
+.vc-hero__stat-v { font-family: var(--font-display); font-weight: 600; font-size: 22px;
+  color: #fff; line-height: 1; }
+.vc-hero__stat-l { margin-top: 6px; font-size: 11px; font-weight: 700; letter-spacing: .14em;
+  text-transform: uppercase; color: rgba(255,255,255,.5); }
+.vc-hero__cue { position: absolute; right: 28px; bottom: 56px; display: flex; align-items: center;
+  gap: 12px; z-index: 5; font-size: 11px; font-weight: 700; letter-spacing: .2em;
+  text-transform: uppercase; color: rgba(255,255,255,.5); }
+.vc-hero__cue i { display: block; width: 52px; height: 1px; background: rgba(255,255,255,.35); }
 /* About — origin story */
 .vc-about-story { display: grid; grid-template-columns: 1.05fr .95fr; gap: 64px; align-items: center; }
 .vc-about-mark { position: relative; aspect-ratio: 1 / 1; border-radius: var(--radius-2xl);
@@ -117,17 +149,19 @@ const PAGE_CSS = `
 .vc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; }
 .vc-grid--3 { grid-template-columns: repeat(3, 1fr); }
 .vc-grid--2 { grid-template-columns: repeat(2, 1fr); }
-.vc-pcard { position: relative; border-radius: var(--radius-lg); overflow: hidden; cursor: pointer;
-  background: var(--surface-card); border: 1px solid var(--paper-150);
-  transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s ease, border-color .22s ease; }
-.vc-pcard:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); border-color: var(--paper-300); }
-.vc-pcard__accent { height: 6px; width: 100%; }
-.vc-pcard__accent--green { background: var(--green-500); }
-.vc-pcard__accent--navy  { background: var(--info-500); }
-.vc-pcard__accent--coral { background: var(--coral-500); }
-.vc-pcard__accent--sage  { background: var(--sage-500); }
-.vc-pcard__accent--paper { background: var(--paper-400); }
-.vc-pcard__body { padding: 16px 18px 18px; }
+.vc-pcard { position: relative; cursor: pointer; background: transparent; border: 0;
+  transition: transform .24s cubic-bezier(.2,.8,.2,1); }
+.vc-pcard:hover { transform: translateY(-6px); }
+.vc-pcard__plate { position: relative; background: #F2F1EF; border-radius: 20px;
+  overflow: hidden; border-bottom: 6px solid var(--green-500);
+  transition: box-shadow .24s ease; }
+.vc-pcard:hover .vc-pcard__plate { box-shadow: 0 26px 52px rgba(19,22,21,.18); }
+.vc-pcard__plate--green { border-bottom-color: var(--green-500); }
+.vc-pcard__plate--navy  { border-bottom-color: var(--info-500); }
+.vc-pcard__plate--coral { border-bottom-color: var(--coral-500); }
+.vc-pcard__plate--sage  { border-bottom-color: var(--sage-500); }
+.vc-pcard__plate--paper { border-bottom-color: var(--paper-400); }
+.vc-pcard__body { padding: 16px 2px 0; }
 .vc-pc__cat { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 8px; }
 .vc-pc__cat--green { color: var(--green-700); } [data-theme="dark"] .vc-pc__cat--green { color: var(--green-400); }
 .vc-pc__cat--navy  { color: var(--info-500); }
@@ -160,7 +194,98 @@ const PAGE_CSS = `
   border-radius: var(--radius-2xl); box-shadow: 0 24px 60px rgba(0,0,0,.35); }
 @media (max-width: 760px) { .vc-band { grid-template-columns: 1fr; gap: 22px; padding: 56px 0; } .vc-band__photo { aspect-ratio: 16 / 10; } }
 
+/* ---- Líneas: campo de color conmutable con packs en parallax ---- */
+.vc-lineas { position: relative; overflow: hidden; isolation: isolate; color: #fff; }
+.vc-lineas__field { position: absolute; inset: 0; opacity: 0; transition: opacity .7s ease; }
+.vc-lineas__field.on { opacity: 1; }
+.vc-lineas__ghost { position: absolute; right: 40px; top: 28px; font-family: var(--font-display);
+  font-weight: 800; font-size: 210px; line-height: .8; letter-spacing: -.06em;
+  color: rgba(255,255,255,.07); pointer-events: none; z-index: 2; }
+.vc-lineas__inner { position: relative; z-index: 3; padding-top: 92px; }
+.vc-lineas__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+.vc-lineas__eye { font-size: 11.5px; font-weight: 700; letter-spacing: .3em;
+  text-transform: uppercase; color: rgba(255,255,255,.72); }
+.vc-lineas h2 { font-family: var(--font-display); font-weight: 800;
+  font-size: clamp(36px, 5vw, 72px); line-height: .94; letter-spacing: -.045em; margin: 18px 0 0; }
+.vc-lineas p { font-size: 17px; line-height: 1.7; color: rgba(255,255,255,.76);
+  margin: 24px 0 0; max-width: 430px; }
+.vc-lineas__cta { display: inline-flex; align-items: center; gap: 10px; margin-top: 30px;
+  height: 52px; padding: 0 28px; border-radius: var(--radius-pill); background: #fff;
+  color: #10352A; border: 0; cursor: pointer; font-family: var(--font-body);
+  font-size: 15px; font-weight: 700; transition: transform .18s ease; }
+.vc-lineas__cta:hover { transform: translateY(-2px); }
+.vc-lineas__packs { position: relative; height: 430px; }
+.vc-lineas__pack { position: absolute; border-radius: 18px; background: #F2F1EF;
+  display: flex; align-items: center; justify-content: center; will-change: transform;
+  box-shadow: 0 32px 64px rgba(0,0,0,.36); }
+.vc-lineas__pack img { width: 88%; height: 88%; object-fit: contain; display: block; }
+.vc-lineas__rail { position: relative; z-index: 3; display: flex; gap: 2px; padding: 40px 0 56px; }
+.vc-lineas__rail button { flex: 1; text-align: left; background: none; cursor: pointer;
+  padding: 20px 24px 18px; border: 0; border-top: 2px solid rgba(255,255,255,.22);
+  color: rgba(255,255,255,.58); font-family: var(--font-display);
+  transition: color .25s ease, border-color .25s ease; }
+.vc-lineas__rail button.on { border-top-color: #fff; color: #fff; }
+.vc-lineas__rail-n { font-weight: 600; font-size: 13px; letter-spacing: .12em; }
+.vc-lineas__rail-t { margin-top: 7px; font-weight: 600; font-size: 19px; letter-spacing: -.01em; }
+
+/* ---- Laboratorio: Pureza · Balance · Transparencia ---- */
+.vc-lab { position: relative; overflow: hidden; isolation: isolate; color: #fff;
+  background: radial-gradient(100% 80% at 82% 110%, #14402B 0%, #0E2A1E 36%, #0B0E0C 74%); }
+.vc-lab__ghost { position: absolute; width: 320px; opacity: .05; pointer-events: none;
+  will-change: transform; z-index: 1; }
+.vc-lab__inner { position: relative; z-index: 3; padding-top: 96px; padding-bottom: 96px; }
+.vc-lab__head { display: grid; grid-template-columns: 1fr 440px; gap: 48px; align-items: start; }
+.vc-lab__eye { font-size: 11.5px; font-weight: 700; letter-spacing: .3em;
+  text-transform: uppercase; color: var(--green-300); }
+.vc-lab h2 { font-family: var(--font-display); font-weight: 800; font-size: clamp(36px, 5vw, 72px);
+  line-height: .94; letter-spacing: -.045em; margin: 20px 0 0; }
+.vc-lab__photo { border-radius: 22px; overflow: hidden; height: 248px;
+  box-shadow: 0 40px 80px rgba(0,0,0,.45); }
+.vc-lab__photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.vc-lab__caption { margin: 16px 0 0; font-size: 16px; line-height: 1.7; color: rgba(255,255,255,.66); }
+.vc-lab__cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; margin-top: 76px; }
+.vc-lab__icon { width: 54px; height: auto; display: block; }
+.vc-lab h3 { font-family: var(--font-display); font-weight: 700; font-size: 28px;
+  letter-spacing: -.02em; margin: 24px 0 0; }
+.vc-lab__div { width: 26px; height: 2px; background: var(--green-500); margin: 16px 0; }
+.vc-lab__cols p { font-size: 15.5px; line-height: 1.7; color: rgba(255,255,255,.68); margin: 0; }
+.vc-lab__foot { margin-top: 64px; padding-top: 26px; border-top: 1px solid rgba(255,255,255,.14);
+  display: flex; align-items: center; gap: 24px; font-size: 13.5px; color: rgba(255,255,255,.55); }
+
+/* ---- PDP inmersiva ---- */
+.vc-pdp2 { display: grid; grid-template-columns: 54% 46%; min-height: 720px; }
+.vc-pdp2__art { position: relative; overflow: hidden; display: flex;
+  align-items: center; justify-content: center; padding: 64px 0; }
+.vc-pdp2__ghost { position: absolute; left: -24px; top: 40px; writing-mode: vertical-rl;
+  font-family: var(--font-display); font-weight: 800; font-size: 180px; line-height: .8;
+  letter-spacing: -.06em; color: rgba(255,255,255,.16); pointer-events: none; z-index: 1; }
+.vc-pdp2__plate { position: relative; z-index: 3; width: min(400px, 74%); aspect-ratio: 4 / 5;
+  border-radius: 24px; background: #F2F1EF; box-shadow: 0 50px 100px rgba(16,28,24,.42);
+  display: flex; align-items: center; justify-content: center; will-change: transform; }
+.vc-pdp2__plate img { width: 90%; height: 90%; object-fit: contain; display: block; }
+.vc-pdp2__back { position: absolute; left: 40px; top: 36px; z-index: 4; display: inline-flex;
+  align-items: center; gap: 10px; color: #fff; font-size: 11.5px; font-weight: 700;
+  letter-spacing: .24em; text-transform: uppercase; background: none; border: 0; cursor: pointer; }
+.vc-pdp2__circles { position: absolute; left: 40px; bottom: 40px; display: flex; gap: 10px; z-index: 4; }
+.vc-pdp2__circle { width: 64px; height: 64px; border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,.6); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; color: #fff; }
+.vc-pdp2__circle b { font-family: var(--font-display); font-weight: 700; font-size: 15px; line-height: 1; }
+.vc-pdp2__circle span { font-size: 8.5px; letter-spacing: .1em; text-transform: uppercase; margin-top: 3px; }
+.vc-pdp2__panel { padding: 72px 56px 72px 64px; display: flex; flex-direction: column; }
+.vc-pdp2__panel h1 { font-family: var(--font-display); font-weight: 800;
+  font-size: clamp(38px, 4.4vw, 60px); line-height: .95; letter-spacing: -.045em; margin: 0; }
+
 /* ---- Shop ---- */
+.vc-shop-head { display: flex; align-items: flex-end; gap: 32px; padding: 68px 0 0; }
+.vc-shop-head h1 { font-family: var(--font-display); font-weight: 800;
+  font-size: clamp(42px, 6vw, 86px); line-height: .92; letter-spacing: -.05em; margin: 16px 0 0; }
+.vc-shop-head p { width: 330px; flex: none; font-size: 16px; line-height: 1.65;
+  color: var(--ink-600); margin: 0 0 12px; }
+@media (max-width: 860px) {
+  .vc-shop-head { flex-direction: column; align-items: flex-start; gap: 16px; padding-top: 36px; }
+  .vc-shop-head p { width: auto; }
+}
 .vc-cats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
 .vc-shop-search { position: relative; max-width: 320px; margin-bottom: 20px; }
 .vc-shop-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
@@ -263,16 +388,34 @@ const PAGE_CSS = `
 /* ───────── Mobile ───────── */
 @media (max-width: 860px) {
   /* hero */
-  .vc-banner, .vc-slide { min-height: 0; }
-  .vc-slide { position: relative; grid-template-columns: 1fr; }
+  .vc-banner { min-height: 0; }
+  .vc-slide { position: relative; }
   .vc-slide:not(.active) { display: none; }
-  .vc-hero-media { min-height: 260px; order: -1; }
-  .vc-hero-media__stats { padding: 28px; gap: 16px; }
-  .vc-hero-panel { padding: 40px 20px 56px; }
-  .vc-slide__content { padding: 0; max-width: none; }
-  .vc-slide__content p { font-size: 15.5px; }
+  .vc-hero__mark, .vc-hero__label, .vc-hero__cue { display: none; }
+  .vc-hero__photo { position: relative; right: auto; top: auto; width: 100%; height: 300px;
+    border-radius: 0; box-shadow: none; transform: none !important; }
+  .vc-hero__pack { right: 14px; top: 160px; width: 132px; height: 166px; border-radius: 14px; }
+  .vc-hero__inner { min-height: 0; padding-top: 30px; padding-bottom: 40px; }
+  .vc-hero__copy p { font-size: 15.5px; }
+  .vc-hero__stats { gap: 26px; margin-top: 34px; }
   .vc-banner__arr { display: none; }
   .vc-banner__dots { bottom: 16px; }
+
+  /* líneas + laboratorio + pdp */
+  .vc-lineas__grid { grid-template-columns: 1fr; gap: 28px; }
+  .vc-lineas__inner { padding-top: 56px; }
+  .vc-lineas__ghost { font-size: 120px; right: 16px; }
+  .vc-lineas__packs { height: 300px; }
+  .vc-lineas__rail { flex-direction: column; gap: 0; padding: 28px 0 44px; }
+  .vc-lab__inner { padding-top: 56px; padding-bottom: 56px; }
+  .vc-lab__head { grid-template-columns: 1fr; gap: 28px; }
+  .vc-lab__cols { grid-template-columns: 1fr; gap: 32px; margin-top: 44px; }
+  .vc-lab__foot { flex-direction: column; align-items: flex-start; gap: 12px; margin-top: 40px; }
+  .vc-lab__ghost { display: none; }
+  .vc-pdp2 { grid-template-columns: 1fr; min-height: 0; }
+  .vc-pdp2__art { padding: 72px 0 48px; }
+  .vc-pdp2__ghost { font-size: 110px; left: -14px; }
+  .vc-pdp2__panel { padding: 36px 20px 56px; }
 
   /* sections */
   .vc-section { padding: 40px 0; }
@@ -328,6 +471,72 @@ function injectPages() {
   }
 }
 
+function prefersReducedMotion() {
+  try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+  catch (e) { return false; }
+}
+
+/* Posición de scroll en px, throttleada por rAF. Devuelve 0 si el usuario
+   pidió menos movimiento, así todas las capas quedan quietas. */
+function useScrollY() {
+  const [y, setY] = useState(0);
+  useEffect(() => {
+    if (prefersReducedMotion()) return;
+    let raf = 0;
+    function onScroll() {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        setY(window.scrollY || window.pageYOffset || 0);
+      });
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+  return y;
+}
+
+/* Desplazamiento relativo al centro de la sección: 0 cuando la sección está
+   centrada en el viewport, negativo antes y positivo después. Así las capas
+   quedan en su posición de diseño justo cuando la sección se está mirando. */
+function useSectionScroll(ref) {
+  const y = useScrollY();
+  const [box, setBox] = useState(null);
+  useEffect(() => {
+    function measure() {
+      if (!ref.current) return;
+      const r = ref.current.getBoundingClientRect();
+      setBox({ top: r.top + (window.scrollY || window.pageYOffset || 0), h: r.height });
+    }
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [ref]);
+  if (!box) return 0;
+  return (y + window.innerHeight / 2) - (box.top + box.h / 2);
+}
+
+function useRevealAll(dep) {
+  useEffect(() => {
+    const els = document.querySelectorAll('.vc-reveal:not(.is-in)');
+    if (!('IntersectionObserver' in window) || prefersReducedMotion()) {
+      els.forEach(el => el.classList.add('is-in'));
+      return;
+    }
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(en => {
+        if (en.isIntersecting) { en.target.classList.add('is-in'); io.unobserve(en.target); }
+      });
+    }, { threshold: 0.08, rootMargin: '0px 0px -8% 0px' });
+    els.forEach(el => io.observe(el));
+    return () => io.disconnect();
+  }, [dep]);
+}
+
 function Rating({ r, n }) {
   return (
     <span className="vc-rating">
@@ -338,12 +547,30 @@ function Rating({ r, n }) {
   );
 }
 
+/* Las tres líneas de producto. El catálogo oficial declara las dos primeras;
+   la tercera agrupa lo que ya está en la tienda y no figura en el PDF. */
+const LINEAS = [
+  { id: 'rendimiento', n: '01', title: 'Rendimiento y Fuerza', cats: ['Rendimiento'],
+    field: 'radial-gradient(120% 95% at 16% -15%, #3AA86C 0%, #1E7247 24%, #125138 48%, #0B3327 72%, #06201A 100%)',
+    blurb: 'Creatina monohidrato micronizada, de máxima pureza. Solubilidad superior y absorción ultra rápida, sin molestias digestivas.' },
+  { id: 'salud', n: '02', title: 'Salud y Recuperación', cats: ['Recuperación', 'Vitaminas'],
+    field: 'radial-gradient(115% 95% at 78% -10%, #4A93C9 0%, #2A6A9E 25%, #1A4E78 48%, #123754 72%, #0A2033 100%)',
+    blurb: 'Citrato, glicinato, malato y triple magnesio. Sales orgánicas puras en cápsulas y polvo, sin excipientes ni azúcares agregados.' },
+  { id: 'bienestar', n: '03', title: 'Bienestar diario', cats: ['Bienestar', 'Colágeno', 'Articulaciones'],
+    field: 'radial-gradient(110% 90% at 30% 110%, #C98B4B 0%, #8A5A2E 24%, #4A3520 50%, #241B12 78%, #12100C 100%)',
+    blurb: 'Colágeno, cúrcuma, espirulina y vitaminas para sostener la rutina de todos los días. Lo básico, bien hecho.' },
+];
+
+function lineaOf(category) {
+  return LINEAS.find(l => l.cats.indexOf(category) >= 0) || LINEAS[2];
+}
+
 function ProductCard({ p, onOpen, onAdd }) {
   const tone = p.tone || 'green';
+  const linea = lineaOf(p.category);
   return (
     <div className="vc-pcard" onClick={() => onOpen(p)}>
-      <div className={`vc-pcard__accent vc-pcard__accent--${tone}`} />
-      <div style={{ position: 'relative' }}>
+      <div className={`vc-pcard__plate vc-pcard__plate--${tone}`}>
         <ProductImage product={p} />
         {p.badge && (
           <div style={{ position: 'absolute', top: 12, left: 12 }}>
@@ -352,10 +579,9 @@ function ProductCard({ p, onOpen, onAdd }) {
         )}
       </div>
       <div className="vc-pcard__body">
-        {p.category && <div className={`vc-pc__cat vc-pc__cat--${tone}`}>{p.category}</div>}
+        <div className={`vc-pc__cat vc-pc__cat--${tone}`}>{linea.title}</div>
         <div className="vc-pc__name">{p.name}</div>
         <div className="vc-pc__sub">{p.sub}</div>
-        <Rating r={p.rating} n={p.reviews} />
         <div className="vc-pc__foot">
           <span className="vc-pc__price">
             {D.hasPriceRange(p) && <span className="vc-pc__from">Desde </span>}{D.fmt(p.price)}
@@ -367,34 +593,28 @@ function ProductCard({ p, onOpen, onAdd }) {
   );
 }
 
-/* --- Hero banner slides: panel de color sólido + foto a pantalla completa,
-   al estilo de los posts de Instagram de la marca (bloque de color + imagen). --- */
+/* --- Hero: campo de color + foto + pack, en capas que se mueven a distinta
+   velocidad al hacer scroll (mismo recurso que los posts de Instagram). --- */
+const HERO_STATS = [
+  { v: '0.0%', l: 'Azúcares' },
+  { v: '0.0%', l: 'Rellenos' },
+  { v: 'RNE 13010908', l: 'Laboratorio propio' },
+];
+
 const SLIDES = [
   {
-    eyebrow: 'Nutrición & Rendimiento',
-    title: <>Más rendimiento,<br /><em>menos complicaciones.</em></>,
-    body: 'Suplementación funcional para quienes entienden que el cuerpo merece lo mejor. Sin rellenos, sin vueltas.',
-    panelColor: 'var(--green-600)',
+    eyebrow: 'Línea 01 — Rendimiento y Fuerza',
+    l1: 'Suplementación',
+    l2: 'simple.',
+    l3: 'para tu vida.',
+    body: 'Creatina, magnesios y vitaminas fraccionados en nuestro propio laboratorio. Para quien camina, entrena o simplemente quiere llegar entero al final del día.',
+    field: LINEAS[0].field,
     photo: '/assets/lifestyle-estiramiento-manana.jpg',
+    pack: '/assets/vcore-pack-creatina-monohidrato.jpg',
+    packAlt: 'Creatina Monohidrato',
     ctas: [
-      { label: 'Ver productos', nav: 'shop', primary: true },
-      { label: 'Cómo comprar', nav: 'howto', primary: false },
-    ],
-  },
-  {
-    eyebrow: 'Pureza certificada',
-    title: <>Formulaciones limpias.<br /><em>Sin rellenos innecesarios.</em></>,
-    body: 'Seleccionamos insumos de primer nivel y formulamos con precisión. Etiquetas honestas, sin promesas infladas.',
-    panelColor: 'var(--ink-900)',
-    mediaColor: 'var(--gradient-green-bloom)',
-    stats: [
-      { v: '26+',  l: 'productos en catálogo'    },
-      { v: '0%',   l: 'rellenos en la fórmula'   },
-      { v: '100%', l: 'etiquetas transparentes'   },
-      { v: '0g',   l: 'azúcar agregada'           },
-    ],
-    ctas: [
-      { label: 'Ver catálogo', nav: 'shop', primary: true },
+      { label: 'Ver el catálogo', nav: 'shop', primary: true },
+      { label: 'Conocé el laboratorio', nav: 'nosotros', primary: false },
     ],
   },
 ];
@@ -403,11 +623,13 @@ const SLIDES = [
 function bannerToSlide(b) {
   return {
     eyebrow: b.eyebrow || '',
-    title: b.title || '',
+    l1: '',
+    l2: b.title || '',
+    l3: '',
     body: b.subtitle || '',
-    panelColor: b.bg || 'var(--gradient-ink-bloom)',
-    mediaColor: 'var(--gradient-green-bloom)',
+    field: b.bg || LINEAS[0].field,
     photo: b.photo || '',
+    pack: '',
     ctas: b.ctaLabel ? [{
       label: b.ctaLabel,
       nav: (b.ctaHref || '').replace(/^#\/?/, '').replace('tienda', 'shop').replace('nosotros', 'nosotros') || 'shop',
@@ -434,59 +656,196 @@ function HeroBanner({ onNav }) {
 
   useEffect(() => { if (slide >= n) setSlide(0); }, [n]);
 
-  function go(dir) { setSlide(s => (s + dir + n) % n); }
+  const y = useScrollY();
+  const base = window.__VCORE_ASSET_BASE__ || '/assets/';
 
   return (
     <div className="vc-banner">
       {slides.map((s, i) => (
         <div key={i} className={`vc-slide${i === slide ? ' active' : ''}`}>
-          <div className="vc-hero-panel" style={{ background: s.panelColor || 'var(--gradient-ink-bloom)' }}>
-            <div className="vc-slide__content">
-              <Eyebrow tone="onDark">{s.eyebrow}</Eyebrow>
-              <h1>{s.title}</h1>
-              <p>{s.body}</p>
-              <div className="vc-slide__ctas">
-                {s.ctas.map((c, j) =>
-                  c.primary
-                    ? <Button key={j} size="lg" onClick={() => onNav(c.nav)} iconRight={<I.ArrowRight size={18} />}>{c.label}</Button>
-                    : <button key={j} className="vc-slide__outline-btn" onClick={() => onNav(c.nav)}>{c.label}</button>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="vc-hero-media">
-            {s.photo ? (
+          <div className="vc-hero__field" style={{ background: s.field }} />
+
+          <img className="vc-hero__mark" src={base + 'vcore-isotipo-white.png'} alt=""
+            style={{ transform: `translateY(${y * 0.05}px)` }} />
+
+          {s.eyebrow && <div className="vc-hero__label">{s.eyebrow}</div>}
+
+          {s.photo && (
+            <div className="vc-hero__photo" style={{ transform: `translateY(${-y * 0.1}px)` }}>
               <img src={s.photo} alt="" />
-            ) : (
-              <div className="vc-hero-media__stats" style={{ background: s.mediaColor || 'var(--gradient-green-bloom)' }}>
-                {(s.stats || []).map((st, j) => (
-                  <div key={j} className="vc-hero-stat">
-                    <div className="vc-hero-stat__v">{st.v}</div>
-                    <div className="vc-hero-stat__l">{st.l}</div>
-                  </div>
+            </div>
+          )}
+
+          {s.pack && (
+            <div className="vc-hero__pack"
+              style={{ transform: `translateY(${-y * 0.2}px) rotate(${-5 + y * 0.004}deg)` }}>
+              <img src={s.pack} alt={s.packAlt || ''} />
+            </div>
+          )}
+
+          <div className="vc-wrap vc-hero__inner">
+            <div className="vc-hero__copy">
+              <h1 style={{ margin: 0 }}>
+                {s.l1 && <span className="vc-hero__l1">{s.l1}</span>}
+                <span className="vc-hero__l2">{s.l2}</span>
+                {s.l3 && <span className="vc-hero__l3">{s.l3}</span>}
+              </h1>
+              <p>{s.body}</p>
+              <div className="vc-hero__ctas">
+                {s.ctas.map((c, j) => (
+                  <button key={j} onClick={() => onNav(c.nav)}
+                    className={`vc-hero__btn${c.primary ? '' : ' vc-hero__btn--ghost'}`}>
+                    {c.label}
+                    {c.primary && <I.ArrowRight size={17} />}
+                  </button>
                 ))}
               </div>
-            )}
+            </div>
+
+            <div className="vc-hero__stats">
+              {HERO_STATS.map((st, j) => (
+                <div key={j}>
+                  <div className="vc-hero__stat-v">{st.v}</div>
+                  <div className="vc-hero__stat-l">{st.l}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="vc-hero__cue">Deslizá<i /></div>
           </div>
         </div>
       ))}
 
-      <button className="vc-banner__arr vc-banner__arr--l" onClick={() => go(-1)} aria-label="Anterior">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-      </button>
-      <button className="vc-banner__arr vc-banner__arr--r" onClick={() => go(1)} aria-label="Siguiente">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-      </button>
-
-      <div className="vc-banner__dots">
-        {slides.map((_, i) => (
-          <button key={i} className={`vc-banner__dot${i === slide ? ' active' : ''}`}
-            onClick={() => setSlide(i)} aria-label={`Slide ${i + 1}`} />
-        ))}
-      </div>
+      {n > 1 && (
+        <div className="vc-banner__dots">
+          {slides.map((_, i) => (
+            <button key={i} className={`vc-banner__dot${i === slide ? ' active' : ''}`}
+              onClick={() => setSlide(i)} aria-label={`Slide ${i + 1}`} />
+          ))}
+        </div>
+      )}
     </div>
+  );
+}
+
+/* Sección de líneas: campo de color conmutable, packs en parallax. */
+function LineasSection({ onNav }) {
+  const [active, setActive] = useState(1);
+  const ref = useRef(null);
+  const d = useSectionScroll(ref);
+  const linea = LINEAS[active];
+
+  /* Varios productos comparten la misma foto de packaging (cápsulas y polvo de
+     la misma sal), así que se muestra una sola vez cada imagen. */
+  const vistas = {};
+  const packs = D.products
+    .filter(p => linea.cats.indexOf(p.category) >= 0 && p.photo)
+    .filter(p => (vistas[p.photo] ? false : (vistas[p.photo] = true)))
+    .slice(0, 3);
+
+  const geom = [
+    { right: 0,   top: 14,  w: 236, h: 300, rot: 4,  depth: 0.03 },
+    { right: 190, top: 104, w: 214, h: 272, rot: -6, depth: 0.06 },
+    { right: 28,  top: 178, w: 190, h: 240, rot: 9,  depth: 0.09 },
+  ];
+
+  return (
+    <section className="vc-lineas" ref={ref}>
+      {LINEAS.map((l, i) => (
+        <div key={l.id} className={`vc-lineas__field${i === active ? ' on' : ''}`}
+          style={{ background: l.field }} />
+      ))}
+      <div className="vc-lineas__ghost">{linea.n}</div>
+
+      <div className="vc-wrap vc-lineas__inner">
+        <div className="vc-lineas__grid">
+          <div className="vc-reveal">
+            <div className="vc-lineas__eye">Línea {linea.n}</div>
+            <h2>{linea.title}</h2>
+            <p>{linea.blurb}</p>
+            <button className="vc-lineas__cta" onClick={() => onNav('shop')}>
+              Ver la línea
+              <I.ArrowRight size={17} />
+            </button>
+          </div>
+          <div className="vc-lineas__packs">
+            {packs.map((p, i) => {
+              const g = geom[i] || geom[0];
+              return (
+                <div key={p.id} className="vc-lineas__pack"
+                  style={{
+                    right: g.right, top: g.top, width: g.w, height: g.h,
+                    transform: `translateY(${-d * g.depth}px) rotate(${g.rot}deg)`,
+                  }}>
+                  <img src={p.photo} alt={p.name} />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="vc-lineas__rail">
+          {LINEAS.map((l, i) => (
+            <button key={l.id} className={i === active ? 'on' : ''} onClick={() => setActive(i)}>
+              <div className="vc-lineas__rail-n">{l.n}</div>
+              <div className="vc-lineas__rail-t">{l.title}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* Banda del laboratorio: los tres íconos de marca + el texto del catálogo. */
+function LaboratorioBand() {
+  const ref = useRef(null);
+  const d = useSectionScroll(ref);
+  const base = window.__VCORE_ASSET_BASE__ || '/assets/';
+  const pilares = [
+    ['icon-continuidad-white.png', 'Pureza',
+      'Utilizamos fórmulas limpias y transparentes. 0.0% azúcares, 0.0% rellenos innecesarios. Materias primas de alta biodisponibilidad y máxima absorción.'],
+    ['icon-flexibilidad-white.png', 'Balance',
+      'Precios y formatos muy competitivos. Al integrar verticalmente el fraccionamiento y envasado, eliminamos intermediarios para ofrecer la mejor relación precio-calidad.'],
+    ['icon-vitalidad-white.png', 'Transparencia',
+      'Control de calidad total e infraestructura in-house. Registro de establecimiento legalizado bajo estrictas normas de seguridad y trazabilidad (RNE 13010908).'],
+  ];
+  return (
+    <section className="vc-lab" ref={ref}>
+      {pilares.map((p, i) => (
+        <img key={i} className="vc-lab__ghost" src={base + p[0]} alt=""
+          style={{
+            left: `${8 + i * 32}%`,
+            top: 280 + i * 30,
+            transform: `translateY(${-d * (0.04 + i * 0.02)}px)`,
+          }} />
+      ))}
+      <div className="vc-wrap vc-lab__inner">
+        <div className="vc-lab__head vc-reveal">
+          <div>
+            <div className="vc-lab__eye">El laboratorio</div>
+            <h2>Lo que<br />no negociamos.</h2>
+          </div>
+          <p className="vc-lab__caption" style={{ marginTop: 10 }}>Fraccionamos y envasamos puertas adentro, en Godoy Cruz. Integrar el proceso es lo que nos deja bajar el precio sin bajar la calidad — y poder decir exactamente qué hay en cada envase.</p>
+        </div>
+
+        <div className="vc-lab__cols">
+          {pilares.map((p, i) => (
+            <div key={i} className="vc-reveal" style={{ transitionDelay: `${i * 90}ms` }}>
+              <img className="vc-lab__icon" src={base + p[0]} alt="" />
+              <h3>{p[1]}</h3>
+              <div className="vc-lab__div" />
+              <p>{p[2]}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="vc-lab__foot">
+          <span>Godoy Cruz, Mendoza — Industria argentina</span>
+          <span>RNE 13010908</span>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -580,59 +939,42 @@ function HowToBuy() {
   );
 }
 
-const BRAND_BENEFITS = [
-  ['Zap',      'Más rendimiento',      'Formulaciones pensadas para potenciar tu energía, foco y recuperación en cada rutina.'],
-  ['Leaf',     'Ingredientes limpios', 'Sin excipientes, colorantes ni rellenos. Solo lo que figura en la etiqueta y nada más.'],
-  ['Shield',   'Pureza verificada',    'Insumos de primer nivel con análisis de calidad en cada lote. Cero compromisos.'],
-];
-
 function Home({ onNav, onAdd, onOpen }) {
   injectPages();
-  const benefits = BRAND_BENEFITS;
   const featured = D.products.filter(p => p.featured).slice(0, 4);
+  useRevealAll(featured.length);
   return (
     <main>
       <HeroBanner onNav={onNav} />
 
-      <div className="vc-wrap">
-        <section className="vc-section">
-          <div className="vc-section__head">
-            <div><Eyebrow tone="ink">Por qué Vcore</Eyebrow><h2>Simple. Puro. Real.</h2></div>
-          </div>
-          <div className="vc-ben">
-            {benefits.map(([icon, title, desc], i) => {
-              const Ic = I[icon];
-              return (
-                <div key={i} className="vc-ben__item">
-                  <div className="vc-ben__icon"><Ic size={28} /></div>
-                  <h3>{title}</h3>
-                  <div className="vc-ben__div" />
-                  <p>{desc}</p>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      </div>
+      <LineasSection onNav={onNav} />
 
       <div className="vc-wrap">
-        <section className="vc-section" style={{ paddingTop: 0 }}>
-          <div className="vc-section__head">
+        <section className="vc-section">
+          <div className="vc-section__head vc-reveal">
             <div><Eyebrow tone="ink">Destacados</Eyebrow><h2>Lo esencial</h2></div>
             <Button variant="ghost" onClick={() => onNav('shop')} iconRight={<I.ArrowRight size={16} />}>
               Ver todo
             </Button>
           </div>
           <div className="vc-grid">
-            {featured.map(p => <ProductCard key={p.id} p={p} onOpen={onOpen} onAdd={onAdd} />)}
+            {featured.map((p, i) => (
+              <div key={p.id} className="vc-reveal" style={{ transitionDelay: `${i * 80}ms` }}>
+                <ProductCard p={p} onOpen={onOpen} onAdd={onAdd} />
+              </div>
+            ))}
           </div>
         </section>
       </div>
 
       {false && <VolumeTiers />}
 
+      <LaboratorioBand />
+
+      <HowToBuy />
+
       <div className="vc-band-outer">
-        <div className="vc-wrap vc-band">
+        <div className="vc-wrap vc-band vc-reveal">
           <div>
             <Eyebrow tone="onDark">Nuestra misión</Eyebrow>
             <h2>Democratizar el bienestar<br />y el <em>rendimiento.</em></h2>
@@ -641,8 +983,6 @@ function Home({ onNav, onAdd, onOpen }) {
           <img className="vc-band__photo" src="/assets/lifestyle-pareja-caminando.jpg" alt="" />
         </div>
       </div>
-
-      <HowToBuy />
     </main>
   );
 }
@@ -664,13 +1004,15 @@ function Shop({ onAdd, onOpen }) {
 
   return (
     <main className="vc-wrap">
-      <section className="vc-section" style={{ paddingBottom: 24 }}>
-        <Eyebrow tone="ink">Tienda</Eyebrow>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 44,
-          letterSpacing: '-.03em', margin: '12px 0 22px' }}>
-          Suplementación simple
-        </h2>
-        <div className="vc-shop-search">
+      <section className="vc-section" style={{ paddingBottom: 24, paddingTop: 0 }}>
+        <div className="vc-shop-head">
+          <div style={{ flexGrow: 1 }}>
+            <Eyebrow tone="ink">Catálogo completo</Eyebrow>
+            <h1>Todo lo que<br />fraccionamos.</h1>
+          </div>
+          <p>{D.products.length} productos en cápsulas y polvo, envasados en nuestra propia planta en Mendoza. Sin intermediarios.</p>
+        </div>
+        <div className="vc-shop-search" style={{ marginTop: 40 }}>
           <I.Search size={16} />
           <input
             value={q}
@@ -721,21 +1063,60 @@ function Product({ product, onAdd, onOpen }) {
     return [...sameCat, ...rest].slice(0, 4);
   })();
 
+  const y = useScrollY();
+  const linea = lineaOf(p.category);
+  const circles = (stats && stats.length ? stats : [
+    { value: '0.0%', label: 'Azúcares' },
+    { value: '0.0%', label: 'Rellenos' },
+    { value: 'Puro', label: 'Sin aditivos' },
+  ]).slice(0, 3);
+
   return (
-    <main className="vc-wrap">
-      <section className="vc-pdp">
-        <div style={{ position: 'sticky', top: 90 }}>
-          <ProductImage product={p} />
+    <main>
+      <section className="vc-pdp2">
+        <div className="vc-pdp2__art" style={{ background: linea.field }}>
+          <div className="vc-pdp2__ghost">{p.name}</div>
+          <button className="vc-pdp2__back"
+            onClick={() => window.dispatchEvent(new CustomEvent('vc:nav', { detail: 'shop' }))}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5M11 18l-6-6 6-6" />
+            </svg>
+            Volver al catálogo
+          </button>
+          <div className="vc-pdp2__plate"
+            style={{
+              transform: `translateY(${-y * 0.05}px) rotate(-3deg)`,
+              background: p.photo ? '#F2F1EF' : 'transparent',
+              boxShadow: p.photo ? undefined : 'none',
+            }}>
+            {p.photo
+              ? <img src={p.photo} alt={p.name} />
+              : <ProductImage product={p} />}
+          </div>
+          <div className="vc-pdp2__circles">
+            {circles.map((c, i) => (
+              <div key={i} className="vc-pdp2__circle">
+                <b>{c.value}</b>
+                <span>{c.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
-        <div>
-          <Eyebrow>{p.category || 'Suplemento'}</Eyebrow>
-          <div className="vc-pdp__name">{p.name}</div>
-          <div className="vc-pdp__sub">{p.sub}</div>
+
+        <div className="vc-pdp2__panel">
+          <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.24em',
+            textTransform: 'uppercase', color: 'var(--ink-500)' }}>
+            Línea {linea.n} — {linea.title}
+          </div>
+          <h1 style={{ marginTop: 18 }}>{p.name}</h1>
+          <div className="vc-pdp__sub" style={{ marginTop: 14 }}>{p.sub}</div>
           <Rating r={p.rating} n={p.reviews} />
           <p className="vc-pdp__blurb">{p.blurb}</p>
           <p className="vc-pdp__price">{D.fmt(D.priceFor(p, size))}</p>
 
-          <div style={{ marginTop: 22, marginBottom: 6, fontWeight: 700, fontSize: 13.5, color: 'var(--ink-700)' }}>
+          <div style={{ marginTop: 26, marginBottom: 10, fontSize: 11.5, fontWeight: 700,
+            letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--ink-500)' }}>
             Presentación
           </div>
           <div className="vc-opt">
@@ -749,44 +1130,37 @@ function Product({ product, onAdd, onOpen }) {
 
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             <div className="vc-qty">
-              <button onClick={() => setQty(Math.max(1, qty - 1))}><I.Minus size={16} /></button>
+              <button onClick={() => setQty(Math.max(1, qty - 1))} aria-label="Quitar uno"><I.Minus size={16} /></button>
               <span>{qty}</span>
-              <button onClick={() => setQty(qty + 1)}><I.Plus size={16} /></button>
+              <button onClick={() => setQty(qty + 1)} aria-label="Agregar uno"><I.Plus size={16} /></button>
             </div>
             <Button size="lg" onClick={() => onAdd(p, qty, size)} iconRight={<I.Bag size={18} />}>
               Agregar al carrito
             </Button>
           </div>
 
-          {stats && (
-            <div className="vc-rings">
-              {stats.map((s, i) => (
-                <StatRing key={i} value={s.value} label={s.label} size={92}
-                  variant={i === 1 ? 'soft' : i === 2 ? 'filled' : 'outline'} />
-              ))}
-            </div>
-          )}
-
           <div className="vc-pdp__stats">
-            <span className="vc-pdp__stat"><I.Truck size={18} /> Envío gratis desde $50.000</span>
-            <span className="vc-pdp__stat"><I.Shield size={18} /> Pureza certificada</span>
-            <span className="vc-pdp__stat"><I.Leaf size={18} /> Sin aditivos</span>
+            <span className="vc-pdp__stat"><I.Truck size={18} /> Envío gratis desde $150.000</span>
+            <span className="vc-pdp__stat"><I.Shield size={18} /> RNE 13010908</span>
+            <span className="vc-pdp__stat"><I.Leaf size={18} /> Industria argentina</span>
           </div>
         </div>
       </section>
 
       {related.length > 0 && onOpen && (
-        <section className="vc-section" style={{ paddingTop: 8 }}>
-          <div className="vc-section__head">
-            <div>
-              <Eyebrow tone="ink">También te puede interesar</Eyebrow>
-              <h2>Productos relacionados</h2>
+        <div className="vc-wrap">
+          <section className="vc-section">
+            <div className="vc-section__head">
+              <div>
+                <Eyebrow tone="ink">También te puede interesar</Eyebrow>
+                <h2>Productos relacionados</h2>
+              </div>
             </div>
-          </div>
-          <div className="vc-grid">
-            {related.map(rp => <ProductCard key={rp.id} p={rp} onOpen={onOpen} onAdd={onAdd} />)}
-          </div>
-        </section>
+            <div className="vc-grid">
+              {related.map(rp => <ProductCard key={rp.id} p={rp} onOpen={onOpen} onAdd={onAdd} />)}
+            </div>
+          </section>
+        </div>
       )}
     </main>
   );

@@ -30,6 +30,20 @@
   --sage-300: #D8DCA8;   /* ← PANTONE P-99 C 20% */
   --sage-100: #EDEFD8;
 
+  /* ---- Coral (line accent — Recuperación / Colágeno / Articulaciones) --
+     Sampled from the brand's own packaging gradients (Triple Magnesio,
+     Magnesio + Potasio) and its Instagram color-block panels. */
+  --coral-900: #6B1F16;
+  --coral-800: #8B2A1E;
+  --coral-700: #A83526;
+  --coral-600: #C23F2C;
+  --coral-500: #D9483D;
+  --coral-400: #E36F63;
+  --coral-300: #EE9C93;
+  --coral-200: #F6C4BE;
+  --coral-100: #FBE1DD;
+  --coral-050: #FDF0EE;
+
   /* ---- Warm paper neutrals (kraft-derived) ----------------------------- */
   --paper-000: #FAFAF8;
   --paper-050: #F4F1EC;
@@ -52,6 +66,7 @@
   --warning-500: #E0A53A;
   --danger-500:  #C8503E;
   --info-500:    #2F6E9E;
+  --coral-brand: var(--coral-500);
 
   /* ========================================================================
      Semantic aliases — reference these in components, not the raw scales.

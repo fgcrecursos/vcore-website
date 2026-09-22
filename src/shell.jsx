@@ -52,6 +52,7 @@ const SITE_CSS = `
 .vc-pimg--green { background: var(--gradient-green-bloom); }
 .vc-pimg--navy  { background: var(--gradient-navy-bloom); }
 .vc-pimg--sage  { background: var(--gradient-sage-bloom); }
+.vc-pimg--coral { background: var(--gradient-coral-bloom); }
 [data-theme="dark"] .vc-pimg { box-shadow: 0 0 0 1px rgba(255,255,255,.06), 0 18px 50px rgba(0,0,0,.5); }
 .vc-pimg__mark { position: relative; z-index: 1; width: 46%; max-width: 150px; height: auto;
   filter: drop-shadow(0 8px 22px rgba(0,0,0,.20)); }
@@ -209,6 +210,7 @@ function ProductImage({ product, className = '' }) {
     navy:  'vcore-isotipo-grad-blue.png',
     sage:  'vcore-isotipo-green.png',
     paper: 'vcore-isotipo-green.png',
+    coral: 'vcore-isotipo-white.png',
   };
   const mark = markByTone[product.tone] || markByTone.green;
   return (

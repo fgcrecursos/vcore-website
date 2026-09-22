@@ -338,7 +338,7 @@ function ProductCard({ p, onOpen, onAdd }) {
           <ProductImage product={p} />
           {p.badge && (
             <div style={{ position: 'absolute', top: 12, left: 12 }}>
-              <Badge tone={p.tone === 'navy' ? 'sage' : 'green'} variant="solid">{p.badge}</Badge>
+              <Badge tone={p.tone || 'green'} variant="solid">{p.badge}</Badge>
             </div>
           )}
         </div>
@@ -364,7 +364,7 @@ const SLIDES = [
     eyebrow: 'Nutrición & Rendimiento',
     title: <>Más rendimiento,<br /><em>menos complicaciones.</em></>,
     body: 'Suplementación funcional para quienes entienden que el cuerpo merece lo mejor. Sin rellenos, sin vueltas.',
-    bg: 'var(--gradient-ink-bloom)',
+    bg: "linear-gradient(100deg, rgba(11,28,18,.90) 0%, rgba(11,32,20,.72) 40%, rgba(11,32,20,.42) 68%, rgba(11,32,20,.22) 100%), url('/assets/lifestyle-estiramiento-manana.jpg') center/cover no-repeat",
     ctas: [
       { label: 'Ver productos', nav: 'shop', primary: true },
       { label: 'Cómo comprar', nav: 'howto', primary: false },
@@ -914,10 +914,10 @@ function AboutPage() {
                 Publicamos los análisis. No te contamos un cuento.
               </p>
             </div>
-            <div className="vc-about-mark">
-              <div className="vc-about-mark__vignette" />
-              <img className="vc-about-mark__logo"
-                src={(window.__VCORE_ASSET_BASE__ || '/assets/') + 'vcore-isotipo-grad-mint.png'} alt="Vcore" />
+            <div className="vc-about-mark" style={{
+              backgroundImage: `linear-gradient(180deg, rgba(10,26,20,0) 55%, rgba(8,20,16,.78) 100%), url(${(window.__VCORE_ASSET_BASE__ || '/assets/')}lifestyle-pareja-caminando.jpg)`,
+              backgroundSize: 'cover', backgroundPosition: 'center',
+            }}>
               <div className="vc-about-mark__tag">Desde 2026 · Argentina</div>
             </div>
           </div>

@@ -23,6 +23,13 @@
     radial-gradient(78% 78% at 50% 42%,
       #f6f8ec 0%, #e6ebc4 42%, #d3da9c 80%, #c4cb8c 100%); /* @kind color */
 
+  /* Light blooms down from the top edge (coral) — line accent for
+     Recuperación / Colágeno / Articulaciones, sampled from the brand's own
+     packaging (Triple Magnesio, Magnesio + Potasio). */
+  --gradient-coral-bloom:
+    radial-gradient(90% 72% at 50% -10%,
+      #fbe4df 0%, #f0ab9e 18%, #e37862 44%, #d1543c 64%, #b13d29 82%, #8a2c1e 100%); /* @kind color */
+
   /* Whisper-soft warm paper bloom — for page + section backdrops */
   --gradient-paper-bloom:
     radial-gradient(120% 90% at 50% -20%,
@@ -57,6 +64,7 @@
   --surface-bloom-navy:  var(--gradient-navy-bloom);
   --surface-bloom-green: var(--gradient-green-bloom);
   --surface-bloom-sage:  var(--gradient-sage-bloom);
+  --surface-bloom-coral: var(--gradient-coral-bloom);
   --surface-bloom-paper: var(--gradient-paper-bloom);
   --surface-bloom-ink:   var(--gradient-ink-bloom);
 }

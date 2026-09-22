@@ -26,6 +26,7 @@ const TONES = {
   green: ['--green-700', '--green-100', '--green-500'],
   navy: ['--navy-500', '--navy-100', '--navy-500'],
   sage: ['--ink-800', '--sage-100', '--sage-500'],
+  coral: ['--coral-700', '--coral-100', '--coral-500'],
   neutral: ['--ink-700', '--paper-100', '--paper-300'],
   success: ['--green-700', '--green-100', '--green-500'],
   warning: ['#9A6A12', '#FBEFD6', '--warning-500'],

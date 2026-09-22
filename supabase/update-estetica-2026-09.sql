@@ -11,8 +11,13 @@
 --
 -- Los productos que todavía no existan como fila en esta base simplemente no
 -- se actualizan (0 filas afectadas, sin error).
+--
+-- OJO: creatina ya tiene una foto real subida por el panel admin (Cloudinary).
+-- Este script NO la pisa — solo actualiza su tone. Si preferís reemplazarla por
+-- la foto de packaging del catálogo oficial, descomentá la línea de abajo.
 
-UPDATE products SET tone = 'green', photo = '/assets/vcore-pack-creatina-monohidrato.jpg' WHERE id = 'creatina';
+UPDATE products SET tone = 'green' WHERE id = 'creatina';
+-- UPDATE products SET photo = '/assets/vcore-pack-creatina-monohidrato.jpg' WHERE id = 'creatina';
 UPDATE products SET tone = 'coral' WHERE id = 'proteina';
 UPDATE products SET tone = 'coral' WHERE id = 'magnesio';
 UPDATE products SET tone = 'navy'  WHERE id = 'vitamina-c';

@@ -7,32 +7,35 @@ const D = window.VcoreData;
 const ProductImage = window.VcoreProductImage;
 
 const PAGE_CSS = `
-/* ---- Banner hero ---- */
-.vc-banner { position: relative; overflow: hidden; isolation: isolate; min-height: 540px; }
-.vc-slide { position: absolute; inset: 0; min-height: 540px; display: flex; align-items: center;
+/* ---- Hero: color panel + full-bleed photo, Instagram-tile style ---- */
+.vc-banner { position: relative; overflow: hidden; isolation: isolate; min-height: 640px; }
+.vc-slide { position: absolute; inset: 0; min-height: 640px; display: grid;
+  grid-template-columns: 44% 56%;
   opacity: 0; transition: opacity .75s cubic-bezier(.4,0,.2,1); pointer-events: none; }
 .vc-slide.active { opacity: 1; pointer-events: auto; }
-.vc-slide__bg { position: absolute; inset: 0; }
-.vc-slide__vignette { position: absolute; inset: 0; background: var(--vignette); pointer-events: none; }
-.vc-slide__inner { position: relative; z-index: 2; width: 100%; }
-.vc-slide__content { color: #EAF0EC; max-width: 620px; padding: 88px 0; }
+.vc-hero-panel { position: relative; z-index: 2; display: flex; align-items: center;
+  padding: 72px 64px; }
+.vc-hero-media { position: relative; overflow: hidden; background: var(--ink-900); }
+.vc-hero-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.vc-hero-media__stats { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr;
+  gap: 2px; padding: 56px; }
+.vc-hero-stat { display: flex; flex-direction: column; justify-content: center; }
+.vc-hero-stat__v { font-family: var(--font-display); font-weight: 800; line-height: .95;
+  font-size: clamp(30px, 3.6vw, 48px); color: #fff; }
+.vc-hero-stat__l { font-size: 12.5px; text-transform: uppercase; letter-spacing: .1em; font-weight: 700;
+  color: rgba(255,255,255,.68); margin-top: 8px; max-width: 14ch; }
+.vc-slide__content { color: #fff; max-width: 560px; }
 .vc-slide__content h1 { font-family: var(--font-display); font-weight: 800;
-  font-size: clamp(38px, 4.8vw, 66px); letter-spacing: -.03em; line-height: .97; margin: 18px 0 0; }
-.vc-slide__content h1 em { font-style: italic; font-weight: 600; color: var(--green-400); }
-.vc-slide__content p { font-size: 17px; line-height: 1.65; color: rgba(255,255,255,.72);
-  margin: 22px 0 32px; max-width: 490px; }
+  font-size: clamp(40px, 4.6vw, 68px); letter-spacing: -.03em; line-height: .95; margin: 20px 0 0; }
+.vc-slide__content h1 em { font-style: italic; font-weight: 600; color: var(--green-300); }
+.vc-slide__content p { font-size: 17px; line-height: 1.65; color: rgba(255,255,255,.78);
+  margin: 24px 0 34px; max-width: 460px; }
 .vc-slide__ctas { display: flex; gap: 12px; flex-wrap: wrap; }
 .vc-slide__outline-btn { font-family: var(--font-body); font-weight: 700; font-size: 15px;
   padding: 0 22px; height: 48px; border-radius: var(--radius-pill);
-  border: 1.5px solid rgba(255,255,255,.35); background: rgba(255,255,255,.07);
+  border: 1.5px solid rgba(255,255,255,.4); background: rgba(255,255,255,.08);
   color: #fff; cursor: pointer; transition: background .15s, border-color .15s; }
-.vc-slide__outline-btn:hover { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.5); }
-.vc-slide__stats { display: flex; gap: 36px; margin-top: 40px; padding-top: 32px;
-  border-top: 1px solid rgba(255,255,255,.14); }
-.vc-slide__stat-v { font-family: var(--font-display); font-weight: 800; font-size: 30px;
-  color: var(--green-400); line-height: 1; }
-.vc-slide__stat-l { font-size: 11.5px; text-transform: uppercase; letter-spacing: .1em;
-  color: rgba(255,255,255,.5); margin-top: 4px; }
+.vc-slide__outline-btn:hover { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.55); }
 /* About — origin story */
 .vc-about-story { display: grid; grid-template-columns: 1.05fr .95fr; gap: 64px; align-items: center; }
 .vc-about-mark { position: relative; aspect-ratio: 1 / 1; border-radius: var(--radius-2xl);
@@ -46,17 +49,6 @@ const PAGE_CSS = `
   font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: .1em;
   text-transform: uppercase; color: rgba(255,255,255,.6); white-space: nowrap; }
 @media (max-width: 760px) { .vc-about-story { grid-template-columns: 1fr; gap: 36px; } }
-
-/* two-col slide */
-.vc-slide__two { display: grid; grid-template-columns: 1fr 1fr; gap: 52px; align-items: center; width: 100%; }
-.vc-slide__two .vc-slide__content { padding: 88px 0; max-width: none; }
-.vc-slide__stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.vc-slide__stat-card { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.13);
-  border-radius: 18px; padding: 24px 20px; }
-.vc-slide__stat-card .vc-slide__stat-v { font-family: var(--font-display); font-weight: 800;
-  font-size: 36px; color: var(--green-400); line-height: 1; margin-bottom: 8px; }
-.vc-slide__stat-card .vc-slide__stat-l { font-size: 12px; text-transform: uppercase; letter-spacing: .1em;
-  color: rgba(255,255,255,.55); font-weight: 700; line-height: 1.4; }
 
 .vc-banner__arr { position: absolute; top: 50%; transform: translateY(-50%); z-index: 10;
   width: 42px; height: 42px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,.22);
@@ -79,17 +71,19 @@ const PAGE_CSS = `
 .vc-section__head h2 { font-family: var(--font-display); font-weight: 800; font-size: 36px;
   letter-spacing: -.025em; margin: 10px 0 0; }
 
-/* ---- Benefits ---- */
-.vc-ben { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
-.vc-ben__icon { position: relative; width: 52px; height: 52px; border-radius: 16px;
+/* ---- Benefits: editorial, sin tarjetas — ícono grande + divisor, como el catálogo ---- */
+.vc-ben { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; }
+.vc-ben__item { text-align: center; padding: 0 8px; }
+.vc-ben__icon { position: relative; width: 76px; height: 76px; border-radius: 50%;
   background: var(--gradient-green-bloom); color: #fff;
-  display: flex; align-items: center; justify-content: center; margin-bottom: 16px;
-  overflow: hidden; box-shadow: var(--shadow-sm); }
+  display: flex; align-items: center; justify-content: center; margin: 0 auto 22px;
+  overflow: hidden; box-shadow: var(--shadow-md); }
 .vc-ben__icon::after { content: ""; position: absolute; inset: 0; background: var(--vignette-soft); }
 .vc-ben__icon svg { position: relative; z-index: 1; }
-.vc-ben h3 { font-family: var(--font-display); font-weight: 800; font-size: 20px;
-  letter-spacing: -.01em; margin: 0 0 8px; }
-.vc-ben p { font-size: 14.5px; color: var(--ink-700); margin: 0; line-height: 1.55; }
+.vc-ben h3 { font-family: var(--font-display); font-weight: 800; font-size: 21px;
+  letter-spacing: -.01em; margin: 0 0 12px; }
+.vc-ben__div { width: 22px; height: 2px; background: var(--green-300); margin: 0 auto 14px; border-radius: 2px; }
+.vc-ben p { font-size: 14.5px; color: var(--ink-700); margin: 0 auto; line-height: 1.6; max-width: 30ch; }
 
 /* ---- Volume tiers ---- */
 .vc-tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px;
@@ -120,32 +114,51 @@ const PAGE_CSS = `
 .vc-howto__wa { margin-top: 32px; display: flex; align-items: center; gap: 12px; }
 
 /* ---- Product grid ---- */
-.vc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.vc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; }
 .vc-grid--3 { grid-template-columns: repeat(3, 1fr); }
 .vc-grid--2 { grid-template-columns: repeat(2, 1fr); }
-.vc-pc__name { font-family: var(--font-display); font-weight: 800; font-size: 18px;
-  letter-spacing: -.01em; margin: 14px 0 2px; }
+.vc-pcard { position: relative; border-radius: var(--radius-lg); overflow: hidden; cursor: pointer;
+  background: var(--surface-card); border: 1px solid var(--paper-150);
+  transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s ease, border-color .22s ease; }
+.vc-pcard:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); border-color: var(--paper-300); }
+.vc-pcard__accent { height: 6px; width: 100%; }
+.vc-pcard__accent--green { background: var(--green-500); }
+.vc-pcard__accent--navy  { background: var(--info-500); }
+.vc-pcard__accent--coral { background: var(--coral-500); }
+.vc-pcard__accent--sage  { background: var(--sage-500); }
+.vc-pcard__accent--paper { background: var(--paper-400); }
+.vc-pcard__body { padding: 16px 18px 18px; }
+.vc-pc__cat { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 8px; }
+.vc-pc__cat--green { color: var(--green-700); } [data-theme="dark"] .vc-pc__cat--green { color: var(--green-400); }
+.vc-pc__cat--navy  { color: var(--info-500); }
+.vc-pc__cat--coral { color: var(--coral-600); } [data-theme="dark"] .vc-pc__cat--coral { color: var(--coral-400); }
+.vc-pc__cat--sage  { color: #7C8340; } [data-theme="dark"] .vc-pc__cat--sage { color: var(--sage-500); }
+.vc-pc__cat--paper { color: var(--ink-500); }
+.vc-pc__name { font-family: var(--font-display); font-weight: 800; font-size: 20px;
+  letter-spacing: -.01em; margin: 0 0 2px; line-height: 1.15; }
 .vc-pc__sub { font-size: 13px; color: var(--ink-500); margin: 0 0 10px; }
 .vc-pc__foot { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
-.vc-pc__price { font-family: var(--font-display); font-weight: 800; font-size: 19px; }
+.vc-pc__price { font-family: var(--font-display); font-weight: 800; font-size: 20px; }
 .vc-pc__from { font-family: var(--font-body); font-weight: 600; font-size: 11px;
   color: var(--ink-500); letter-spacing: 0; }
 .vc-rating { display: inline-flex; align-items: center; gap: 5px;
   color: var(--ink-600); font-size: 13px; font-weight: 600; }
 .vc-rating svg { color: var(--warning-500); }
 
-/* ---- Mission band ---- */
-.vc-band { position: relative; background: var(--gradient-ink-bloom); color: #EAF0EC;
-  border-radius: var(--radius-2xl); padding: 64px 56px;
-  display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center;
-  overflow: hidden; isolation: isolate; }
-.vc-band::after { content: ""; position: absolute; inset: 0; background: var(--vignette);
+/* ---- Mission band: full-bleed, tipografía grande al estilo Instagram ---- */
+.vc-band-outer { position: relative; background: var(--gradient-ink-bloom); color: #EAF0EC;
+  overflow: hidden; isolation: isolate; margin: 96px 0; }
+.vc-band-outer::after { content: ""; position: absolute; inset: 0; background: var(--vignette);
   pointer-events: none; z-index: 0; }
-.vc-band > * { position: relative; z-index: 1; }
-.vc-band h2 { font-family: var(--font-display); font-weight: 800; font-size: 38px;
-  letter-spacing: -.025em; line-height: 1.05; margin: 16px 0 0; }
+.vc-band { position: relative; z-index: 1; padding: 88px 0;
+  display: grid; grid-template-columns: 1.1fr .9fr; gap: 56px; align-items: center; }
+.vc-band h2 { font-family: var(--font-display); font-weight: 800; font-size: clamp(34px, 4vw, 56px);
+  letter-spacing: -.025em; line-height: .98; margin: 18px 0 0; }
 .vc-band h2 em { font-style: italic; font-weight: 600; color: var(--green-400); }
-.vc-band p { color: rgba(255,255,255,.7); font-size: 16px; line-height: 1.65; margin: 0; }
+.vc-band p { color: rgba(255,255,255,.72); font-size: 17px; line-height: 1.7; margin: 0 0 16px; }
+.vc-band__photo { width: 100%; aspect-ratio: 4 / 3.4; object-fit: cover; display: block;
+  border-radius: var(--radius-2xl); box-shadow: 0 24px 60px rgba(0,0,0,.35); }
+@media (max-width: 760px) { .vc-band { grid-template-columns: 1fr; gap: 22px; padding: 56px 0; } .vc-band__photo { aspect-ratio: 16 / 10; } }
 
 /* ---- Shop ---- */
 .vc-cats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
@@ -251,19 +264,15 @@ const PAGE_CSS = `
 @media (max-width: 860px) {
   /* hero */
   .vc-banner, .vc-slide { min-height: 0; }
-  .vc-slide { position: relative; }
+  .vc-slide { position: relative; grid-template-columns: 1fr; }
   .vc-slide:not(.active) { display: none; }
-  .vc-slide__content { padding: 56px 0 64px; max-width: none; }
+  .vc-hero-media { min-height: 260px; order: -1; }
+  .vc-hero-media__stats { padding: 28px; gap: 16px; }
+  .vc-hero-panel { padding: 40px 20px 56px; }
+  .vc-slide__content { padding: 0; max-width: none; }
   .vc-slide__content p { font-size: 15.5px; }
   .vc-banner__arr { display: none; }
   .vc-banner__dots { bottom: 16px; }
-  /* two-col slide → stack, stats below */
-  .vc-slide__two { grid-template-columns: 1fr; gap: 26px; }
-  .vc-slide__two .vc-slide__content { padding: 56px 0 8px; }
-  .vc-slide__stats-grid { gap: 10px; padding-bottom: 56px; }
-  .vc-slide__stat-card { padding: 16px 16px; }
-  .vc-slide__stat-card .vc-slide__stat-v { font-size: 28px; }
-  .vc-slide__stats { gap: 22px; flex-wrap: wrap; }
 
   /* sections */
   .vc-section { padding: 40px 0; }
@@ -275,8 +284,7 @@ const PAGE_CSS = `
   .vc-grid, .vc-grid--3, .vc-grid--2 { grid-template-columns: repeat(2, 1fr); gap: 12px; }
 
   /* mission band */
-  .vc-band { grid-template-columns: 1fr; padding: 40px 26px; gap: 18px; border-radius: var(--radius-xl); }
-  .vc-band h2 { font-size: 30px; }
+  .vc-band-outer { margin: 56px 0; }
 
   /* PDP */
   .vc-pdp { grid-template-columns: 1fr; gap: 26px; padding: 24px 0; }
@@ -331,40 +339,43 @@ function Rating({ r, n }) {
 }
 
 function ProductCard({ p, onOpen, onAdd }) {
+  const tone = p.tone || 'green';
   return (
-    <Card variant="surface" padding="none" interactive>
-      <div onClick={() => onOpen(p)} style={{ cursor: 'pointer' }}>
-        <div style={{ position: 'relative' }}>
-          <ProductImage product={p} />
-          {p.badge && (
-            <div style={{ position: 'absolute', top: 12, left: 12 }}>
-              <Badge tone={p.tone || 'green'} variant="solid">{p.badge}</Badge>
-            </div>
-          )}
-        </div>
-        <div style={{ padding: '0 16px 16px' }}>
-          <div className="vc-pc__name">{p.name}</div>
-          <div className="vc-pc__sub">{p.sub}</div>
-          <Rating r={p.rating} n={p.reviews} />
-          <div className="vc-pc__foot">
-            <span className="vc-pc__price">
-              {D.hasPriceRange(p) && <span className="vc-pc__from">Desde </span>}{D.fmt(p.price)}
-            </span>
-            <Button size="sm" onClick={(e) => { e.stopPropagation(); onAdd(p); }}>Agregar</Button>
+    <div className="vc-pcard" onClick={() => onOpen(p)}>
+      <div className={`vc-pcard__accent vc-pcard__accent--${tone}`} />
+      <div style={{ position: 'relative' }}>
+        <ProductImage product={p} />
+        {p.badge && (
+          <div style={{ position: 'absolute', top: 12, left: 12 }}>
+            <Badge tone={tone} variant="solid">{p.badge}</Badge>
           </div>
+        )}
+      </div>
+      <div className="vc-pcard__body">
+        {p.category && <div className={`vc-pc__cat vc-pc__cat--${tone}`}>{p.category}</div>}
+        <div className="vc-pc__name">{p.name}</div>
+        <div className="vc-pc__sub">{p.sub}</div>
+        <Rating r={p.rating} n={p.reviews} />
+        <div className="vc-pc__foot">
+          <span className="vc-pc__price">
+            {D.hasPriceRange(p) && <span className="vc-pc__from">Desde </span>}{D.fmt(p.price)}
+          </span>
+          <Button size="sm" onClick={(e) => { e.stopPropagation(); onAdd(p); }}>Agregar</Button>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
 
-/* --- Hero banner slides --- */
+/* --- Hero banner slides: panel de color sólido + foto a pantalla completa,
+   al estilo de los posts de Instagram de la marca (bloque de color + imagen). --- */
 const SLIDES = [
   {
     eyebrow: 'Nutrición & Rendimiento',
     title: <>Más rendimiento,<br /><em>menos complicaciones.</em></>,
     body: 'Suplementación funcional para quienes entienden que el cuerpo merece lo mejor. Sin rellenos, sin vueltas.',
-    bg: "linear-gradient(100deg, rgba(11,28,18,.90) 0%, rgba(11,32,20,.72) 40%, rgba(11,32,20,.42) 68%, rgba(11,32,20,.22) 100%), url('/assets/lifestyle-estiramiento-manana.jpg') center/cover no-repeat",
+    panelColor: 'var(--green-600)',
+    photo: '/assets/lifestyle-estiramiento-manana.jpg',
     ctas: [
       { label: 'Ver productos', nav: 'shop', primary: true },
       { label: 'Cómo comprar', nav: 'howto', primary: false },
@@ -374,8 +385,8 @@ const SLIDES = [
     eyebrow: 'Pureza certificada',
     title: <>Formulaciones limpias.<br /><em>Sin rellenos innecesarios.</em></>,
     body: 'Seleccionamos insumos de primer nivel y formulamos con precisión. Etiquetas honestas, sin promesas infladas.',
-    bg: 'linear-gradient(130deg, #0b2d1c 0%, #0d3d25 40%, #156638 72%, #1e8a4e 100%)',
-    twoCol: true,
+    panelColor: 'var(--ink-900)',
+    mediaColor: 'var(--gradient-green-bloom)',
     stats: [
       { v: '26+',  l: 'productos en catálogo'    },
       { v: '0%',   l: 'rellenos en la fórmula'   },
@@ -394,7 +405,8 @@ function bannerToSlide(b) {
     eyebrow: b.eyebrow || '',
     title: b.title || '',
     body: b.subtitle || '',
-    bg: b.bg || 'var(--gradient-ink-bloom)',
+    panelColor: b.bg || 'var(--gradient-ink-bloom)',
+    mediaColor: 'var(--gradient-green-bloom)',
     photo: b.photo || '',
     ctas: b.ctaLabel ? [{
       label: b.ctaLabel,
@@ -428,56 +440,31 @@ function HeroBanner({ onNav }) {
     <div className="vc-banner">
       {slides.map((s, i) => (
         <div key={i} className={`vc-slide${i === slide ? ' active' : ''}`}>
-          <div className="vc-slide__bg" style={{ background: s.bg }} />
-          <div className="vc-slide__vignette" />
-          <div className="vc-wrap vc-slide__inner">
-            {s.twoCol ? (
-              <div className="vc-slide__two">
-                <div className="vc-slide__content">
-                  <Eyebrow tone="onDark">{s.eyebrow}</Eyebrow>
-                  <h1>{s.title}</h1>
-                  <p>{s.body}</p>
-                  <div className="vc-slide__ctas">
-                    {s.ctas.map((c, j) =>
-                      c.primary
-                        ? <Button key={j} size="lg" onClick={() => onNav(c.nav)} iconRight={<I.ArrowRight size={18} />}>{c.label}</Button>
-                        : <button key={j} className="vc-slide__outline-btn" onClick={() => onNav(c.nav)}>{c.label}</button>
-                    )}
-                  </div>
-                </div>
-                {s.stats && (
-                  <div className="vc-slide__stats-grid">
-                    {s.stats.map((st, j) => (
-                      <div key={j} className="vc-slide__stat-card">
-                        <div className="vc-slide__stat-v">{st.v}</div>
-                        <div className="vc-slide__stat-l">{st.l}</div>
-                      </div>
-                    ))}
-                  </div>
+          <div className="vc-hero-panel" style={{ background: s.panelColor || 'var(--gradient-ink-bloom)' }}>
+            <div className="vc-slide__content">
+              <Eyebrow tone="onDark">{s.eyebrow}</Eyebrow>
+              <h1>{s.title}</h1>
+              <p>{s.body}</p>
+              <div className="vc-slide__ctas">
+                {s.ctas.map((c, j) =>
+                  c.primary
+                    ? <Button key={j} size="lg" onClick={() => onNav(c.nav)} iconRight={<I.ArrowRight size={18} />}>{c.label}</Button>
+                    : <button key={j} className="vc-slide__outline-btn" onClick={() => onNav(c.nav)}>{c.label}</button>
                 )}
               </div>
+            </div>
+          </div>
+          <div className="vc-hero-media">
+            {s.photo ? (
+              <img src={s.photo} alt="" />
             ) : (
-              <div className="vc-slide__content">
-                <Eyebrow tone="onDark">{s.eyebrow}</Eyebrow>
-                <h1>{s.title}</h1>
-                <p>{s.body}</p>
-                <div className="vc-slide__ctas">
-                  {s.ctas.map((c, j) =>
-                    c.primary
-                      ? <Button key={j} size="lg" onClick={() => onNav(c.nav)} iconRight={<I.ArrowRight size={18} />}>{c.label}</Button>
-                      : <button key={j} className="vc-slide__outline-btn" onClick={() => onNav(c.nav)}>{c.label}</button>
-                  )}
-                </div>
-                {s.stats && (
-                  <div className="vc-slide__stats">
-                    {s.stats.map((st, j) => (
-                      <div key={j}>
-                        <div className="vc-slide__stat-v">{st.v}</div>
-                        <div className="vc-slide__stat-l">{st.l}</div>
-                      </div>
-                    ))}
+              <div className="vc-hero-media__stats" style={{ background: s.mediaColor || 'var(--gradient-green-bloom)' }}>
+                {(s.stats || []).map((st, j) => (
+                  <div key={j} className="vc-hero-stat">
+                    <div className="vc-hero-stat__v">{st.v}</div>
+                    <div className="vc-hero-stat__l">{st.l}</div>
                   </div>
-                )}
+                ))}
               </div>
             )}
           </div>
@@ -616,11 +603,12 @@ function Home({ onNav, onAdd, onOpen }) {
             {benefits.map(([icon, title, desc], i) => {
               const Ic = I[icon];
               return (
-                <Card key={i} variant="surface" padding="lg">
-                  <div className="vc-ben__icon"><Ic size={24} /></div>
+                <div key={i} className="vc-ben__item">
+                  <div className="vc-ben__icon"><Ic size={28} /></div>
                   <h3>{title}</h3>
+                  <div className="vc-ben__div" />
                   <p>{desc}</p>
-                </Card>
+                </div>
               );
             })}
           </div>
@@ -643,13 +631,14 @@ function Home({ onNav, onAdd, onOpen }) {
 
       {false && <VolumeTiers />}
 
-      <div className="vc-wrap" style={{ marginBottom: 0 }}>
-        <div className="vc-band">
+      <div className="vc-band-outer">
+        <div className="vc-wrap vc-band">
           <div>
             <Eyebrow tone="onDark">Nuestra misión</Eyebrow>
-            <h2>Democratizar el bienestar y el <em>rendimiento.</em></h2>
+            <h2>Democratizar el bienestar<br />y el <em>rendimiento.</em></h2>
+            <p style={{ marginTop: 24 }}>No diseñamos solo para atletas de élite. Vcore es para quienes corren hacia su trabajo, entrenan por salud o buscan energía para superar su día a día.</p>
           </div>
-          <p>No diseñamos solo para atletas de élite. Vcore es para quienes corren hacia su trabajo, entrenan por salud o buscan energía para superar su día a día.</p>
+          <img className="vc-band__photo" src="/assets/lifestyle-pareja-caminando.jpg" alt="" />
         </div>
       </div>
 
@@ -955,8 +944,8 @@ function AboutPage() {
       </div>
 
       {/* Mission band */}
-      <div className="vc-wrap" style={{ paddingTop: 56, paddingBottom: 56 }}>
-        <div className="vc-band">
+      <div className="vc-band-outer">
+        <div className="vc-wrap vc-band">
           <div>
             <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase',
               color: 'rgba(255,255,255,.45)', marginBottom: 14 }}>Nuestra misión</div>

@@ -166,13 +166,6 @@ window.VcoreData = {
       visible: true, featured: true,
     },
     {
-      id: 'proteina', name: 'Proteína', sub: 'Aislado de Suero de Leche', price: 28990,
-      category: 'Recuperación',
-      sizes: ['1 kg', '2 kg'], rating: 4.8, reviews: 198, badge: null, tone: 'coral',
-      blurb: 'Recuperación y construcción muscular con proteína de alta absorción.',
-      visible: true, featured: true,
-    },
-    {
       id: 'magnesio', name: 'Magnesio', sub: 'Bisglicinato', price: 14800,
       category: 'Recuperación',
       variants: [{ label: '120 caps', price: 14800, priceMayorista: 10360 }],

@@ -285,7 +285,7 @@ function Footer() {
             <h5>Productos</h5>
             <a style={{ cursor: 'pointer' }} onClick={() => nav('shop')}>Ver catálogo</a>
             <a style={{ cursor: 'pointer' }} onClick={() => nav('product-creatina')}>Creatina</a>
-            <a style={{ cursor: 'pointer' }} onClick={() => nav('shop')}>Proteína</a>
+            <a style={{ cursor: 'pointer' }} onClick={() => nav('shop')}>Magnesios</a>
             <a style={{ cursor: 'pointer' }} onClick={() => nav('shop')}>Suplementos</a>
           </div>
           <div>

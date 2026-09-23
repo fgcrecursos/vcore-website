@@ -6,6 +6,9 @@
 --    allá. No toca nombre, foto, categoría, destacados ni visibilidad.
 -- 2) Da de alta los 5 suplementos que Vcore no tenía. Si ya existe un
 --    producto con ese id, NO lo pisa (on conflict do nothing).
+-- 3) Elimina la Proteína: Vcore queda solo con los suplementos de Somos
+--    Setas (30 productos). Solo la borra si sigue siendo la misma fila
+--    (id, nombre y presentación); si cambió, se corta sin borrar nada.
 --
 -- Cada actualización verifica que el producto esté exactamente como estaba
 -- al generar este script (23/09/2026). Si alguien lo editó desde el panel
@@ -203,8 +206,17 @@ insert into public.products (id, name, sub, category, badge, blurb, tone, photo,
   ('palo-negro', 'Palo Negro Chileno', 'Leptocarpha rivularis — Cápsulas', 'Bienestar', '', 'Equilibrio digestivo, tradición del sur.', 'sage', '', '[{"label": "90 cápsulas × 150 mg", "price": 24000, "priceMayorista": 16800}]'::jsonb, 24000, 4.8, 0, false, false, 30)
 on conflict (id) do nothing;
 
+do $$
+declare n int;
+begin
+  delete from public.products
+   where id = 'proteina' and name = 'Proteína' and sub = 'Aislado de Suero de Leche';
+  get diagnostics n = row_count;
+  if n <> 1 then raise exception 'La Proteína cambió desde el 23/09 o ya no existe: revisarla antes de correr'; end if;
+end $$;
+
 commit;
 
--- Control: tiene que devolver 31 filas, con los precios nuevos.
+-- Control: tiene que devolver 30 filas, con los precios nuevos y sin la Proteína.
 select id, name, sub, category, price, visible, variants
   from public.products order by sort;

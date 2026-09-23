@@ -133,15 +133,104 @@ const PAGE_CSS = `
   color: var(--ink-700); margin-bottom: 7px; }
 .vc-tier__perk svg { color: var(--green-600); flex: none; }
 
-/* ---- How to buy ---- */
-.vc-howto { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
-.vc-howto__n { font-family: var(--font-display); font-weight: 800; font-size: 52px;
-  color: var(--green-200); line-height: 1; margin: 0 0 14px; }
-[data-theme="dark"] .vc-howto__n { color: var(--green-800); }
-.vc-howto__title { font-family: var(--font-display); font-weight: 800; font-size: 20px;
-  letter-spacing: -.01em; margin: 0 0 10px; }
-.vc-howto p { font-size: 14.5px; color: var(--ink-600); margin: 0; line-height: 1.55; }
-.vc-howto__wa { margin-top: 32px; display: flex; align-items: center; gap: 12px; }
+/* ---- Cómo comprar: pasos en línea de tiempo que avanzan solos + panel que cambia ---- */
+.vc-how { position: relative; overflow: hidden; isolation: isolate; background: #0B0E0C; color: #F1F5F2; }
+.vc-how::before { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 56%;
+  background: radial-gradient(80% 70% at 70% 50%, #14402B 0%, #0E2A1E 45%, rgba(11,14,12,0) 80%);
+  pointer-events: none; z-index: 0; }
+.vc-how__inner { position: relative; z-index: 1; padding-top: 104px; padding-bottom: 104px;
+  display: grid; grid-template-columns: minmax(0, 1fr) 500px; gap: 88px; align-items: center; }
+.vc-how h2 { margin: 0; font-family: var(--font-display); line-height: .94; }
+.vc-how__l1 { display: block; font-weight: 200; font-size: clamp(34px, 3.9vw, 56px);
+  letter-spacing: -.025em; color: rgba(255,255,255,.88); }
+.vc-how__l2 { display: block; font-weight: 800; font-size: clamp(52px, 6.4vw, 92px);
+  letter-spacing: -.05em; color: #fff; margin-left: -4px; }
+.vc-how__steps { list-style: none; margin: 48px 0 0; padding: 0; }
+.vc-how__step { position: relative; display: grid; grid-template-columns: 56px minmax(0, 1fr);
+  gap: 24px; padding-bottom: 30px; }
+.vc-how__step:last-child { padding-bottom: 0; }
+.vc-how__track { position: absolute; left: 27px; top: 62px; bottom: 6px; width: 2px;
+  background: rgba(91,183,131,.22); border-radius: 2px; overflow: hidden; }
+.vc-how__fill { position: absolute; left: 0; top: 0; width: 100%; height: 0; background: var(--green-500); }
+.vc-how__step.is-done .vc-how__fill { height: 100%; }
+.vc-how__step.is-on .vc-how__fill { animation: vcHowFill var(--vc-how-ms, 5000ms) linear forwards; }
+.vc-how.is-paused .vc-how__step.is-on .vc-how__fill { animation-play-state: paused; }
+@keyframes vcHowFill { from { height: 0; } to { height: 100%; } }
+.vc-how__num { width: 56px; height: 56px; border-radius: 50%; box-sizing: border-box;
+  border: 1.5px solid rgba(255,255,255,.3); background: transparent; color: rgba(255,255,255,.8);
+  display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
+  font-family: var(--font-display); font-weight: 600; font-size: 18px;
+  transition: background .35s ease, border-color .35s ease, color .35s ease, box-shadow .35s ease; }
+.vc-how__step.is-done .vc-how__num { border-color: var(--green-500); color: var(--green-300); }
+.vc-how__step.is-on .vc-how__num { background: var(--green-500); border-color: var(--green-500);
+  color: #fff; font-weight: 700; box-shadow: 0 0 0 8px rgba(55,167,105,.16); }
+.vc-how__txt { display: block; padding: 6px 0 0; cursor: pointer; text-align: left; background: none;
+  border: 0; color: inherit; font: inherit; }
+.vc-how__txt h3 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 24px;
+  letter-spacing: -.015em; color: rgba(255,255,255,.72); transition: color .35s ease; }
+.vc-how__step.is-on .vc-how__txt h3 { color: #fff; }
+.vc-how__txt p { margin: 8px 0 0; font-size: 15px; line-height: 1.65; color: rgba(255,255,255,.58);
+  max-width: 440px; }
+.vc-how__cta { display: flex; align-items: center; gap: 16px; margin-top: 44px; flex-wrap: wrap; }
+.vc-how__btn { display: inline-flex; align-items: center; gap: 10px; height: 54px; padding: 0 28px;
+  border-radius: var(--radius-pill); background: var(--green-500); color: #fff; border: 0; cursor: pointer;
+  font-family: var(--font-display); font-size: 16px; font-weight: 700;
+  transition: transform .18s ease, box-shadow .18s ease; }
+.vc-how__btn:hover { transform: translateY(-2px); box-shadow: 0 16px 34px rgba(0,0,0,.35); }
+.vc-how__cta span { font-size: 13px; color: rgba(255,255,255,.55); }
+
+/* panel derecho: una escena por paso, con fundido */
+.vc-how__stage { position: relative; height: 640px; }
+.vc-how__scene { position: absolute; left: 30px; right: 30px; top: 40px; opacity: 0;
+  transform: translateY(18px) scale(.98); pointer-events: none;
+  transition: opacity .55s ease, transform .55s cubic-bezier(.2,.8,.2,1); }
+.vc-how__scene.is-on { opacity: 1; transform: none; }
+.vc-how__card { border-radius: 28px; background: #111917; border: 1px solid rgba(255,255,255,.1);
+  box-shadow: 0 60px 120px rgba(0,0,0,.55); overflow: hidden; }
+.vc-how__cardhd { display: flex; align-items: center; gap: 14px; padding: 20px 24px;
+  background: #1A2421; border-bottom: 1px solid rgba(255,255,255,.06); }
+.vc-how__av { width: 42px; height: 42px; border-radius: 50%; background: var(--green-800); color: #fff;
+  display: flex; align-items: center; justify-content: center; flex: none; }
+.vc-how__av img { width: 24px; }
+.vc-how__cardhd b { display: block; font-family: var(--font-display); font-weight: 700; font-size: 16px; }
+.vc-how__cardhd small { display: block; margin-top: 2px; font-size: 12px; color: var(--green-300); }
+.vc-how__body { padding: 26px 24px 30px; display: flex; flex-direction: column; gap: 14px; }
+.vc-how__line { display: flex; align-items: center; gap: 14px; }
+.vc-how__thumb { width: 54px; height: 66px; border-radius: 10px; background: #F2F1EF; flex: none;
+  display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.vc-how__thumb img { width: 88%; height: 88%; object-fit: contain; }
+.vc-how__line-n { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
+.vc-how__line-s { font-size: 12.5px; color: rgba(255,255,255,.55); margin-top: 2px; }
+.vc-how__line-p { margin-left: auto; font-family: var(--font-display); font-weight: 700; font-size: 15px;
+  white-space: nowrap; }
+.vc-how__total { display: flex; justify-content: space-between; align-items: baseline;
+  border-top: 1px solid rgba(255,255,255,.1); padding-top: 16px; margin-top: 4px;
+  font-size: 13px; color: rgba(255,255,255,.6); }
+.vc-how__total b { font-family: var(--font-display); font-size: 22px; color: #fff; }
+.vc-how__fakebtn { height: 46px; border-radius: var(--radius-pill); background: var(--green-500);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  font-family: var(--font-display); font-weight: 700; font-size: 14.5px; color: #fff; }
+.vc-how__msg { max-width: 300px; padding: 15px 18px; font-size: 14px; line-height: 1.55; }
+.vc-how__msg--out { align-self: flex-end; border-radius: 18px 18px 4px 18px; background: #1C5436; color: #EFF8F2; }
+.vc-how__msg--in { align-self: flex-start; border-radius: 18px 18px 18px 4px; background: #202C29; color: #E2E8E4; }
+.vc-how__msg time { display: block; text-align: right; font-size: 11px; opacity: .55; margin-top: 4px; }
+.vc-how__opt { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.03); }
+.vc-how__opt.is-main { border-color: rgba(55,167,105,.55); background: rgba(55,167,105,.1); }
+.vc-how__opt-ic { width: 42px; height: 42px; border-radius: 50%; flex: none;
+  display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.06); color: var(--green-300); }
+.vc-how__route { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.65); }
+.vc-how__route i { flex: 1; height: 0; border-top: 2px dashed rgba(91,183,131,.5); }
+.vc-how__pack { position: absolute; border-radius: 18px; background: #F2F1EF; z-index: 2;
+  display: flex; align-items: center; justify-content: center; box-shadow: 0 40px 80px rgba(0,0,0,.5);
+  overflow: hidden; transition: transform .8s cubic-bezier(.2,.8,.2,1); }
+.vc-how__pack img { width: 88%; height: 88%; object-fit: contain; }
+.vc-how__pack--a { right: -14px; bottom: -20px; width: 160px; height: 200px; }
+.vc-how__pack--b { left: -6px; bottom: -22px; width: 132px; height: 166px; }
+@media (prefers-reduced-motion: reduce) {
+  .vc-how__scene, .vc-how__pack { transition: none; }
+  .vc-how__step.is-on .vc-how__fill { animation: none; height: 100%; }
+}
 
 /* ---- Product grid ---- */
 .vc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; }
@@ -413,7 +502,13 @@ const PAGE_CSS = `
   .vc-section__head h2 { font-size: 27px; }
 
   /* grids → 1 col */
-  .vc-ben, .vc-howto, .vc-tiers { grid-template-columns: 1fr; }
+  .vc-ben, .vc-tiers { grid-template-columns: 1fr; }
+  .vc-how__inner { grid-template-columns: 1fr; gap: 40px; padding-top: 64px; padding-bottom: 72px; }
+  .vc-how::before { width: 100%; top: 45%; }
+  .vc-how__stage { height: 580px; }
+  .vc-how__scene { left: 0; right: 0; top: 10px; }
+  .vc-how__pack--a { width: 110px; height: 138px; right: -4px; }
+  .vc-how__pack--b { width: 96px; height: 120px; left: -4px; }
   .vc-grid, .vc-grid--3, .vc-grid--2 { grid-template-columns: repeat(2, 1fr); gap: 12px; }
 
   /* mission band */
@@ -872,48 +967,168 @@ function VolumeTiers() {
   );
 }
 
+const HOW_STEPS = [
+  { n: '01', title: 'Elegí tus productos',
+    body: 'Navegá el catálogo, leé los beneficios y agregá al carrito todo lo que necesités.' },
+  { n: '02', title: 'Coordiná por WhatsApp',
+    body: 'Tu pedido se convierte en un mensaje listo. Lo enviás a nuestro WhatsApp y coordinamos pago y envío.' },
+  { n: '03', title: 'Recibí en todo el país',
+    body: 'Despachamos por Andreani a todo el país. También podés retirar en local sin costo.' },
+];
+const HOW_MS = 5000;
+
+/* Cómo comprar: los pasos avanzan solos (se frena al pasar el mouse o al
+   hacer foco) y el panel derecho muestra la escena de cada paso. El pedido
+   de ejemplo sale del catálogo real, así el total nunca queda desactualizado. */
 function HowToBuy() {
-  const steps = [
-    {
-      n: '01', title: 'Elegí tus productos',
-      body: 'Navegá el catálogo, leé los beneficios y agregá al carrito todo lo que necesités.',
-    },
-    {
-      n: '02', title: 'Coordiná por WhatsApp',
-      body: 'Tu pedido se convierte en un mensaje listo. Lo enviás a nuestro WhatsApp y coordinamos pago y envío.',
-    },
-    {
-      n: '03', title: 'Recibí en todo el país',
-      body: 'Despachamos por Andreani a todo el país. También podés retirar en local sin costo.',
-    },
-  ];
+  const [step, setStep] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const base = window.__VCORE_ASSET_BASE__ || '/assets/';
+
+  useEffect(() => {
+    if (paused || prefersReducedMotion()) return;
+    const t = setTimeout(() => setStep(s => (s + 1) % HOW_STEPS.length), HOW_MS);
+    return () => clearTimeout(t);
+  }, [step, paused]);
+
+  const conFoto = D.products.filter(p => p.photo);
+  const pick = (id, i) => D.products.find(p => p.id === id) || conFoto[i] || D.products[i];
+  const lines = [
+    { p: pick('creatina', 0), qty: 1 },
+    { p: pick('glicinato-magnesio', 1), qty: 2 },
+  ].filter(l => l.p);
+  const total = lines.reduce((sum, l) => sum + l.p.price * l.qty, 0);
+  const wa = () => window.open(`https://wa.me/${(D.config && D.config.whatsapp) || '5491100000000'}?text=Hola!%20Quiero%20hacer%20un%20pedido`, '_blank');
+  const thumb = p => (p.photo ? <img src={p.photo} alt="" /> : <ProductImage product={p} />);
+
   return (
-    <div className="vc-wrap">
-      <section className="vc-section" id="como-comprar">
-        <div className="vc-section__head">
-          <div>
-            <h2>¿Cómo comprar?</h2>
+    <section className={`vc-how${paused ? ' is-paused' : ''}`} id="como-comprar"
+      style={{ '--vc-how-ms': `${HOW_MS}ms` }}
+      onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
+      <div className="vc-wrap vc-how__inner">
+        <div className="vc-reveal">
+          <h2>
+            <span className="vc-how__l1">Del carrito</span>
+            <span className="vc-how__l2">a tu puerta.</span>
+          </h2>
+
+          <ol className="vc-how__steps">
+            {HOW_STEPS.map((s, i) => (
+              <li key={s.n}
+                className={`vc-how__step${i === step ? ' is-on' : ''}${i < step ? ' is-done' : ''}`}>
+                {i < HOW_STEPS.length - 1 && (
+                  <div className="vc-how__track"><div className="vc-how__fill" key={`${step}-${i}`} /></div>
+                )}
+                <button className="vc-how__num" onClick={() => setStep(i)}
+                  aria-label={`Paso ${i + 1}: ${s.title}`} aria-current={i === step ? 'step' : undefined}>
+                  {s.n}
+                </button>
+                <button className="vc-how__txt" onClick={() => setStep(i)} tabIndex={-1}>
+                  <h3>{s.title}</h3>
+                  <p>{s.body}</p>
+                </button>
+              </li>
+            ))}
+          </ol>
+
+          <div className="vc-how__cta">
+            <button className="vc-how__btn" onClick={wa}>
+              Hablar por WhatsApp
+              <I.ArrowRight size={17} />
+            </button>
+            <span>Respondemos en minutos</span>
           </div>
         </div>
-        <div className="vc-howto">
-          {steps.map(s => (
-            <Card key={s.n} variant="surface" padding="lg">
-              <div className="vc-howto__n">{s.n}</div>
-              <div className="vc-howto__title">{s.title}</div>
-              <p>{s.body}</p>
-            </Card>
-          ))}
+
+        <div className="vc-how__stage" aria-hidden="true">
+          <div className={`vc-how__scene${step === 0 ? ' is-on' : ''}`}>
+            <div className="vc-how__card">
+              <div className="vc-how__cardhd">
+                <div className="vc-how__av"><I.Bag size={20} /></div>
+                <div><b>Tu carrito</b><small>{lines.reduce((n, l) => n + l.qty, 0)} productos</small></div>
+              </div>
+              <div className="vc-how__body">
+                {lines.map(l => (
+                  <div key={l.p.id} className="vc-how__line">
+                    <div className="vc-how__thumb">{thumb(l.p)}</div>
+                    <div>
+                      <div className="vc-how__line-n">{l.p.name}</div>
+                      <div className="vc-how__line-s">{l.p.sub} · x{l.qty}</div>
+                    </div>
+                    <div className="vc-how__line-p">{D.fmt(l.p.price * l.qty)}</div>
+                  </div>
+                ))}
+                <div className="vc-how__total"><span>Total</span><b>{D.fmt(total)}</b></div>
+                <div className="vc-how__fakebtn">Enviar pedido por WhatsApp <I.ArrowRight size={16} /></div>
+              </div>
+            </div>
+          </div>
+
+          <div className={`vc-how__scene${step === 1 ? ' is-on' : ''}`}>
+            <div className="vc-how__card">
+              <div className="vc-how__cardhd">
+                <div className="vc-how__av"><img src={base + 'vcore-isotipo-white.png'} alt="" /></div>
+                <div><b>Vcore</b><small>en línea</small></div>
+              </div>
+              <div className="vc-how__body">
+                <div className="vc-how__msg vc-how__msg--out">
+                  <strong>¡Hola! Quiero hacer este pedido:</strong>
+                  {lines.map(l => <div key={l.p.id}>• {l.qty}× {l.p.name} — {l.p.sub}</div>)}
+                  <div style={{ marginTop: 6 }}><strong>Total: {D.fmt(total)}</strong></div>
+                  <time>10:24 ✓✓</time>
+                </div>
+                <div className="vc-how__msg vc-how__msg--in">
+                  ¡Hola! Te lo preparamos hoy. ¿Envío a domicilio o retirás en el local?
+                  <time>10:27</time>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className={`vc-how__scene${step === 2 ? ' is-on' : ''}`}>
+            <div className="vc-how__card">
+              <div className="vc-how__cardhd">
+                <div className="vc-how__av"><I.Truck size={20} /></div>
+                <div><b>Tu pedido está en camino</b><small>Despachado desde el laboratorio</small></div>
+              </div>
+              <div className="vc-how__body">
+                <div className="vc-how__route">
+                  <span>Godoy Cruz, Mendoza</span><i /><span>Tu casa</span>
+                </div>
+                <div className="vc-how__opt is-main">
+                  <div className="vc-how__opt-ic"><I.Truck size={20} /></div>
+                  <div>
+                    <div className="vc-how__line-n">Envío por Andreani</div>
+                    <div className="vc-how__line-s">A todo el país</div>
+                  </div>
+                </div>
+                <div className="vc-how__opt">
+                  <div className="vc-how__opt-ic"><I.Bag size={20} /></div>
+                  <div>
+                    <div className="vc-how__line-n">Retiro en el local</div>
+                    <div className="vc-how__line-s">Sin costo</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {lines[0] && (
+            <div className="vc-how__pack vc-how__pack--a"
+              style={{ transform: `rotate(${[7, 12, 4][step]}deg) translateY(${[0, -14, 8][step]}px)` }}>
+              {thumb(lines[0].p)}
+            </div>
+          )}
+          {lines[1] && (
+            <div className="vc-how__pack vc-how__pack--b"
+              style={{ transform: `rotate(${[-8, -3, -12][step]}deg) translateY(${[0, 10, -12][step]}px)` }}>
+              {thumb(lines[1].p)}
+            </div>
+          )}
         </div>
-        <div className="vc-howto__wa">
-          <Button size="lg"
-            onClick={() => window.open(`https://wa.me/${(D.config && D.config.whatsapp) || '5491100000000'}?text=Hola!%20Quiero%20hacer%20un%20pedido`, '_blank')}
-            iconRight={<I.ArrowRight size={18} />}>
-            Hablar por WhatsApp
-          </Button>
-          <span style={{ fontSize: 14, color: 'var(--ink-500)' }}>Respondemos en minutos</span>
-        </div>
-      </section>
-    </div>
+      </div>
+    </section>
   );
 }
 

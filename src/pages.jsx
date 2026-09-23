@@ -180,7 +180,7 @@ const PAGE_CSS = `
 .vc-how__cta span { font-size: 13px; color: rgba(255,255,255,.55); }
 
 /* panel derecho: una escena por paso, con fundido */
-.vc-how__stage { position: relative; height: 640px; }
+.vc-how__stage { position: relative; height: 500px; }
 .vc-how__scene { position: absolute; left: 30px; right: 30px; top: 40px; opacity: 0;
   transform: translateY(18px) scale(.98); pointer-events: none;
   transition: opacity .55s ease, transform .55s cubic-bezier(.2,.8,.2,1); }
@@ -221,14 +221,8 @@ const PAGE_CSS = `
   display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.06); color: var(--green-300); }
 .vc-how__route { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.65); }
 .vc-how__route i { flex: 1; height: 0; border-top: 2px dashed rgba(91,183,131,.5); }
-.vc-how__pack { position: absolute; border-radius: 18px; background: #F2F1EF; z-index: 2;
-  display: flex; align-items: center; justify-content: center; box-shadow: 0 40px 80px rgba(0,0,0,.5);
-  overflow: hidden; transition: transform .8s cubic-bezier(.2,.8,.2,1); }
-.vc-how__pack img { width: 88%; height: 88%; object-fit: contain; }
-.vc-how__pack--a { right: -14px; bottom: -20px; width: 160px; height: 200px; }
-.vc-how__pack--b { left: -6px; bottom: -22px; width: 132px; height: 166px; }
 @media (prefers-reduced-motion: reduce) {
-  .vc-how__scene, .vc-how__pack { transition: none; }
+  .vc-how__scene { transition: none; }
   .vc-how__step.is-on .vc-how__fill { animation: none; height: 100%; }
 }
 
@@ -505,10 +499,8 @@ const PAGE_CSS = `
   .vc-ben, .vc-tiers { grid-template-columns: 1fr; }
   .vc-how__inner { grid-template-columns: 1fr; gap: 40px; padding-top: 64px; padding-bottom: 72px; }
   .vc-how::before { width: 100%; top: 45%; }
-  .vc-how__stage { height: 580px; }
+  .vc-how__stage { height: 450px; }
   .vc-how__scene { left: 0; right: 0; top: 10px; }
-  .vc-how__pack--a { width: 110px; height: 138px; right: -4px; }
-  .vc-how__pack--b { width: 96px; height: 120px; left: -4px; }
   .vc-grid, .vc-grid--3, .vc-grid--2 { grid-template-columns: repeat(2, 1fr); gap: 12px; }
 
   /* mission band */
@@ -1113,19 +1105,6 @@ function HowToBuy() {
               </div>
             </div>
           </div>
-
-          {lines[0] && (
-            <div className="vc-how__pack vc-how__pack--a"
-              style={{ transform: `rotate(${[7, 12, 4][step]}deg) translateY(${[0, -14, 8][step]}px)` }}>
-              {thumb(lines[0].p)}
-            </div>
-          )}
-          {lines[1] && (
-            <div className="vc-how__pack vc-how__pack--b"
-              style={{ transform: `rotate(${[-8, -3, -12][step]}deg) translateY(${[0, 10, -12][step]}px)` }}>
-              {thumb(lines[1].p)}
-            </div>
-          )}
         </div>
       </div>
     </section>

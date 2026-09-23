@@ -31,7 +31,7 @@ const PAGE_CSS = `
   z-index: 2; will-change: transform; }
 .vc-hero__photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .vc-hero__pack { position: absolute; right: 374px; top: 442px; width: 262px; height: 330px;
-  border-radius: 20px; background: #F2F1EF; box-shadow: 0 40px 80px rgba(0,0,0,.42);
+  border-radius: 20px; background: #F2F3F2; box-shadow: 0 40px 80px rgba(0,0,0,.42);
   display: flex; align-items: center; justify-content: center; z-index: 3; will-change: transform; }
 .vc-hero__pack img { width: 86%; height: 86%; object-fit: contain; display: block; }
 /* Ojo: estos bloques también llevan .vc-wrap, así que el padding se declara por
@@ -196,9 +196,10 @@ const PAGE_CSS = `
 .vc-how__cardhd small { display: block; margin-top: 2px; font-size: 12px; color: var(--green-300); }
 .vc-how__body { padding: 26px 24px 30px; display: flex; flex-direction: column; gap: 14px; }
 .vc-how__line { display: flex; align-items: center; gap: 14px; }
-.vc-how__thumb { width: 54px; height: 66px; border-radius: 10px; background: #F2F1EF; flex: none;
+.vc-how__thumb { width: 54px; height: 66px; border-radius: 10px; background: #F2F3F2; flex: none;
   display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.vc-how__thumb img { width: 88%; height: 88%; object-fit: contain; }
+.vc-how__thumb img { width: 100%; height: 100%; object-fit: contain; }
+.vc-how__thumb img.is-cover { object-fit: cover; }
 .vc-how__line-n { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
 .vc-how__line-s { font-size: 12.5px; color: rgba(255,255,255,.55); margin-top: 2px; }
 .vc-how__line-p { margin-left: auto; font-family: var(--font-display); font-weight: 700; font-size: 15px;
@@ -233,7 +234,7 @@ const PAGE_CSS = `
 .vc-pcard { position: relative; cursor: pointer; background: transparent; border: 0;
   transition: transform .24s cubic-bezier(.2,.8,.2,1); }
 .vc-pcard:hover { transform: translateY(-6px); }
-.vc-pcard__plate { position: relative; background: #F2F1EF; border-radius: 20px;
+.vc-pcard__plate { position: relative; background: #F2F3F2; border-radius: 20px;
   overflow: hidden; border-bottom: 6px solid var(--green-500);
   transition: box-shadow .24s ease; }
 .vc-pcard:hover .vc-pcard__plate { box-shadow: 0 26px 52px rgba(19,22,21,.18); }
@@ -241,9 +242,6 @@ const PAGE_CSS = `
 .vc-pcard__plate--rendimiento { --linea: #37A769; border-bottom-color: #37A769; }
 .vc-pcard__plate--salud       { --linea: #2A6A9E; border-bottom-color: #2A6A9E; }
 .vc-pcard__plate--bienestar   { --linea: #C98B4B; border-bottom-color: #C98B4B; }
-.vc-pcard__plate--rendimiento .vc-pimg__photo { background: #EAF4EE !important; }
-.vc-pcard__plate--salud .vc-pimg__photo       { background: #E9F0F6 !important; }
-.vc-pcard__plate--bienestar .vc-pimg__photo   { background: #F6EFE6 !important; }
 .vc-pcard__dot { position: absolute; top: 14px; right: 14px; width: 12px; height: 12px; border-radius: 50%;
   background: var(--linea); box-shadow: 0 0 0 3px rgba(255,255,255,.75); z-index: 3; }
 .vc-pcard__body { padding: 16px 2px 0; }
@@ -293,10 +291,12 @@ const PAGE_CSS = `
   font-size: 15px; font-weight: 700; transition: transform .18s ease; }
 .vc-lineas__cta:hover { transform: translateY(-2px); }
 .vc-lineas__packs { position: relative; height: 430px; }
-.vc-lineas__pack { position: absolute; border-radius: 18px; background: #F2F1EF;
+.vc-lineas__pack { position: absolute; border-radius: 18px; background: #F2F3F2;
   display: flex; align-items: center; justify-content: center; will-change: transform;
   box-shadow: 0 32px 64px rgba(0,0,0,.36); }
-.vc-lineas__pack img { width: 88%; height: 88%; object-fit: contain; display: block; }
+.vc-lineas__pack { overflow: hidden; }
+.vc-lineas__pack img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.vc-lineas__pack img.is-cover { object-fit: cover; }
 .vc-lineas__rail { position: relative; z-index: 3; display: flex; gap: 2px; padding: 40px 0 56px; }
 .vc-lineas__rail button { flex: 1; text-align: left; background: none; cursor: pointer;
   padding: 20px 24px 18px; border: 0; border-top: 2px solid rgba(255,255,255,.22);
@@ -342,9 +342,11 @@ const PAGE_CSS = `
   font-family: var(--font-display); font-weight: 800; font-size: 180px; line-height: .8;
   letter-spacing: -.06em; color: rgba(255,255,255,.16); pointer-events: none; z-index: 1; }
 .vc-pdp2__plate { position: relative; z-index: 3; width: min(400px, 74%); aspect-ratio: 4 / 5;
-  border-radius: 24px; background: #F2F1EF; box-shadow: 0 50px 100px rgba(16,28,24,.42);
+  border-radius: 24px; background: #F2F3F2; box-shadow: 0 50px 100px rgba(16,28,24,.42);
   display: flex; align-items: center; justify-content: center; will-change: transform; }
-.vc-pdp2__plate img { width: 90%; height: 90%; object-fit: contain; display: block; }
+.vc-pdp2__plate { overflow: hidden; }
+.vc-pdp2__plate img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.vc-pdp2__plate img.is-cover { object-fit: cover; }
 .vc-pdp2__back { position: absolute; left: 40px; top: 36px; z-index: 4; display: inline-flex;
   align-items: center; gap: 10px; color: #fff; font-size: 11.5px; font-weight: 700;
   letter-spacing: .24em; text-transform: uppercase; background: none; border: 0; cursor: pointer; }
@@ -885,7 +887,7 @@ function LineasSection({ onNav }) {
                     right: g.right, top: g.top, width: g.w, height: g.h,
                     transform: `translateY(${-d * g.depth}px) rotate(${g.rot + d * g.depth * 0.02}deg)`,
                   }}>
-                  <img src={p.photo} alt={p.name} />
+                  <img src={p.photo} alt={p.name} onLoad={window.VcoreFitPhoto} />
                 </div>
               );
             })}
@@ -1031,7 +1033,7 @@ function HowToBuy() {
   ].filter(l => l.p);
   const total = lines.reduce((sum, l) => sum + l.p.price * l.qty, 0);
   const wa = () => window.open(`https://wa.me/${(D.config && D.config.whatsapp) || '5491100000000'}?text=Hola!%20Quiero%20hacer%20un%20pedido`, '_blank');
-  const thumb = p => (p.photo ? <img src={p.photo} alt="" /> : <ProductImage product={p} />);
+  const thumb = p => (p.photo ? <img src={p.photo} alt="" onLoad={window.VcoreFitPhoto} /> : <ProductImage product={p} />);
 
   return (
     <section className={`vc-how${paused ? ' is-paused' : ''}`} id="como-comprar"
@@ -1317,11 +1319,11 @@ function Product({ product, onAdd, onOpen }) {
           <div className="vc-pdp2__plate"
             style={{
               transform: `translateY(${-y * 0.14}px) rotate(${-3 + y * 0.01}deg)`,
-              background: p.photo ? '#F2F1EF' : 'transparent',
+              background: p.photo ? '#F2F3F2' : 'transparent',
               boxShadow: p.photo ? undefined : 'none',
             }}>
             {p.photo
-              ? <img src={p.photo} alt={p.name} />
+              ? <img src={p.photo} alt={p.name} onLoad={window.VcoreFitPhoto} />
               : <ProductImage product={{ ...p, tone: toneOf(p) }} />}
           </div>
           <div className="vc-pdp2__circles">

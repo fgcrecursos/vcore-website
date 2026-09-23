@@ -44,10 +44,13 @@ const SITE_CSS = `
 
 .vc-pimg { position: relative; width: 100%; aspect-ratio: 4 / 5; border-radius: var(--radius-lg); overflow: hidden;
   isolation: isolate; }
-/* Los packs van completos sobre una placa clara (#F2F1EF es el mismo fondo que
-   traen las fotos del catálogo), nunca recortados. */
+/* Las fotos llenan la placa, sin margen. Las anchas (fotos de catálogo con
+   varios envases sobre fondo claro) van enteras sobre una placa del mismo
+   tono; las cuadradas o verticales, con fondo propio, cubren toda la placa
+   (VcoreFitPhoto les pone .is-cover al cargar). */
 .vc-pimg > img.vc-pimg__photo { width: 100%; height: 100%; object-fit: contain; display: block;
-  background: #F2F1EF; padding: 10px; box-sizing: border-box; }
+  background: #F2F3F2; }
+.vc-pimg > img.vc-pimg__photo.is-cover { object-fit: cover; }
 .vc-pimg::after { content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; }
 .vc-pimg--tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
 .vc-pimg--tile::after { background: var(--vignette); }
@@ -215,10 +218,18 @@ function Header({ page, onNav, cartCount, onOpenCart, theme, onToggleTheme, onSe
   );
 }
 
+/* Una foto cuadrada o vertical cubre la placa (recorta solo fondo); una ancha
+   se muestra entera, porque recortarla cortaría los envases de los costados. */
+function fitPhoto(e) {
+  const img = e.currentTarget;
+  if (img.naturalWidth && img.naturalWidth / img.naturalHeight <= 1.05) img.classList.add('is-cover');
+}
+window.VcoreFitPhoto = fitPhoto;
+
 function ProductImage({ product, className = '' }) {
   injectSite();
   if (product.photo) {
-    return <div className={`vc-pimg ${className}`}><img className="vc-pimg__photo" src={product.photo} alt={product.name} /></div>;
+    return <div className={`vc-pimg ${className}`}><img className="vc-pimg__photo" src={product.photo} alt={product.name} onLoad={fitPhoto} /></div>;
   }
   const base = (window.__VCORE_ASSET_BASE__ || '/assets/');
   const markByTone = {

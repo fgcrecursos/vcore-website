@@ -20,7 +20,7 @@ const PAGE_CSS = `
 .vc-slide { position: absolute; inset: 0; opacity: 0;
   transition: opacity .8s cubic-bezier(.4,0,.2,1); pointer-events: none; }
 .vc-slide.active { opacity: 1; pointer-events: auto; }
-.vc-hero__field { position: absolute; inset: 0; }
+.vc-hero__field { position: absolute; inset: 0; will-change: transform; }
 .vc-hero__mark { position: absolute; right: -190px; top: -150px; width: 860px; opacity: .055;
   pointer-events: none; will-change: transform; z-index: 1; }
 .vc-hero__label { position: absolute; left: 44px; top: 50%; transform: translateY(-50%) rotate(180deg);
@@ -101,7 +101,7 @@ const PAGE_CSS = `
 .vc-section { padding: 56px 0; }
 .vc-section__head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 30px; }
 .vc-section__head h2 { font-family: var(--font-display); font-weight: 800; font-size: 36px;
-  letter-spacing: -.025em; margin: 10px 0 0; }
+  letter-spacing: -.025em; margin: 0; }
 
 /* ---- Benefits: editorial, sin tarjetas — ícono grande + divisor, como el catálogo ---- */
 .vc-ben { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; }
@@ -126,8 +126,6 @@ const PAGE_CSS = `
 .vc-tier__flag--plain { background: var(--paper-200); color: var(--ink-600); }
 .vc-tier__flag--mid { background: var(--green-100); color: var(--green-700); }
 .vc-tier__flag--top { background: var(--gradient-green-bloom); color: #fff; }
-.vc-tier__eye { font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
-  font-weight: 800; color: var(--ink-500); margin: 0 0 6px; }
 .vc-tier__name { font-family: var(--font-display); font-weight: 800; font-size: 22px;
   margin: 0 0 4px; letter-spacing: -.01em; }
 .vc-tier__from { font-size: 13px; color: var(--ink-500); margin: 0 0 16px; }
@@ -162,12 +160,6 @@ const PAGE_CSS = `
 .vc-pcard__plate--sage  { border-bottom-color: var(--sage-500); }
 .vc-pcard__plate--paper { border-bottom-color: var(--paper-400); }
 .vc-pcard__body { padding: 16px 2px 0; }
-.vc-pc__cat { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 8px; }
-.vc-pc__cat--green { color: var(--green-700); } [data-theme="dark"] .vc-pc__cat--green { color: var(--green-400); }
-.vc-pc__cat--navy  { color: var(--info-500); }
-.vc-pc__cat--coral { color: var(--coral-600); } [data-theme="dark"] .vc-pc__cat--coral { color: var(--coral-400); }
-.vc-pc__cat--sage  { color: #7C8340; } [data-theme="dark"] .vc-pc__cat--sage { color: var(--sage-500); }
-.vc-pc__cat--paper { color: var(--ink-500); }
 .vc-pc__name { font-family: var(--font-display); font-weight: 800; font-size: 20px;
   letter-spacing: -.01em; margin: 0 0 2px; line-height: 1.15; }
 .vc-pc__sub { font-size: 13px; color: var(--ink-500); margin: 0 0 10px; }
@@ -187,26 +179,25 @@ const PAGE_CSS = `
 .vc-band { position: relative; z-index: 1; padding: 88px 0;
   display: grid; grid-template-columns: 1.1fr .9fr; gap: 56px; align-items: center; }
 .vc-band h2 { font-family: var(--font-display); font-weight: 800; font-size: clamp(34px, 4vw, 56px);
-  letter-spacing: -.025em; line-height: .98; margin: 18px 0 0; }
+  letter-spacing: -.025em; line-height: .98; margin: 0; }
 .vc-band h2 em { font-style: italic; font-weight: 600; color: var(--green-400); }
 .vc-band p { color: rgba(255,255,255,.72); font-size: 17px; line-height: 1.7; margin: 0 0 16px; }
-.vc-band__photo { width: 100%; aspect-ratio: 4 / 3.4; object-fit: cover; display: block;
-  border-radius: var(--radius-2xl); box-shadow: 0 24px 60px rgba(0,0,0,.35); }
-@media (max-width: 760px) { .vc-band { grid-template-columns: 1fr; gap: 22px; padding: 56px 0; } .vc-band__photo { aspect-ratio: 16 / 10; } }
+.vc-band__frame { aspect-ratio: 4 / 3.4; overflow: hidden; border-radius: var(--radius-2xl);
+  box-shadow: 0 24px 60px rgba(0,0,0,.35); }
+.vc-band__photo { width: 100%; height: 100%; object-fit: cover; display: block; will-change: transform; }
+@media (max-width: 760px) { .vc-band { grid-template-columns: 1fr; gap: 22px; padding: 56px 0; } .vc-band__frame { aspect-ratio: 16 / 10; } }
 
 /* ---- Líneas: campo de color conmutable con packs en parallax ---- */
 .vc-lineas { position: relative; overflow: hidden; isolation: isolate; color: #fff; }
 .vc-lineas__field { position: absolute; inset: 0; opacity: 0; transition: opacity .7s ease; }
 .vc-lineas__field.on { opacity: 1; }
-.vc-lineas__ghost { position: absolute; right: 40px; top: 28px; font-family: var(--font-display);
+.vc-lineas__ghost { position: absolute; right: 40px; top: 28px; will-change: transform; font-family: var(--font-display);
   font-weight: 800; font-size: 210px; line-height: .8; letter-spacing: -.06em;
   color: rgba(255,255,255,.07); pointer-events: none; z-index: 2; }
 .vc-lineas__inner { position: relative; z-index: 3; padding-top: 92px; }
 .vc-lineas__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
-.vc-lineas__eye { font-size: 11.5px; font-weight: 700; letter-spacing: .3em;
-  text-transform: uppercase; color: rgba(255,255,255,.72); }
 .vc-lineas h2 { font-family: var(--font-display); font-weight: 800;
-  font-size: clamp(36px, 5vw, 72px); line-height: .94; letter-spacing: -.045em; margin: 18px 0 0; }
+  font-size: clamp(36px, 5vw, 72px); line-height: .94; letter-spacing: -.045em; margin: 0; }
 .vc-lineas p { font-size: 17px; line-height: 1.7; color: rgba(255,255,255,.76);
   margin: 24px 0 0; max-width: 430px; }
 .vc-lineas__cta { display: inline-flex; align-items: center; gap: 10px; margin-top: 30px;
@@ -235,10 +226,8 @@ const PAGE_CSS = `
   will-change: transform; z-index: 1; }
 .vc-lab__inner { position: relative; z-index: 3; padding-top: 96px; padding-bottom: 96px; }
 .vc-lab__head { display: grid; grid-template-columns: 1fr 440px; gap: 48px; align-items: start; }
-.vc-lab__eye { font-size: 11.5px; font-weight: 700; letter-spacing: .3em;
-  text-transform: uppercase; color: var(--green-300); }
 .vc-lab h2 { font-family: var(--font-display); font-weight: 800; font-size: clamp(36px, 5vw, 72px);
-  line-height: .94; letter-spacing: -.045em; margin: 20px 0 0; }
+  line-height: .94; letter-spacing: -.045em; margin: 0; }
 .vc-lab__photo { border-radius: 22px; overflow: hidden; height: 248px;
   box-shadow: 0 40px 80px rgba(0,0,0,.45); }
 .vc-lab__photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -279,7 +268,7 @@ const PAGE_CSS = `
 /* ---- Shop ---- */
 .vc-shop-head { display: flex; align-items: flex-end; gap: 32px; padding: 68px 0 0; }
 .vc-shop-head h1 { font-family: var(--font-display); font-weight: 800;
-  font-size: clamp(42px, 6vw, 86px); line-height: .92; letter-spacing: -.05em; margin: 16px 0 0; }
+  font-size: clamp(42px, 6vw, 86px); line-height: .92; letter-spacing: -.05em; margin: 0; }
 .vc-shop-head p { width: 330px; flex: none; font-size: 16px; line-height: 1.65;
   color: var(--ink-600); margin: 0 0 12px; }
 @media (max-width: 860px) {
@@ -395,7 +384,8 @@ const PAGE_CSS = `
   .vc-hero__photo { position: relative; right: auto; top: auto; width: 100%; height: 300px;
     border-radius: 0; box-shadow: none; transform: none !important; }
   .vc-hero__pack { right: 14px; top: 160px; width: 132px; height: 166px; border-radius: 14px; }
-  .vc-hero__inner { min-height: 0; padding-top: 30px; padding-bottom: 40px; }
+  .vc-hero__inner { min-height: 0; padding-top: 30px; padding-bottom: 40px;
+    transform: none !important; opacity: 1 !important; }
   .vc-hero__copy p { font-size: 15.5px; }
   .vc-hero__stats { gap: 26px; margin-top: 34px; }
   .vc-banner__arr { display: none; }
@@ -504,20 +494,13 @@ function useScrollY() {
    centrada en el viewport, negativo antes y positivo después. Así las capas
    quedan en su posición de diseño justo cuando la sección se está mirando. */
 function useSectionScroll(ref) {
-  const y = useScrollY();
-  const [box, setBox] = useState(null);
-  useEffect(() => {
-    function measure() {
-      if (!ref.current) return;
-      const r = ref.current.getBoundingClientRect();
-      setBox({ top: r.top + (window.scrollY || window.pageYOffset || 0), h: r.height });
-    }
-    measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  }, [ref]);
-  if (!box) return 0;
-  return (y + window.innerHeight / 2) - (box.top + box.h / 2);
+  /* useScrollY solo se usa para re-renderizar en cada cuadro de scroll; la
+     posición se mide en vivo para no quedar desfasada cuando cargan imágenes
+     o el catálogo del backend y la sección se corre. */
+  useScrollY();
+  if (!ref.current || prefersReducedMotion()) return 0;
+  const r = ref.current.getBoundingClientRect();
+  return window.innerHeight / 2 - (r.top + r.height / 2);
 }
 
 function useRevealAll(dep) {
@@ -567,7 +550,6 @@ function lineaOf(category) {
 
 function ProductCard({ p, onOpen, onAdd }) {
   const tone = p.tone || 'green';
-  const linea = lineaOf(p.category);
   return (
     <div className="vc-pcard" onClick={() => onOpen(p)}>
       <div className={`vc-pcard__plate vc-pcard__plate--${tone}`}>
@@ -579,7 +561,6 @@ function ProductCard({ p, onOpen, onAdd }) {
         )}
       </div>
       <div className="vc-pcard__body">
-        <div className={`vc-pc__cat vc-pc__cat--${tone}`}>{linea.title}</div>
         <div className="vc-pc__name">{p.name}</div>
         <div className="vc-pc__sub">{p.sub}</div>
         <div className="vc-pc__foot">
@@ -663,27 +644,29 @@ function HeroBanner({ onNav }) {
     <div className="vc-banner">
       {slides.map((s, i) => (
         <div key={i} className={`vc-slide${i === slide ? ' active' : ''}`}>
-          <div className="vc-hero__field" style={{ background: s.field }} />
+          <div className="vc-hero__field"
+            style={{ background: s.field, transform: `translateY(${y * 0.35}px)` }} />
 
           <img className="vc-hero__mark" src={base + 'vcore-isotipo-white.png'} alt=""
-            style={{ transform: `translateY(${y * 0.05}px)` }} />
+            style={{ transform: `translateY(${y * 0.22}px) rotate(${y * 0.02}deg)` }} />
 
           {s.eyebrow && <div className="vc-hero__label">{s.eyebrow}</div>}
 
           {s.photo && (
-            <div className="vc-hero__photo" style={{ transform: `translateY(${-y * 0.1}px)` }}>
+            <div className="vc-hero__photo" style={{ transform: `translateY(${y * 0.12}px)` }}>
               <img src={s.photo} alt="" />
             </div>
           )}
 
           {s.pack && (
             <div className="vc-hero__pack"
-              style={{ transform: `translateY(${-y * 0.2}px) rotate(${-5 + y * 0.004}deg)` }}>
+              style={{ transform: `translateY(${-y * 0.32}px) rotate(${-5 + y * 0.012}deg)` }}>
               <img src={s.pack} alt={s.packAlt || ''} />
             </div>
           )}
 
-          <div className="vc-wrap vc-hero__inner">
+          <div className="vc-wrap vc-hero__inner"
+            style={{ transform: `translateY(${y * 0.2}px)`, opacity: Math.max(0, 1 - y / 900) }}>
             <div className="vc-hero__copy">
               <h1 style={{ margin: 0 }}>
                 {s.l1 && <span className="vc-hero__l1">{s.l1}</span>}
@@ -744,9 +727,9 @@ function LineasSection({ onNav }) {
     .slice(0, 3);
 
   const geom = [
-    { right: 0,   top: 14,  w: 236, h: 300, rot: 4,  depth: 0.03 },
-    { right: 190, top: 104, w: 214, h: 272, rot: -6, depth: 0.06 },
-    { right: 28,  top: 178, w: 190, h: 240, rot: 9,  depth: 0.09 },
+    { right: 0,   top: 14,  w: 236, h: 300, rot: 4,  depth: 0.08 },
+    { right: 190, top: 104, w: 214, h: 272, rot: -6, depth: 0.16 },
+    { right: 28,  top: 178, w: 190, h: 240, rot: 9,  depth: 0.24 },
   ];
 
   return (
@@ -755,12 +738,11 @@ function LineasSection({ onNav }) {
         <div key={l.id} className={`vc-lineas__field${i === active ? ' on' : ''}`}
           style={{ background: l.field }} />
       ))}
-      <div className="vc-lineas__ghost">{linea.n}</div>
+      <div className="vc-lineas__ghost" style={{ transform: `translateY(${d * 0.22}px)` }}>{linea.n}</div>
 
       <div className="vc-wrap vc-lineas__inner">
         <div className="vc-lineas__grid">
           <div className="vc-reveal">
-            <div className="vc-lineas__eye">Línea {linea.n}</div>
             <h2>{linea.title}</h2>
             <p>{linea.blurb}</p>
             <button className="vc-lineas__cta" onClick={() => onNav('shop')}>
@@ -775,7 +757,7 @@ function LineasSection({ onNav }) {
                 <div key={p.id} className="vc-lineas__pack"
                   style={{
                     right: g.right, top: g.top, width: g.w, height: g.h,
-                    transform: `translateY(${-d * g.depth}px) rotate(${g.rot}deg)`,
+                    transform: `translateY(${-d * g.depth}px) rotate(${g.rot + d * g.depth * 0.02}deg)`,
                   }}>
                   <img src={p.photo} alt={p.name} />
                 </div>
@@ -817,13 +799,12 @@ function LaboratorioBand() {
           style={{
             left: `${8 + i * 32}%`,
             top: 280 + i * 30,
-            transform: `translateY(${-d * (0.04 + i * 0.02)}px)`,
+            transform: `translateY(${-d * (0.12 + i * 0.07)}px)`,
           }} />
       ))}
       <div className="vc-wrap vc-lab__inner">
         <div className="vc-lab__head vc-reveal">
           <div>
-            <div className="vc-lab__eye">El laboratorio</div>
             <h2>Lo que<br />no negociamos.</h2>
           </div>
           <p className="vc-lab__caption" style={{ marginTop: 10 }}>Fraccionamos y envasamos puertas adentro, en Godoy Cruz. Integrar el proceso es lo que nos deja bajar el precio sin bajar la calidad — y poder decir exactamente qué hay en cada envase.</p>
@@ -855,7 +836,6 @@ function VolumeTiers() {
       <section className="vc-section">
         <div className="vc-section__head">
           <div>
-            <Eyebrow tone="ink">Comprá más, pagá menos</Eyebrow>
             <h2>Descuentos por volumen</h2>
           </div>
           <Button variant="ghost"
@@ -870,7 +850,6 @@ function VolumeTiers() {
               <div className={`vc-tier__flag vc-tier__flag--${i === 0 ? 'plain' : i === 1 ? 'mid' : 'top'}`}>
                 {i === 0 ? 'Precio base' : t.badge}
               </div>
-              <div className="vc-tier__eye">{i === 0 ? 'Lista' : `Desde ${D.fmt(t.min)}`}</div>
               <div className="vc-tier__name">{t.label}</div>
               <div className="vc-tier__from">
                 {t.discount === 0 ? 'Sin descuento' : `${t.discount * 100}% off en todo el pedido`}
@@ -913,7 +892,6 @@ function HowToBuy() {
       <section className="vc-section" id="como-comprar">
         <div className="vc-section__head">
           <div>
-            <Eyebrow tone="ink">Compra simple</Eyebrow>
             <h2>¿Cómo comprar?</h2>
           </div>
         </div>
@@ -939,6 +917,26 @@ function HowToBuy() {
   );
 }
 
+/* Banda de misión: la foto se desliza dentro de su marco al pasar. */
+function MissionBand() {
+  const ref = useRef(null);
+  const d = useSectionScroll(ref);
+  return (
+    <div className="vc-band-outer" ref={ref}>
+      <div className="vc-wrap vc-band vc-reveal">
+        <div>
+          <h2>Democratizar el bienestar<br />y el <em>rendimiento.</em></h2>
+          <p style={{ marginTop: 24 }}>No diseñamos solo para atletas de élite. Vcore es para quienes corren hacia su trabajo, entrenan por salud o buscan energía para superar su día a día.</p>
+        </div>
+        <div className="vc-band__frame">
+          <img className="vc-band__photo" src="/assets/lifestyle-pareja-caminando.jpg" alt=""
+            style={{ transform: `translateY(${d * 0.06}px) scale(1.24)` }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Home({ onNav, onAdd, onOpen }) {
   injectPages();
   const featured = D.products.filter(p => p.featured).slice(0, 4);
@@ -952,7 +950,7 @@ function Home({ onNav, onAdd, onOpen }) {
       <div className="vc-wrap">
         <section className="vc-section">
           <div className="vc-section__head vc-reveal">
-            <div><Eyebrow tone="ink">Destacados</Eyebrow><h2>Lo esencial</h2></div>
+            <div><h2>Lo esencial</h2></div>
             <Button variant="ghost" onClick={() => onNav('shop')} iconRight={<I.ArrowRight size={16} />}>
               Ver todo
             </Button>
@@ -973,16 +971,7 @@ function Home({ onNav, onAdd, onOpen }) {
 
       <HowToBuy />
 
-      <div className="vc-band-outer">
-        <div className="vc-wrap vc-band vc-reveal">
-          <div>
-            <Eyebrow tone="onDark">Nuestra misión</Eyebrow>
-            <h2>Democratizar el bienestar<br />y el <em>rendimiento.</em></h2>
-            <p style={{ marginTop: 24 }}>No diseñamos solo para atletas de élite. Vcore es para quienes corren hacia su trabajo, entrenan por salud o buscan energía para superar su día a día.</p>
-          </div>
-          <img className="vc-band__photo" src="/assets/lifestyle-pareja-caminando.jpg" alt="" />
-        </div>
-      </div>
+      <MissionBand />
     </main>
   );
 }
@@ -1007,7 +996,6 @@ function Shop({ onAdd, onOpen }) {
       <section className="vc-section" style={{ paddingBottom: 24, paddingTop: 0 }}>
         <div className="vc-shop-head">
           <div style={{ flexGrow: 1 }}>
-            <Eyebrow tone="ink">Catálogo completo</Eyebrow>
             <h1>Todo lo que<br />fraccionamos.</h1>
           </div>
           <p>{D.products.length} productos en cápsulas y polvo, envasados en nuestra propia planta en Mendoza. Sin intermediarios.</p>
@@ -1086,7 +1074,7 @@ function Product({ product, onAdd, onOpen }) {
           </button>
           <div className="vc-pdp2__plate"
             style={{
-              transform: `translateY(${-y * 0.05}px) rotate(-3deg)`,
+              transform: `translateY(${-y * 0.14}px) rotate(${-3 + y * 0.01}deg)`,
               background: p.photo ? '#F2F1EF' : 'transparent',
               boxShadow: p.photo ? undefined : 'none',
             }}>
@@ -1105,11 +1093,7 @@ function Product({ product, onAdd, onOpen }) {
         </div>
 
         <div className="vc-pdp2__panel">
-          <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.24em',
-            textTransform: 'uppercase', color: 'var(--ink-500)' }}>
-            Línea {linea.n} — {linea.title}
-          </div>
-          <h1 style={{ marginTop: 18 }}>{p.name}</h1>
+          <h1>{p.name}</h1>
           <div className="vc-pdp__sub" style={{ marginTop: 14 }}>{p.sub}</div>
           <Rating r={p.rating} n={p.reviews} />
           <p className="vc-pdp__blurb">{p.blurb}</p>
@@ -1152,7 +1136,6 @@ function Product({ product, onAdd, onOpen }) {
           <section className="vc-section">
             <div className="vc-section__head">
               <div>
-                <Eyebrow tone="ink">También te puede interesar</Eyebrow>
                 <h2>Productos relacionados</h2>
               </div>
             </div>
@@ -1241,8 +1224,6 @@ function AboutPage() {
         <div style={{ position: 'absolute', inset: 0, background: 'var(--vignette)', pointerEvents: 'none' }} />
         <div className="vc-wrap" style={{ position: 'relative', zIndex: 1 }}>
           <div className="vc-about-hero" style={{ paddingTop: 80, paddingBottom: 88, maxWidth: 640, color: '#EAF0EC' }}>
-            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase',
-              color: 'rgba(255,255,255,.5)', marginBottom: 20 }}>Quiénes somos</div>
             <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(40px,5vw,70px)',
               letterSpacing: '-.03em', lineHeight: .97, margin: '0 0 26px' }}>
               Nutrición funcional<br />
@@ -1261,8 +1242,6 @@ function AboutPage() {
         <section className="vc-section">
           <div className="vc-about-story">
             <div>
-              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase',
-                color: 'var(--ink-400)', marginBottom: 16 }}>Nuestra historia</div>
               <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 38,
                 letterSpacing: '-.025em', lineHeight: 1.05, margin: '0 0 22px' }}>
                 Empezamos como <em style={{ fontStyle: 'italic', fontWeight: 600, color: 'var(--green-700)' }}>clientes frustrados</em>
@@ -1292,8 +1271,6 @@ function AboutPage() {
         <div className="vc-wrap">
           <section className="vc-section">
             <div style={{ textAlign: 'center', marginBottom: 44 }}>
-              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase',
-                color: 'var(--ink-400)', marginBottom: 14 }}>Lo que nos mueve</div>
               <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 38,
                 letterSpacing: '-.025em', margin: '0 auto', maxWidth: 520, lineHeight: 1.1 }}>
                 Tres principios que no negociamos
@@ -1321,8 +1298,6 @@ function AboutPage() {
       <div className="vc-band-outer">
         <div className="vc-wrap vc-band">
           <div>
-            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase',
-              color: 'rgba(255,255,255,.45)', marginBottom: 14 }}>Nuestra misión</div>
             <h2>Democratizar el bienestar<br />y el <em>rendimiento.</em></h2>
           </div>
           <div>
@@ -1343,8 +1318,6 @@ function AboutPage() {
         <div className="vc-about-cta" style={{ display: 'flex', alignItems: 'center', gap: 32, background: 'var(--surface-card)',
           border: '1px solid var(--paper-200)', borderRadius: 'var(--radius-xl)', padding: '32px 40px' }}>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase',
-              color: 'var(--ink-400)', marginBottom: 10 }}>Contacto</div>
             <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 26,
               letterSpacing: '-.02em', margin: '0 0 10px' }}>¿Tenés preguntas?</h3>
             <p style={{ fontSize: 15, color: 'var(--ink-600)', margin: 0 }}>

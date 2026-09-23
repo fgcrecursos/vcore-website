@@ -78,31 +78,37 @@ main:has(> .vc-band-outer:last-child) + .vc-ft { margin-top: 0; }
   font-size: 12.5px; color: rgba(255,255,255,.5); }
 .vc-ft__news { display: flex; gap: 8px; margin-top: 16px; }
 
-/* ───────── Botón cruzado a Somos Setas (colores de esa marca) ─────────
-   Naranja #ef7911 / #c75e08 — tokens de marca de somossetas.com.ar      */
-.vc-ft .vc-xb { display: flex; align-items: center; gap: 20px; margin: 44px 0 0; padding: 18px 22px;
-  border-radius: var(--radius-lg); background: #ef7911; color: #fff; text-decoration: none;
-  border: 1px solid rgba(255,255,255,.16); box-shadow: 0 12px 32px rgba(239,121,17,.24);
-  transition: background var(--duration-fast, .18s) var(--ease-standard, ease),
-              transform var(--duration-fast, .18s) var(--ease-standard, ease),
-              box-shadow var(--duration-fast, .18s) var(--ease-standard, ease); }
-.vc-ft .vc-xb:hover { background: #c75e08; transform: translateY(-2px); box-shadow: 0 18px 40px rgba(239,121,17,.32); text-decoration: none; color: #fff; }
-.vc-xb__logo { height: 34px; width: auto; flex: none; display: block; }
-.vc-xb__bar { width: 1px; align-self: stretch; background: rgba(255,255,255,.3); flex: none; }
-.vc-xb__txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.vc-xb__eyebrow { font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.8); }
-.vc-xb__cta { font-family: var(--font-display); font-weight: 800; font-size: 19px; letter-spacing: -.01em; line-height: 1.2; }
-.vc-xb__arrow { margin-left: auto; width: 38px; height: 38px; flex: none; border-radius: 50%;
-  background: rgba(255,255,255,.18); display: flex; align-items: center; justify-content: center;
-  transition: background .18s ease, transform .18s ease; }
-.vc-ft .vc-xb:hover .vc-xb__arrow { background: rgba(255,255,255,.3); transform: translateX(3px); }
-@media (max-width: 560px) {
-  .vc-ft .vc-xb { flex-wrap: wrap; gap: 14px; padding: 16px 18px; margin-top: 32px; }
-  .vc-xb__bar { display: none; }
-  .vc-xb__logo { height: 28px; }
-  .vc-xb__txt { flex: 1 1 100%; order: 3; }
-  .vc-xb__cta { font-size: 17px; }
-}
+/* ───────── Accesos a Somos Setas (naranja #ef7911 de esa marca) ─────────
+   Una píldora chica en el header y una tarjeta compacta en el footer. */
+.vc-ss-pill { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 13px 0 4px;
+  margin-right: 4px; border-radius: var(--radius-pill); text-decoration: none; white-space: nowrap;
+  border: 1.5px solid rgba(239,121,17,.5); background: rgba(239,121,17,.08); color: #B8560A;
+  font-family: var(--font-display); font-weight: 700; font-size: 13.5px; letter-spacing: -.01em;
+  transition: background .18s ease, border-color .18s ease; }
+.vc-ss-pill:hover { background: rgba(239,121,17,.16); border-color: #ef7911; }
+[data-theme="dark"] .vc-ss-pill { color: #F8C9A0; background: rgba(239,121,17,.1); }
+.vc-ss-pill__ic { width: 30px; height: 30px; border-radius: 50%; background: #fff; flex: none;
+  display: flex; align-items: center; justify-content: center; }
+.vc-ss-pill__ic img { width: 20px; height: 20px; object-fit: contain; }
+.vc-ss-pill svg, .vc-ss-card svg { flex: none; }
+
+.vc-ss-card { display: flex; align-items: center; gap: 14px; margin-top: 22px; padding: 14px 16px;
+  border-radius: 16px; border: 1px solid rgba(239,121,17,.35); background: rgba(239,121,17,.07);
+  text-decoration: none; max-width: 340px; box-sizing: border-box;
+  transition: background .18s ease, border-color .18s ease, transform .18s ease; }
+.vc-ft a.vc-ss-card { display: flex; padding: 14px 16px; }
+.vc-ss-card:hover { background: rgba(239,121,17,.14); border-color: rgba(239,121,17,.6); transform: translateY(-2px); }
+.vc-ss-card__ic { width: 44px; height: 44px; border-radius: 12px; background: #fff; flex: none;
+  display: flex; align-items: center; justify-content: center; }
+.vc-ss-card__ic img { width: 30px; height: 30px; object-fit: contain; }
+.vc-ss-card__t { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.vc-ss-card__t b { font-family: var(--font-display); font-weight: 700; font-size: 15.5px; color: #fff; }
+.vc-ss-card__t span { font-size: 13px; color: #F8C9A0; }
+.vc-ss-card > svg { margin-left: auto; color: #F8C9A0; }
+.vc-hd__menu-link--ss { color: #B8560A; text-decoration: none; }
+[data-theme="dark"] .vc-hd__menu-link--ss { color: #F8C9A0; }
+.vc-hd__menu-link--ss img { width: 20px; height: 20px; object-fit: contain; background: #fff; border-radius: 50%; padding: 2px; }
+@media (max-width: 1080px) { .vc-ss-pill__txt { display: none; } .vc-ss-pill { padding-right: 10px; } }
 
 /* hamburger + mobile menu (hidden on desktop) */
 .vc-hd__burger { display: none; }
@@ -119,12 +125,12 @@ main:has(> .vc-band-outer:last-child) + .vc-ft { margin-top: 0; }
 @media (max-width: 860px) {
   .vc-wrap { padding: 0 18px; }
   .vc-hd__row { height: 60px; gap: 12px; }
-  .vc-hd__nav--desk, .vc-hd__theme--desk, .vc-hd__admin--desk { display: none; }
+  .vc-hd__nav--desk, .vc-hd__theme--desk, .vc-hd__admin--desk, .vc-ss-pill { display: none; }
   .vc-hd__act { gap: 2px; }
   .vc-hd__burger { display: inline-flex; }
   .vc-hd__menu { display: block; overflow: hidden; max-height: 0; transition: max-height .28s ease;
     background: var(--paper-050); border-bottom: 1px solid var(--paper-200); }
-  .vc-hd__menu.open { max-height: 360px; }
+  .vc-hd__menu.open { max-height: 460px; }
   .vc-hd__menu .vc-wrap, .vc-hd__menu-inner { padding-left: 18px; padding-right: 18px; }
 
   .vc-ft { margin-top: 60px; }
@@ -164,6 +170,7 @@ function Header({ page, onNav, cartCount, onOpenCart, theme, onToggleTheme, onSe
         </nav>
         <div className="vc-hd__spacer" />
         <div className="vc-hd__act">
+          <SomosSetasPill />
           <button className="vc-hd__theme vc-hd__theme--desk" aria-label={dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'} title={dark ? 'Modo claro' : 'Modo oscuro'} onClick={onToggleTheme}>
             {dark ? <I.Sun size={17} /> : <I.Moon size={17} />}
             <span>{dark ? 'Claro' : 'Oscuro'}</span>
@@ -198,6 +205,10 @@ function Header({ page, onNav, cartCount, onOpenCart, theme, onToggleTheme, onSe
           <button className="vc-hd__menu-link" onClick={() => { onToggleTheme(); }}>
             {dark ? <I.Sun size={18} /> : <I.Moon size={18} />} {dark ? 'Modo claro' : 'Modo oscuro'}
           </button>
+          <div className="vc-hd__menu-sep" />
+          <a className="vc-hd__menu-link vc-hd__menu-link--ss" href={SS_URL} target="_blank" rel="noopener">
+            <img src={ssIso()} alt="" /> Somos Setas — hongos adaptógenos <ArrowOut />
+          </a>
         </div>
       </div>
     </header>
@@ -226,23 +237,33 @@ function ProductImage({ product, className = '' }) {
   );
 }
 
-/* Botón cruzado: desde Vcore hacia Somos Setas, con los colores de esa marca. */
-function CrossBrandSomosSetas() {
-  const base = (window.__VCORE_ASSET_BASE__ || '/assets/');
+const SS_URL = 'https://somossetas.com.ar';
+const ssIso = () => (window.__VCORE_ASSET_BASE__ || '/assets/') + 'somos-setas-isotipo.png';
+const ArrowOut = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"
+    strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" /></svg>
+);
+
+/* Acceso a Somos Setas en el header: píldora chica con el hongo de esa marca. */
+function SomosSetasPill() {
   return (
-    <a className="vc-xb" href="https://somossetas.com.ar" target="_blank" rel="noopener"
-       aria-label="Ir a Somos Setas — Comprá hongos adaptógenos">
-      <img className="vc-xb__logo" src={base + 'somos-setas-wordmark-white.png'} alt="Somos Setas" />
-      <span className="vc-xb__bar" />
-      <span className="vc-xb__txt">
-        <span className="vc-xb__eyebrow">También te puede interesar</span>
-        <span className="vc-xb__cta">Comprá hongos adaptógenos</span>
-      </span>
-      <span className="vc-xb__arrow">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M5 12h14M13 6l6 6-6 6" />
-        </svg>
-      </span>
+    <a className="vc-ss-pill" href={SS_URL} target="_blank" rel="noopener"
+      aria-label="Somos Setas: hongos adaptógenos (abre en otra pestaña)" title="Somos Setas — hongos adaptógenos">
+      <span className="vc-ss-pill__ic"><img src={ssIso()} alt="" /></span>
+      <span className="vc-ss-pill__txt">Somos Setas</span>
+      <ArrowOut />
+    </a>
+  );
+}
+
+/* Acceso a Somos Setas en el footer: tarjeta compacta en la última columna. */
+function SomosSetasCard() {
+  return (
+    <a className="vc-ss-card" href={SS_URL} target="_blank" rel="noopener"
+      aria-label="Somos Setas: hongos adaptógenos (abre en otra pestaña)">
+      <span className="vc-ss-card__ic"><img src={ssIso()} alt="" /></span>
+      <span className="vc-ss-card__t"><b>Somos Setas</b><span>Hongos adaptógenos</span></span>
+      <ArrowOut size={16} />
     </a>
   );
 }
@@ -253,7 +274,6 @@ function Footer() {
   return (
     <footer className="vc-ft">
       <div className="vc-wrap">
-        <CrossBrandSomosSetas />
         <div className="vc-ft__grid">
           <div>
             <Logo variant="wordmark" tone="paper" height={30} />
@@ -282,6 +302,7 @@ function Footer() {
               <Input placeholder="Tu email" size="sm" style={{ background: 'rgba(255,255,255,.06)', borderColor: 'rgba(255,255,255,.15)', color: '#fff' }} />
               <Button size="sm">OK</Button>
             </div>
+            <SomosSetasCard />
           </div>
         </div>
         <div className="vc-ft__bottom">

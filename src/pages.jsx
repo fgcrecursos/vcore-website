@@ -237,11 +237,15 @@ const PAGE_CSS = `
   overflow: hidden; border-bottom: 6px solid var(--green-500);
   transition: box-shadow .24s ease; }
 .vc-pcard:hover .vc-pcard__plate { box-shadow: 0 26px 52px rgba(19,22,21,.18); }
-.vc-pcard__plate--green { border-bottom-color: var(--green-500); }
-.vc-pcard__plate--navy  { border-bottom-color: var(--info-500); }
-.vc-pcard__plate--coral { border-bottom-color: var(--coral-500); }
-.vc-pcard__plate--sage  { border-bottom-color: var(--sage-500); }
-.vc-pcard__plate--paper { border-bottom-color: var(--paper-400); }
+/* colores de línea: los mismos tonos que los campos de la sección Líneas */
+.vc-pcard__plate--rendimiento { --linea: #37A769; border-bottom-color: #37A769; }
+.vc-pcard__plate--salud       { --linea: #2A6A9E; border-bottom-color: #2A6A9E; }
+.vc-pcard__plate--bienestar   { --linea: #C98B4B; border-bottom-color: #C98B4B; }
+.vc-pcard__plate--rendimiento .vc-pimg__photo { background: #EAF4EE !important; }
+.vc-pcard__plate--salud .vc-pimg__photo       { background: #E9F0F6 !important; }
+.vc-pcard__plate--bienestar .vc-pimg__photo   { background: #F6EFE6 !important; }
+.vc-pcard__dot { position: absolute; top: 14px; right: 14px; width: 12px; height: 12px; border-radius: 50%;
+  background: var(--linea); box-shadow: 0 0 0 3px rgba(255,255,255,.75); z-index: 3; }
 .vc-pcard__body { padding: 16px 2px 0; }
 .vc-pc__name { font-family: var(--font-display); font-weight: 800; font-size: 20px;
   letter-spacing: -.01em; margin: 0 0 2px; line-height: 1.15; }
@@ -256,7 +260,7 @@ const PAGE_CSS = `
 
 /* ---- Mission band: full-bleed, tipografía grande al estilo Instagram ---- */
 .vc-band-outer { position: relative; background: var(--gradient-ink-bloom); color: #EAF0EC;
-  overflow: hidden; isolation: isolate; margin: 96px 0; }
+  overflow: hidden; isolation: isolate; margin: 0; }
 .vc-band-outer::after { content: ""; position: absolute; inset: 0; background: var(--vignette);
   pointer-events: none; z-index: 0; }
 .vc-band { position: relative; z-index: 1; padding: 88px 0;
@@ -298,7 +302,13 @@ const PAGE_CSS = `
   padding: 20px 24px 18px; border: 0; border-top: 2px solid rgba(255,255,255,.22);
   color: rgba(255,255,255,.58); font-family: var(--font-display);
   transition: color .25s ease, border-color .25s ease; }
-.vc-lineas__rail button.on { border-top-color: #fff; color: #fff; }
+.vc-lineas__rail button { position: relative; }
+.vc-lineas__rail button.on { border-top-color: rgba(255,255,255,.22); color: #fff; }
+.vc-lineas__prog { position: absolute; left: 0; top: -2px; height: 2px; width: 100%; background: #fff;
+  transform-origin: left; animation: vcLineasProg var(--vc-lineas-ms, 6000ms) linear forwards; }
+.vc-lineas.is-paused .vc-lineas__prog { animation-play-state: paused; }
+@keyframes vcLineasProg { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) { .vc-lineas__prog { animation: none; } }
 .vc-lineas__rail-n { font-weight: 600; font-size: 13px; letter-spacing: .12em; }
 .vc-lineas__rail-t { margin-top: 7px; font-weight: 600; font-size: 19px; letter-spacing: -.01em; }
 
@@ -359,6 +369,15 @@ const PAGE_CSS = `
   .vc-shop-head p { width: auto; }
 }
 .vc-cats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
+.vc-lchip { display: inline-flex; align-items: center; gap: 9px; height: 40px; padding: 0 18px;
+  border-radius: var(--radius-pill); border: 1.5px solid var(--border-default); background: var(--surface-card);
+  color: var(--ink-800); font-family: var(--font-body); font-size: 14px; font-weight: 700; cursor: pointer;
+  transition: background .2s ease, border-color .2s ease, color .2s ease; }
+.vc-lchip i { width: 10px; height: 10px; border-radius: 50%; background: var(--linea, var(--ink-400)); flex: none; }
+.vc-lchip:hover { border-color: var(--linea, var(--ink-500)); }
+.vc-lchip.on { background: var(--linea, var(--ink-900)); border-color: var(--linea, var(--ink-900)); color: #fff; }
+.vc-lchip.on i { background: #fff; }
+[data-theme="dark"] .vc-lchip.on:not([style]) { color: var(--paper-050); }
 .vc-shop-search { position: relative; max-width: 320px; margin-bottom: 20px; }
 .vc-shop-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
   color: var(--ink-400); pointer-events: none; }
@@ -504,7 +523,6 @@ const PAGE_CSS = `
   .vc-grid, .vc-grid--3, .vc-grid--2 { grid-template-columns: repeat(2, 1fr); gap: 12px; }
 
   /* mission band */
-  .vc-band-outer { margin: 56px 0; }
 
   /* PDP */
   .vc-pdp { grid-template-columns: 1fr; gap: 26px; padding: 24px 0; }
@@ -620,30 +638,40 @@ function Rating({ r, n }) {
 /* Las tres líneas de producto. El catálogo oficial declara las dos primeras;
    la tercera agrupa lo que ya está en la tienda y no figura en el PDF. */
 const LINEAS = [
-  { id: 'rendimiento', n: '01', title: 'Rendimiento y Fuerza', cats: ['Rendimiento'],
+  { id: 'rendimiento', n: '01', title: 'Rendimiento y Fuerza', cats: ['Rendimiento'], tone: 'green',
     field: 'radial-gradient(120% 95% at 16% -15%, #3AA86C 0%, #1E7247 24%, #125138 48%, #0B3327 72%, #06201A 100%)',
     blurb: 'Creatina monohidrato micronizada, de máxima pureza. Solubilidad superior y absorción ultra rápida, sin molestias digestivas.' },
-  { id: 'salud', n: '02', title: 'Salud y Recuperación', cats: ['Recuperación', 'Vitaminas'],
+  { id: 'salud', n: '02', title: 'Salud y Recuperación', cats: ['Recuperación', 'Vitaminas'], tone: 'navy',
     field: 'radial-gradient(115% 95% at 78% -10%, #4A93C9 0%, #2A6A9E 25%, #1A4E78 48%, #123754 72%, #0A2033 100%)',
     blurb: 'Citrato, glicinato, malato y triple magnesio. Sales orgánicas puras en cápsulas y polvo, sin excipientes ni azúcares agregados.' },
-  { id: 'bienestar', n: '03', title: 'Bienestar diario', cats: ['Bienestar', 'Colágeno', 'Articulaciones'],
+  { id: 'bienestar', n: '03', title: 'Bienestar diario', cats: ['Bienestar', 'Colágeno', 'Articulaciones'], tone: 'amber',
     field: 'radial-gradient(110% 90% at 30% 110%, #C98B4B 0%, #8A5A2E 24%, #4A3520 50%, #241B12 78%, #12100C 100%)',
     blurb: 'Colágeno, cúrcuma, espirulina y vitaminas para sostener la rutina de todos los días. Lo básico, bien hecho.' },
 ];
+
+const LINEA_COLOR = { rendimiento: '#37A769', salud: '#2A6A9E', bienestar: '#B87A3C' };
 
 function lineaOf(category) {
   return LINEAS.find(l => l.cats.indexOf(category) >= 0) || LINEAS[2];
 }
 
+/* El color de cada producto sale de su línea (Rendimiento verde, Salud azul,
+   Bienestar ámbar), no del `tone` guardado en la base, así la tienda repite el
+   código de color de la sección de Líneas. */
+function toneOf(p) {
+  return lineaOf(p.category).tone;
+}
+
 function ProductCard({ p, onOpen, onAdd }) {
-  const tone = p.tone || 'green';
+  const linea = lineaOf(p.category);
   return (
     <div className="vc-pcard" onClick={() => onOpen(p)}>
-      <div className={`vc-pcard__plate vc-pcard__plate--${tone}`}>
-        <ProductImage product={p} />
+      <div className={`vc-pcard__plate vc-pcard__plate--${linea.id}`}>
+        <ProductImage product={{ ...p, tone: linea.tone }} />
+        <span className="vc-pcard__dot" title={linea.title} aria-label={`Línea ${linea.title}`} />
         {p.badge && (
           <div style={{ position: 'absolute', top: 12, left: 12 }}>
-            <Badge tone={tone} variant="solid">{p.badge}</Badge>
+            <Badge tone={linea.tone === 'amber' ? 'coral' : linea.tone} variant="solid">{p.badge}</Badge>
           </div>
         )}
       </div>
@@ -678,8 +706,6 @@ const SLIDES = [
     body: 'Creatina, magnesios y vitaminas fraccionados en nuestro propio laboratorio. Para quien camina, entrena o simplemente quiere llegar entero al final del día.',
     field: LINEAS[0].field,
     photo: '/assets/lifestyle-estiramiento-manana.jpg',
-    pack: '/assets/vcore-pack-creatina-monohidrato.jpg',
-    packAlt: 'Creatina Monohidrato',
     ctas: [
       { label: 'Ver el catálogo', nav: 'shop', primary: true },
       { label: 'Conocé el laboratorio', nav: 'nosotros', primary: false },
@@ -799,9 +825,19 @@ function HeroBanner({ onNav }) {
 }
 
 /* Sección de líneas: campo de color conmutable, packs en parallax. */
+const LINEAS_MS = 6000;
+
 function LineasSection({ onNav }) {
-  const [active, setActive] = useState(1);
+  const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(false);
   const ref = useRef(null);
+
+  /* Pasa sola de línea; se frena mientras el mouse o el foco están encima. */
+  useEffect(() => {
+    if (paused || prefersReducedMotion()) return;
+    const t = setTimeout(() => setActive(a => (a + 1) % LINEAS.length), LINEAS_MS);
+    return () => clearTimeout(t);
+  }, [active, paused]);
   const d = useSectionScroll(ref);
   const linea = LINEAS[active];
 
@@ -820,7 +856,10 @@ function LineasSection({ onNav }) {
   ];
 
   return (
-    <section className="vc-lineas" ref={ref}>
+    <section className={`vc-lineas${paused ? ' is-paused' : ''}`} ref={ref}
+      style={{ '--vc-lineas-ms': `${LINEAS_MS}ms` }}
+      onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
       {LINEAS.map((l, i) => (
         <div key={l.id} className={`vc-lineas__field${i === active ? ' on' : ''}`}
           style={{ background: l.field }} />
@@ -832,7 +871,7 @@ function LineasSection({ onNav }) {
           <div className="vc-reveal">
             <h2>{linea.title}</h2>
             <p>{linea.blurb}</p>
-            <button className="vc-lineas__cta" onClick={() => onNav('shop')}>
+            <button className="vc-lineas__cta" onClick={() => { window.__vcShopLinea = linea.id; onNav('shop'); }}>
               Ver la línea
               <I.ArrowRight size={17} />
             </button>
@@ -856,6 +895,7 @@ function LineasSection({ onNav }) {
         <div className="vc-lineas__rail">
           {LINEAS.map((l, i) => (
             <button key={l.id} className={i === active ? 'on' : ''} onClick={() => setActive(i)}>
+              {i === active && <span className="vc-lineas__prog" key={active} />}
               <div className="vc-lineas__rail-n">{l.n}</div>
               <div className="vc-lineas__rail-t">{l.title}</div>
             </button>
@@ -1172,11 +1212,15 @@ function Home({ onNav, onAdd, onOpen }) {
 
 function Shop({ onAdd, onOpen }) {
   injectPages();
-  const [cat, setCat] = useState('Todo');
+  /* "Ver la línea" en la home deja elegida la línea antes de navegar. */
+  const [cat, setCat] = useState(() => {
+    const pre = window.__vcShopLinea; window.__vcShopLinea = null;
+    return pre || 'Todo';
+  });
   const [q, setQ] = useState('');
 
   const filtered = D.products.filter(p => {
-    const matchCat = cat === 'Todo' || p.category === cat;
+    const matchCat = cat === 'Todo' || lineaOf(p.category).id === cat;
     const matchQ = !q || [p.name, p.sub, p.category || ''].some(t =>
       t.toLowerCase().includes(q.toLowerCase())
     );
@@ -1204,8 +1248,12 @@ function Shop({ onAdd, onOpen }) {
           />
         </div>
         <div className="vc-cats">
-          {D.categories.map(c => (
-            <Tag key={c} active={cat === c} onClick={() => setCat(c)}>{c}</Tag>
+          <button className={`vc-lchip${cat === 'Todo' ? ' on' : ''}`} onClick={() => setCat('Todo')}>Todo</button>
+          {LINEAS.map(l => (
+            <button key={l.id} className={`vc-lchip${cat === l.id ? ' on' : ''}`}
+              style={{ '--linea': LINEA_COLOR[l.id] }} onClick={() => setCat(l.id)}>
+              <i />{l.title}
+            </button>
           ))}
         </div>
       </section>
@@ -1274,7 +1322,7 @@ function Product({ product, onAdd, onOpen }) {
             }}>
             {p.photo
               ? <img src={p.photo} alt={p.name} />
-              : <ProductImage product={p} />}
+              : <ProductImage product={{ ...p, tone: toneOf(p) }} />}
           </div>
           <div className="vc-pdp2__circles">
             {circles.map((c, i) => (

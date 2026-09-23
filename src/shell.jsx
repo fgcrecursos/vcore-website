@@ -56,6 +56,7 @@ const SITE_CSS = `
 .vc-pimg--navy  { background: var(--gradient-navy-bloom); }
 .vc-pimg--sage  { background: var(--gradient-sage-bloom); }
 .vc-pimg--coral { background: var(--gradient-coral-bloom); }
+.vc-pimg--amber { background: radial-gradient(120% 100% at 30% 0%, #D9A26A 0%, #B87A3C 38%, #8A5A2E 72%, #5E3D1F 100%); }
 [data-theme="dark"] .vc-pimg { box-shadow: 0 0 0 1px rgba(255,255,255,.06), 0 18px 50px rgba(0,0,0,.5); }
 .vc-pimg__mark { position: relative; z-index: 1; width: 46%; max-width: 150px; height: auto;
   filter: drop-shadow(0 8px 22px rgba(0,0,0,.20)); }
@@ -64,7 +65,8 @@ const SITE_CSS = `
 
 [data-theme="dark"] .vc-card { box-shadow: 0 1px 0 rgba(255,255,255,.04), 0 14px 34px rgba(0,0,0,.45); }
 
-.vc-ft { position: relative; background: var(--gradient-ink-bloom); color: #C9D2CD; margin-top: 96px; isolation: isolate; }
+.vc-ft { position: relative; display: flow-root; background: var(--gradient-ink-bloom); color: #C9D2CD; margin-top: 96px; isolation: isolate; }
+main:has(> .vc-band-outer:last-child) + .vc-ft { margin-top: 0; }
 .vc-ft::before { content: ""; position: absolute; inset: 0; background: var(--vignette-soft); pointer-events: none; z-index: 0; }
 .vc-ft .vc-wrap { position: relative; z-index: 1; }
 .vc-ft__grid { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1.4fr; gap: 40px; padding: 64px 0 40px; }
@@ -214,6 +216,7 @@ function ProductImage({ product, className = '' }) {
     sage:  'vcore-isotipo-green.png',
     paper: 'vcore-isotipo-green.png',
     coral: 'vcore-isotipo-white.png',
+    amber: 'vcore-isotipo-white.png',
   };
   const mark = markByTone[product.tone] || markByTone.green;
   return (

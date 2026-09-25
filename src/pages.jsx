@@ -988,7 +988,7 @@ function VolumeTiers() {
               )}
               <div className="vc-tier__perk">
                 <I.Truck size={14} />
-                {t.min >= 50000 ? 'Envío gratis a sucursal' : 'Envío desde $5.000'}
+                {t.min >= D.envio.gratisSucursalDesde ? 'Envío gratis a sucursal' : `Envío gratis a sucursal desde ${D.fmt(D.envio.gratisSucursalDesde)}`}
               </div>
               {i === D.tiers.length - 1 && (
                 <div className="vc-tier__perk"><I.Star size={14} />Precio preferencial sostenido</div>
@@ -1368,7 +1368,7 @@ function Product({ product, onAdd, onOpen }) {
           </div>
 
           <div className="vc-pdp__stats">
-            <span className="vc-pdp__stat"><I.Truck size={18} /> Envío gratis desde $150.000</span>
+            <span className="vc-pdp__stat"><I.Truck size={18} /> Envío gratis desde {D.fmt(D.envio.gratisSucursalDesde)}</span>
             <span className="vc-pdp__stat"><I.Shield size={18} /> RNE 13010908</span>
             <span className="vc-pdp__stat"><I.Leaf size={18} /> Industria argentina</span>
           </div>

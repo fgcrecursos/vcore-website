@@ -870,6 +870,13 @@ function useAdminStore({ auth, userEmail }) {
     setConfig({ ...CONFIG_DEFAULT, ...cfg });
   }, []);
 
+  const saveEnvio = useCallback(async (envio) => {
+    if (backendOn()) await BE().saveEnvio(envio);
+    else writeLS('vc-config', { ...readLS('vc-config', {}), envio });
+    await D.loadFromBackend();
+    setConfig(c => ({ ...c, envio }));
+  }, []);
+
   return {
     orders, products, banners, codes, config, secure,
     me, meLoading, users, userEmail, can,
@@ -877,7 +884,7 @@ function useAdminStore({ auth, userEmail }) {
     addOrder, patchOrder, updateOrderStatus, deleteOrder,
     updateOrderRemito, updateOrderPayments, updateOrderCreditNotes, updateCustomerInfo,
     createUser, updateUser, deleteUser,
-    saveProduct, deleteProduct, saveBanner, deleteBanner, saveCode, deleteCode, saveConfig,
+    saveProduct, deleteProduct, saveBanner, deleteBanner, saveCode, deleteCode, saveConfig, saveEnvio,
   };
 }
 
@@ -1994,6 +2001,163 @@ function AdminCodes({ store }) {
   );
 }
 
+/* ═══════════════════ Descuentos = códigos + envíos ═══════ */
+function AdminDescuentos({ store }) {
+  const [vista, setVista] = useState('codigos');
+  const tab = (id, label) => (
+    <button className={`adm-btn ${vista === id ? 'adm-btn--primary' : 'adm-btn--outline'}`} onClick={() => setVista(id)}>{label}</button>
+  );
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 22, flexWrap: 'wrap' }}>
+        {tab('codigos', 'Códigos de descuento')}
+        {tab('envios', 'Envíos')}
+      </div>
+      {vista === 'codigos' ? <AdminCodes store={store} /> : <AdminEnvios store={store} />}
+    </div>
+  );
+}
+
+/* Montos de envío gratis y costos de envío de la tienda (config.envio).
+   La tienda y la remitera los leen con D.envio / D.shipping. */
+function AdminEnvios({ store }) {
+  const puedeEditar = store.can('descuentos.editar');
+  const actual = D.envioDe(store.config);
+  const aForm = (e) => ({
+    gratisSucursalDesde:  String(e.gratisSucursalDesde),
+    gratisDomicilioDesde: String(e.gratisDomicilioDesde),
+    costoSucursal:        String(e.costoSucursal),
+    zonas: e.zonas.map(z => ({ ...z, costo: String(z.costo) })),
+  });
+  const [form, setForm] = useState(() => aForm(actual));
+  const [estado, setEstado] = useState(''); // '' | 'guardado' | mensaje de error
+  const [busy, setBusy] = useState(false);
+  const cambiado = JSON.stringify(form) !== JSON.stringify(aForm(actual));
+
+  const update = (k, v) => { setForm(f => ({ ...f, [k]: v })); setEstado(''); };
+  const updateZona = (i, k, v) => { setForm(f => ({ ...f, zonas: f.zonas.map((z, j) => j === i ? { ...z, [k]: v } : z) })); setEstado(''); };
+  const quitarZona = (i) => {
+    if (!confirm(`¿Quitar la zona "${form.zonas[i].label || 'sin nombre'}"?`)) return;
+    setForm(f => ({ ...f, zonas: f.zonas.filter((_, j) => j !== i) })); setEstado('');
+  };
+  const agregarZona = () => {
+    // La nueva va antes de "Resto de la provincia / país", que queda siempre al final.
+    setForm(f => {
+      const zonas = [...f.zonas];
+      const iOtra = zonas.findIndex(z => z.id === 'otra');
+      zonas.splice(iOtra >= 0 ? iOtra : zonas.length, 0, { id: 'z-' + Date.now().toString(36), label: '', costo: '' });
+      return { ...f, zonas };
+    });
+    setEstado('');
+  };
+
+  const monto = (v) => (String(v).trim() === '' ? null : Number(String(v).replace(/[^\d]/g, '')));
+  async function guardar() {
+    const gs = monto(form.gratisSucursalDesde), gd = monto(form.gratisDomicilioDesde), cs = monto(form.costoSucursal);
+    if (gs == null || gd == null || cs == null) { setEstado('Completá los tres montos generales.'); return; }
+    const zonas = [];
+    for (const z of form.zonas) {
+      const label = (z.label || '').trim(), costo = monto(z.costo);
+      if (!label) { setEstado('Hay una zona sin nombre.'); return; }
+      if (costo == null) { setEstado(`Falta el costo de "${label}".`); return; }
+      zonas.push({ id: z.id, label, costo });
+    }
+    const envio = { gratisSucursalDesde: gs, gratisDomicilioDesde: gd, costoSucursal: cs, zonas };
+    setBusy(true);
+    try {
+      await store.saveEnvio(envio);
+      setForm(aForm(envio));
+      setEstado('guardado');
+    } catch (e) {
+      setEstado('No se pudo guardar: ' + (e.message || e));
+    } finally { setBusy(false); }
+  }
+
+  const inputMonto = (valor, onChange) => (
+    <div style={{ position: 'relative' }}>
+      <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-400)', fontSize: 14, pointerEvents: 'none' }}>$</span>
+      <input type="text" inputMode="numeric" disabled={!puedeEditar} style={{ paddingLeft: 26, width: '100%' }}
+        value={valor === '' ? '' : Number(valor).toLocaleString('es-AR')}
+        onChange={e => onChange(e.target.value.replace(/[^\d]/g, ''))} />
+    </div>
+  );
+
+  return (
+    <div>
+      <div className="adm-head">
+        <div className="adm-eye">Gestión</div>
+        <h1>Envíos</h1>
+        <div className="adm-head__sub">Desde qué monto el envío es gratis y cuánto cuesta cada tipo de envío. Los cambios se ven en la tienda apenas se guardan.</div>
+      </div>
+
+      <div className="adm-panel">
+        <div className="adm-panel__hd"><h3>Envío gratis</h3></div>
+        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="adm-field-row">
+            <div className="adm-field"><label>Sucursal Andreani gratis desde</label>
+              {inputMonto(form.gratisSucursalDesde, v => update('gratisSucursalDesde', v))}
+            </div>
+            <div className="adm-field"><label>A domicilio gratis desde</label>
+              {inputMonto(form.gratisDomicilioDesde, v => update('gratisDomicilioDesde', v))}
+            </div>
+          </div>
+          <span className="adm-field__hint">Se compara con el subtotal del carrito, antes de descuentos.</span>
+        </div>
+      </div>
+
+      <div className="adm-panel">
+        <div className="adm-panel__hd"><h3>Costos de envío</h3></div>
+        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div className="adm-field" style={{ maxWidth: 300 }}><label>Sucursal Andreani (todo el país)</label>
+            {inputMonto(form.costoSucursal, v => update('costoSucursal', v))}
+          </div>
+          <div className="adm-field"><label>A domicilio, por zona</label></div>
+        </div>
+        <div className="adm-tblwrap">
+          <table className="adm-tbl adm-tbl--tight">
+            <thead><tr><th>Zona</th><th style={{ width: 170 }}>Costo</th>{puedeEditar && <th style={{ width: 60 }}></th>}</tr></thead>
+            <tbody>
+              {form.zonas.map((z, i) => (
+                <tr key={z.id}>
+                  <td><div className="adm-field">
+                    <input value={z.label} disabled={!puedeEditar} placeholder="Nombre de la zona" onChange={e => updateZona(i, 'label', e.target.value)} />
+                  </div></td>
+                  <td><div className="adm-field">{inputMonto(z.costo, v => updateZona(i, 'costo', v))}</div></td>
+                  {puedeEditar && (
+                    <td>
+                      {z.id === 'otra'
+                        ? <span className="adm-field__hint">Fija</span>
+                        : <button className="adm-btn adm-btn--danger adm-btn--sm" title="Quitar zona" onClick={() => quitarZona(i)}><IcoTrash size={13} /></button>}
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ padding: '14px 24px 22px', display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-start' }}>
+          {puedeEditar && (
+            <button className="adm-btn adm-btn--outline" onClick={agregarZona}><IcoPlus size={14} /> Agregar zona</button>
+          )}
+          <span className="adm-field__hint">
+            “Resto de la provincia / país” no se puede quitar: es la que se usa cuando la clienta no encuentra su zona, y la que precarga el remito para envíos a domicilio.
+          </span>
+        </div>
+      </div>
+
+      {puedeEditar && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <button className="adm-btn adm-btn--primary" onClick={guardar} disabled={!cambiado || busy}>
+            {busy ? 'Guardando…' : estado === 'guardado' && !cambiado ? '✓ Guardado' : 'Guardar cambios'}
+          </button>
+          {cambiado && !busy && <button className="adm-btn adm-btn--ghost" onClick={() => { setForm(aForm(actual)); setEstado(''); }}>Descartar</button>}
+          {estado && estado !== 'guardado' && <span style={{ fontSize: 13, color: '#B71C1C' }}>{estado}</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ═══════════════════ Configuración ═══════════════════════ */
 function AdminConfig({ store }) {
   const [cfg, setCfg] = useState(() => ({ ...CONFIG_DEFAULT, ...store.config }));
@@ -2165,7 +2329,7 @@ function AdminPage({ onExit }) {
   } else if (section === 'dashboard') content = <AdminDashboard store={store} onNav={setSection} />;
   else if (section === 'products')    content = <AdminProducts store={store} />;
   else if (section === 'banners')     content = <AdminBanners store={store} />;
-  else if (section === 'codes')       content = <AdminCodes store={store} />;
+  else if (section === 'codes')       content = <AdminDescuentos store={store} />;
   else if (section === 'config')      content = <AdminConfig store={store} />;
   else if (S[section])                content = React.createElement(S[section], { store, onNav: setSection });
   else content = (

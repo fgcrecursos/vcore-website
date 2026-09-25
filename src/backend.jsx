@@ -145,6 +145,17 @@ const Backend = {
     const { error } = await c.from('config').upsert(row, { onConflict: 'id' });
     if (error) throw error;
   },
+  /* Montos de envío (Descuentos → Envíos). Va aparte de saveConfig para que
+     guardar los datos del negocio nunca pise los envíos, ni al revés. */
+  async saveEnvio(envio) {
+    const c = sb(); if (!c) throw new Error('Backend no configurado');
+    const { error } = await c.from('config').update({ envio }).eq('id', 1);
+    if (error) {
+      if (error.code === 'PGRST204' || error.code === '42703' || /envio/.test(error.message || ''))
+        throw new Error('Falta correr supabase/envio-config-2026-09.sql en Supabase (la columna "envio" todavía no existe).');
+      throw error;
+    }
+  },
 
   /* ── orders ─────────────────────────────────────────── */
   /* Fila de la tabla `orders` a partir de un pedido del dominio.

@@ -18,35 +18,62 @@ window.VcoreData = {
     { id: 'distributor', label: 'Distribuidor', min: 833334,  discount: 0.40, badge: '−40%' },
   ],
 
-  /* Pisos de envio gratis iguales a Somos Setas (FREE_SUCURSAL_FROM/FREE_DOMICILIO_FROM
-     en su store.jsx): se evaluan sobre el subtotal crudo, no sobre el monto post-descuento
-     (ver getShippingCost). */
-  shipping: [
-    { id: 'andreani', label: 'Andreani — Sucursal', base: 7500, freeFrom: 150000 },
-    { id: 'home',     label: 'A domicilio',          base: 8800, freeFrom: 280000 },
-    { id: 'pickup',   label: 'Retiro en local',      base: 0,    freeFrom: 0      },
-  ],
+  /* Envío. Los montos viven en config.envio (columna jsonb de la tabla `config`)
+     y se editan desde el panel: Descuentos → Envíos. ENVIO_DEFAULT es solo el
+     valor de fábrica mientras la config no traiga el dato. Los pisos de envío
+     gratis se evalúan sobre el subtotal crudo, no sobre el monto post-descuento
+     (ver getShippingCost), igual que en Somos Setas. La zona 'otra' no se puede
+     borrar: es a la que cae cualquier zona que ya no exista, y su costo es el
+     default de "A domicilio" en la remitera manual del admin. */
+  ENVIO_DEFAULT: {
+    gratisSucursalDesde:  180000,
+    gratisDomicilioDesde: 280000,
+    costoSucursal:        7500,
+    zonas: [
+      { id: 'mendoza-ciudad',        label: 'Ciudad de Mendoza',                                    costo: 3000 },
+      { id: 'godoy-cruz',            label: 'Godoy Cruz',                                            costo: 3000 },
+      { id: 'las-heras',             label: 'Las Heras (Centro y El Plumerillo)',                    costo: 3500 },
+      { id: 'las-heras-algarrobal',  label: 'Las Heras (Algarrobal, Panquegua, Borbollón)',           costo: 4000 },
+      { id: 'guaymallen',            label: 'Guaymallén (Centro y Villanueva)',                      costo: 3500 },
+      { id: 'guaymallen-corralitos', label: 'Guaymallén (Corralitos, Rodeo de la Cruz, Corralitos)',  costo: 4000 },
+      { id: 'maipu',                 label: 'Maipú',                                                 costo: 3500 },
+      { id: 'lujan',                 label: 'Luján de Cuyo (Centro y Carrodilla)',                   costo: 4000 },
+      { id: 'lujan-chacras',         label: 'Luján de Cuyo (Chacras, Vistalba, Mayor Drummond)',      costo: 4500 },
+      { id: 'perdriel',              label: 'Perdriel',                                               costo: 4500 },
+      { id: 'otra',                  label: 'Resto de la provincia / país',                           costo: 8800 },
+    ],
+  },
 
-  /* Envío a domicilio en zona de Mendoza: varía según localidad (ver zonaEnvio).
-     `base` de 'home' arriba queda como default conservador para la remitera manual
-     del admin, que no conoce la zona hasta que se carga a mano (mismo patrón que
-     REMITO_SHIP_DOMICILIO en Somos Setas). */
-  ZONAS_ENVIO: [
-    { id: 'mendoza-ciudad',        label: 'Ciudad de Mendoza',                                    costo: 3000 },
-    { id: 'godoy-cruz',            label: 'Godoy Cruz',                                            costo: 3000 },
-    { id: 'las-heras',             label: 'Las Heras (Centro y El Plumerillo)',                    costo: 3500 },
-    { id: 'las-heras-algarrobal',  label: 'Las Heras (Algarrobal, Panquegua, Borbollón)',           costo: 4000 },
-    { id: 'guaymallen',            label: 'Guaymallén (Centro y Villanueva)',                      costo: 3500 },
-    { id: 'guaymallen-corralitos', label: 'Guaymallén (Corralitos, Rodeo de la Cruz, Corralitos)',  costo: 4000 },
-    { id: 'maipu',                 label: 'Maipú',                                                 costo: 3500 },
-    { id: 'lujan',                 label: 'Luján de Cuyo (Centro y Carrodilla)',                   costo: 4000 },
-    { id: 'lujan-chacras',         label: 'Luján de Cuyo (Chacras, Vistalba, Mayor Drummond)',      costo: 4500 },
-    { id: 'perdriel',              label: 'Perdriel',                                               costo: 4500 },
-    { id: 'otra',                  label: 'Resto de la provincia / país',                           costo: 8800 },
-  ],
+  /* Config de envío efectiva: lo guardado, completado con ENVIO_DEFAULT. */
+  envioDe(cfg) {
+    const e = (cfg && cfg.envio) || {};
+    const d = this.ENVIO_DEFAULT;
+    const num = (v, def) => (v !== '' && v != null && Number.isFinite(Number(v)) ? Number(v) : def);
+    const zonas = Array.isArray(e.zonas) && e.zonas.length ? e.zonas : d.zonas;
+    return {
+      gratisSucursalDesde:  num(e.gratisSucursalDesde,  d.gratisSucursalDesde),
+      gratisDomicilioDesde: num(e.gratisDomicilioDesde, d.gratisDomicilioDesde),
+      costoSucursal:        num(e.costoSucursal,        d.costoSucursal),
+      zonas: zonas.some(z => z.id === 'otra') ? zonas : [...zonas, d.zonas.find(z => z.id === 'otra')],
+    };
+  },
+  get envio() { return this.envioDe(this.config); },
 
-  zonaEnvio(zonaId) {
-    return this.ZONAS_ENVIO.find(z => z.id === zonaId) || this.ZONAS_ENVIO.find(z => z.id === 'otra');
+  /* Opciones de envío de la tienda, armadas con los montos de la config.
+     `base` de 'home' es el default de la remitera manual (zona 'otra'). */
+  get shipping() {
+    const e = this.envio;
+    return [
+      { id: 'andreani', label: 'Andreani — Sucursal', base: e.costoSucursal,                    freeFrom: e.gratisSucursalDesde },
+      { id: 'home',     label: 'A domicilio',          base: this.zonaEnvio('otra', e.zonas).costo, freeFrom: e.gratisDomicilioDesde },
+      { id: 'pickup',   label: 'Retiro en local',      base: 0,                                  freeFrom: 0 },
+    ];
+  },
+
+  get ZONAS_ENVIO() { return this.envio.zonas; },
+
+  zonaEnvio(zonaId, zonas = this.ZONAS_ENVIO) {
+    return zonas.find(z => z.id === zonaId) || zonas.find(z => z.id === 'otra');
   },
 
   /* caché en memoria, inicializada desde localStorage para mostrar al instante */

@@ -610,7 +610,11 @@ function RemitoModal({ store, onClose, order, readOnly = false }) {
   const customers = useMemo(
     () => window.VcoreCustomers.groupFromOrders(store.orders), [store.orders]);
 
+  /* Lo que Andreani necesita del cliente elegido (dirección en partes y
+     provincia) para que el pedido manual nazca listo para despachar. */
+  const datosEnvioClienteRef = useRef(null);
   const pickCliente = (c) => {
+    datosEnvioClienteRef.current = { calle: c.calle, numero: c.numero, pisoDepto: c.pisoDepto, provincia: c.provincia, address: c.address || '' };
     setClienteKey(c.key);
     setCliente(c.name || ''); setDni(c.dni || ''); setEmail(c.email || '');
     setContacto(c.contact || ''); setCiudad(c.city || ''); setCp(c.postalCode || '');
@@ -749,6 +753,7 @@ function RemitoModal({ store, onClose, order, readOnly = false }) {
       store.addOrder({
         id: newId, ts: Date.now(), date: new Date().toISOString(),
         ...overrides,
+        customerMeta: metaEnvioDeCliente(datosEnvioClienteRef.current, domicilio),
         tierDiscAmt, tierName,
         couponCode: couponCode || '', couponDiscAmt: Number(couponDiscAmt) || 0,
         payments: [], paymentStatus: 'pendiente', creditNotes: [],
@@ -1041,6 +1046,30 @@ function RemitoModal({ store, onClose, order, readOnly = false }) {
 /* ═══════════════════════════════════════════════════════════
    PEDIDOS
    ═══════════════════════════════════════════════════════════ */
+/* Datos de envío de un cliente elegido en el remito manual. La calle y el número
+   solo se copian si el domicilio sigue siendo el del cliente: si se escribió otro
+   a mano, las partes ya no le corresponden. */
+function metaEnvioDeCliente(c, domicilio) {
+  if (!c) return {};
+  const out = { provincia: c.provincia || '' };
+  if (domicilio && domicilio === c.address) Object.assign(out, { calle: c.calle || '', numero: c.numero || '', pisoDepto: c.pisoDepto || '' });
+  return out;
+}
+
+/* Aviso en la fila de un pedido que sale por Andreani y todavía no tiene todo lo
+   que Andreani pide para generar la etiqueta. Solo mientras no se despachó. */
+function FaltaParaEnvio({ order }) {
+  if (!['nuevo', 'confirmado', 'preparacion'].includes(order.status || 'nuevo')) return null;
+  const faltan = D.faltantesEnvio(order);
+  if (!faltan.length) return null;
+  return (
+    <div title={'Para despachar con Andreani falta: ' + faltan.join(', ')}
+      style={{ display: 'inline-block', marginTop: 4, padding: '1px 7px', borderRadius: 4, background: '#fdf1e3', color: '#9a5a12', fontSize: 10.5, fontWeight: 700 }}>
+      Falta para el envío: {faltan.join(', ')}
+    </div>
+  );
+}
+
 function AdminOrders({ store }) {
   const [filter, setFilter] = useState('todos');
   const [dateFilter, setDateFilter] = useState('todos');       // todos | semana | mes | mes-especifico
@@ -1284,6 +1313,7 @@ function AdminOrders({ store }) {
                         <div style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>
                           {o.customerCity}{o.customerDni ? ` · DNI ${o.customerDni}` : ''}
                         </div>
+                        <FaltaParaEnvio order={o} />
                       </td>
                       <td style={{ fontSize: 12.5 }}>
                         {(o.items || []).length} línea{(o.items || []).length !== 1 ? 's' : ''} / {(o.items || []).reduce((s, i) => s + (Number(i.qty) || 0), 0)} u.

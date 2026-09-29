@@ -169,8 +169,9 @@ function buildWAMsg({ items, tier, codeApplied, codeDiscount, subtotal, tierSavi
     if (customer.phone)   msg += `• Tel: ${customer.phone}\n`;
     if (customer.email)   msg += `• Email: ${customer.email}\n`;
     if (customer.dni)     msg += `• DNI: ${customer.dni}\n`;
-    if (customer.address) msg += `• Dirección: ${customer.address}\n`;
-    if (customer.city)    msg += `• Ciudad: ${customer.city}${customer.postal ? ` (CP ${customer.postal})` : ''}\n`;
+    const dir = D.armarDomicilio(customer);
+    if (dir)              msg += `• Dirección: ${dir}\n`;
+    if (customer.city)    msg += `• Ciudad: ${[customer.city, customer.provincia].filter(Boolean).join(', ')}${customer.postal ? ` (CP ${customer.postal})` : ''}\n`;
     msg += `\n`;
   }
   msg += `${lines}\n\nSubtotal: ${D.fmt(subtotal)}\n`;
@@ -193,7 +194,12 @@ function saveOrder({ items, total, tier, tierSaving, codeApplied, codeSaving, su
     date: new Date().toISOString(),
     ts: Date.now(),
     summary,
-    items: items.map(it => ({ name: it.product.name, sub: it.product.sub, size: it.size, qty: it.qty, price: unitOf(it) })),
+    /* Cada ítem se lleva el peso y las medidas de su presentación al momento de
+       comprar: si después se corrige el catálogo, el bulto ya despachado no cambia. */
+    items: items.map(it => ({
+      name: it.product.name, sub: it.product.sub, size: it.size, qty: it.qty, price: unitOf(it),
+      productId: it.product.id, ...D.bultoDe(it.product.id, it.size),
+    })),
     subtotal,
     tierName: tier.label,
     tierDiscAmt: tierSaving,
@@ -210,9 +216,14 @@ function saveOrder({ items, total, tier, tierSaving, codeApplied, codeSaving, su
     customer_phone: c.phone || '',
     customer_email: c.email || '',
     customer_dni: c.dni || '',
-    customer_address: c.address || '',
-    customer_city: c.city || '',
-    customer_postal_code: c.postal || '',
+    customer_address: D.armarDomicilio(c),
+    customer_city: (c.city || '').trim(),
+    customer_postal_code: (c.postal || '').trim(),
+    /* La dirección en partes y la provincia viajan en la ficha (customer_meta). */
+    customerMeta: {
+      calle: (c.calle || '').trim(), numero: (c.numero || '').trim(),
+      pisoDepto: (c.pisoDepto || '').trim(), provincia: c.provincia || '',
+    },
     payments: [], paymentStatus: 'pendiente', creditNotes: [],
     origen: 'web',
   };
@@ -239,7 +250,12 @@ function CartDrawer({ open, items, onClose, onQty }) {
   const [codeErr, setCodeErr] = useState(false);
   /* Datos del cliente (para CRM + cuenta corriente) */
   const [customer, setCustomer] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('vc-customer') || '{}'); } catch { return {}; }
+    let c = {};
+    try { c = JSON.parse(localStorage.getItem('vc-customer') || '{}') || {}; } catch {}
+    /* Quien compró antes de separar la dirección la tiene en una sola línea:
+       arranca en "Calle" para que no la vuelva a escribir entera. */
+    if (!c.calle && !c.numero && c.address) c = { ...c, calle: c.address };
+    return { provincia: 'Mendoza', ...c };
   });
   function setC(k, v) {
     setCustomer(prev => {
@@ -275,9 +291,28 @@ function CartDrawer({ open, items, onClose, onQty }) {
     }
   }
 
+  /* Si el pedido sale por Andreani hace falta la dirección completa, un CP y un
+     teléfono que sirvan; para retirar en el local alcanza con nombre y teléfono. */
+  const despacha = ship !== 'pickup';
+  const faltanDatos = () => {
+    const f = [];
+    if (!String(customer.name || '').trim()) f.push('nombre');
+    if (!String(customer.phone || '').trim()) f.push('teléfono');
+    else if (!D.telefonoValido(customer.phone)) f.push('un teléfono con característica (ej. 261 555-0000)');
+    if (despacha) {
+      if (!String(customer.calle || '').trim()) f.push('calle');
+      if (!String(customer.numero || '').trim()) f.push('número');
+      if (!String(customer.city || '').trim()) f.push('ciudad');
+      if (!customer.provincia) f.push('provincia');
+      if (!D.cpValido(customer.postal)) f.push('código postal (4 números, ej. 5500)');
+    }
+    return f;
+  };
+
   function checkout() {
-    if (!customer.name || !customer.phone) {
-      alert('Completá al menos nombre y teléfono para poder coordinar el pedido.');
+    const faltan = faltanDatos();
+    if (faltan.length) {
+      alert('Para ' + (despacha ? 'enviarte el pedido' : 'coordinar el pedido') + ' falta: ' + faltan.join(', ') + '.');
       return;
     }
     const msg = buildWAMsg({
@@ -366,15 +401,31 @@ function CartDrawer({ open, items, onClose, onQty }) {
                     placeholder="DNI / CUIT" value={customer.dni || ''}
                     onChange={e => setC('dni', e.target.value)} />
                   <input className="vc-code-input" style={{ textTransform: 'none', letterSpacing: 0, gridColumn: '1/-1' }}
-                    placeholder="Dirección" value={customer.address || ''}
-                    onChange={e => setC('address', e.target.value)} />
+                    placeholder={'Calle' + (despacha ? ' *' : '')} value={customer.calle || ''} autoComplete="address-line1"
+                    onChange={e => setC('calle', e.target.value)} />
                   <input className="vc-code-input" style={{ textTransform: 'none', letterSpacing: 0 }}
-                    placeholder="Ciudad" value={customer.city || ''}
+                    placeholder={'Número' + (despacha ? ' *' : '')} value={customer.numero || ''} inputMode="numeric"
+                    onChange={e => setC('numero', e.target.value)} />
+                  <input className="vc-code-input" style={{ textTransform: 'none', letterSpacing: 0 }}
+                    placeholder="Piso / depto" value={customer.pisoDepto || ''} autoComplete="address-line2"
+                    onChange={e => setC('pisoDepto', e.target.value)} />
+                  <input className="vc-code-input" style={{ textTransform: 'none', letterSpacing: 0 }}
+                    placeholder={'Ciudad' + (despacha ? ' *' : '')} value={customer.city || ''} autoComplete="address-level2"
                     onChange={e => setC('city', e.target.value)} />
                   <input className="vc-code-input" style={{ textTransform: 'none', letterSpacing: 0 }}
-                    placeholder="Código postal" value={customer.postal || ''}
+                    placeholder={'Código postal' + (despacha ? ' *' : '')} value={customer.postal || ''} autoComplete="postal-code"
                     onChange={e => setC('postal', e.target.value)} />
+                  <select className="vc-code-input" style={{ textTransform: 'none', letterSpacing: 0, gridColumn: '1/-1' }}
+                    value={customer.provincia || ''} onChange={e => setC('provincia', e.target.value)} aria-label="Provincia">
+                    <option value="">Provincia{despacha ? ' *' : ''}</option>
+                    {D.PROVINCIAS_AR.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
                 </div>
+                {String(customer.postal || '').trim() !== '' && !D.cpValido(customer.postal) && (
+                  <div className="vc-code-feedback" style={{ color: '#B71C1C', margin: '6px 0 0' }}>
+                    El código postal son 4 números (ej. 5500) o el CP completo (ej. M5500ABC).
+                  </div>
+                )}
               </div>
 
               {/* Shipping selector */}

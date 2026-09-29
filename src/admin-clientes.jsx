@@ -7,6 +7,7 @@
 const React = window.React;
 const { useState, useEffect, useMemo } = React;
 const K = window.VcoreAdminKit;
+const D = window.VcoreData;
 const { fmt, searchNormalize, IcoSearch, IcoClose, IcoEdit, IcoUsers, IcoDown, STATUS_COLORS, statusLabel } = K;
 
 /* ── normalización de identidad ── */
@@ -32,6 +33,9 @@ const CUSTOMER_FIELDS = {
    no sumar una columna por dato viajan todos juntos en orders.customer_meta
    (jsonb, ver supabase/schema-v4.sql), replicados en cada pedido del cliente. */
 const META_TEXT_FIELDS = ['razonSocial', 'condIva', 'provincia', 'instagram', 'cumple', 'categoria', 'canal'];
+/* La dirección en partes (para despachar con Andreani) también va en el meta,
+   pero se lee junta, del mismo pedido: ver direccionEnPartes(). */
+const META_DIRECCION = ['calle', 'numero', 'pisoDepto'];
 
 const CONDICIONES_IVA = ['Consumidor final', 'Responsable inscripto', 'Monotributista', 'Exento', 'IVA no alcanzado'];
 const CATEGORIAS_CLIENTE = [
@@ -58,10 +62,20 @@ const normNotasLog = (v) => (Array.isArray(v) ? v.filter(n => n && n.texto) : []
 function metaFromCustomer(customer, overrides) {
   const meta = {};
   META_TEXT_FIELDS.forEach(k => { meta[k] = String(customer[k] || '').trim(); });
+  META_DIRECCION.forEach(k => { meta[k] = String(customer[k] || '').trim(); });
   meta.tags = normTags(customer.tags);
   meta.activo = customer.activo !== false;
   meta.notasLog = normNotasLog(customer.notasLog);
   return { ...meta, ...(overrides || {}) };
+}
+
+/* Calle, número y piso salen del mismo pedido que dio el domicilio: mezclar la
+   calle de un pedido con el número de otro armaría una dirección que no existe. */
+function direccionEnPartes(pedidosRecientesPrimero) {
+  const o = pedidosRecientesPrimero.find(x =>
+    String(x.customerAddress || '').trim() || String((x.customerMeta || {}).calle || '').trim());
+  const m = (o && o.customerMeta) || {};
+  return { calle: m.calle || '', numero: m.numero || '', pisoDepto: m.pisoDepto || '' };
 }
 
 /* Días transcurridos desde un timestamp (para "hace X días sin comprar"). */
@@ -189,7 +203,7 @@ function groupFromOrders(orders) {
     META_TEXT_FIELDS.forEach(k => { meta[k] = pickMeta(k); });
 
     customers.push({
-      ...ficha, ...meta,
+      ...ficha, ...meta, ...direccionEnPartes(sorted),
       key: customerKeyOf(ficha),
       tags: normTags(pickMeta('tags')),
       notasLog: normNotasLog(pickMeta('notasLog')),
@@ -219,7 +233,7 @@ function exportCustomersAsExcel(customers, filename = 'clientes.xls') {
     ['Categoría', c => (c.categoria ? categoriaLabel(c.categoria) : '')],
     ['Etiquetas', c => (c.tags || []).join(', ')],
     ['Estado', c => (c.activo ? 'Activo' : 'Inactivo')],
-    ['Email', c => c.email], ['Contacto', c => c.contact],
+    ['Email', c => c.email], ['Teléfono', c => c.contact],
     ['Instagram', c => c.instagram], ['Cómo nos conoció', c => c.canal],
     ['Cumpleaños', c => { const k = cumpleInfo(c.cumple); return k ? k.label : ''; }],
     ['Domicilio', c => c.address], ['Localidad', c => c.city],
@@ -275,6 +289,10 @@ function ClienteEditor({ customer, store, onClose, onSaved }) {
     const f = {};
     Object.keys(CUSTOMER_FIELDS).forEach(k => { f[k] = customer[k] || ''; });
     META_TEXT_FIELDS.forEach(k => { f[k] = customer[k] || ''; });
+    META_DIRECCION.forEach(k => { f[k] = customer[k] || ''; });
+    /* Un cliente cargado antes de separar la dirección tiene todo en una línea:
+       arranca en "Calle" para que no se pierda y se pueda partir a mano. */
+    if (!f.calle && !f.numero && customer.address) f.calle = customer.address;
     f.activo = customer.activo !== false;
     return f;
   });
@@ -304,6 +322,7 @@ function ClienteEditor({ customer, store, onClose, onSaved }) {
     setSaving(true);
     const ficha = {};
     Object.keys(CUSTOMER_FIELDS).forEach(k => { ficha[k] = String(form[k] || '').trim(); });
+    ficha.address = D.armarDomicilio(form);
     /* Se escribe en los campos del pedido, que son la fuente real. */
     const patch = {};
     Object.keys(CUSTOMER_FIELDS).forEach(k => { patch[CUSTOMER_FIELDS[k]] = ficha[k]; });
@@ -311,6 +330,7 @@ function ClienteEditor({ customer, store, onClose, onSaved }) {
        notas (que se edita aparte, desde la ficha). */
     const cambios = { tags, activo: !!form.activo };
     META_TEXT_FIELDS.forEach(k => { cambios[k] = String(form[k] || '').trim(); });
+    META_DIRECCION.forEach(k => { cambios[k] = String(form[k] || '').trim(); });
     cambios.instagram = cambios.instagram.replace(/^@+/, '');   // sin arroba, para armar el link
     patch.customerMeta = metaFromCustomer(customer, cambios);
     store.updateCustomerInfo((customer.orders || []).map(o => o.id), patch);
@@ -347,17 +367,38 @@ function ClienteEditor({ customer, store, onClose, onSaved }) {
             </div>
             <div className="adm-field"><label>Teléfono / contacto</label>
               <input value={form.contact} onChange={e => upd('contact', e.target.value)} placeholder="Ej. 11 5555-1234" />
+              {form.contact.trim() && !D.telefonoValido(form.contact) && (
+                <span className="adm-field__hint" style={{ color: '#B71C1C' }}>Andreani necesita un teléfono con característica.</span>
+              )}
             </div>
           </div>
-          <div className="adm-field"><label>Domicilio</label>
-            <input value={form.address} onChange={e => upd('address', e.target.value)} placeholder="Calle, número, piso, depto" />
+          <div className="adm-field-row adm-field-row--3" style={{ gridTemplateColumns: '2fr 1fr 1fr' }}>
+            <div className="adm-field"><label>Calle</label>
+              <input value={form.calle} onChange={e => upd('calle', e.target.value)} placeholder="Ej. San Martín" />
+            </div>
+            <div className="adm-field"><label>Número</label>
+              <input value={form.numero} onChange={e => upd('numero', e.target.value)} placeholder="1234" />
+            </div>
+            <div className="adm-field"><label>Piso / depto</label>
+              <input value={form.pisoDepto} onChange={e => upd('pisoDepto', e.target.value)} placeholder="2° B" />
+            </div>
           </div>
+          {!customer.calle && !customer.numero && customer.address && (
+            <span className="adm-field__hint" style={{ marginTop: -6 }}>
+              El domicilio se había cargado en una sola línea ({customer.address}). Separá calle y número para poder despachar con Andreani.
+            </span>
+          )}
           <div className="adm-field-row">
             <div className="adm-field"><label>Localidad</label>
               <input value={form.city} onChange={e => upd('city', e.target.value)} placeholder="Ej. Vicente López" />
             </div>
             <div className="adm-field"><label>Provincia</label>
-              <input value={form.provincia} onChange={e => upd('provincia', e.target.value)} placeholder="Ej. Buenos Aires" />
+              <select value={form.provincia} onChange={e => upd('provincia', e.target.value)}>
+                <option value="">Sin especificar</option>
+                {/* Una provincia cargada a mano antes de la lista se conserva como opción. */}
+                {form.provincia && !D.PROVINCIAS_AR.includes(form.provincia) && <option value={form.provincia}>{form.provincia}</option>}
+                {D.PROVINCIAS_AR.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
             </div>
             <div className="adm-field"><label>Código postal</label>
               <input value={form.postalCode} onChange={e => upd('postalCode', e.target.value)} placeholder="1602" />

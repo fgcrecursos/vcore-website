@@ -76,6 +76,64 @@ window.VcoreData = {
     return zonas.find(z => z.id === zonaId) || zonas.find(z => z.id === 'otra');
   },
 
+  /* ── Datos para despachar con Andreani ─────────────────────────────────
+     Andreani pide la dirección en partes (calle, número, piso/depto, localidad,
+     provincia, CP), un teléfono del destinatario y el peso y las medidas del
+     bulto. Las partes de la dirección viajan en customer_meta (calle, numero,
+     pisoDepto, provincia) y `customer_address` sigue guardando la línea armada,
+     que es lo que leen el remito y la ficha. El peso y las medidas viven en cada
+     presentación (variants) del producto. Mismo criterio que Somos Setas. */
+  PROVINCIAS_AR: [
+    'Buenos Aires', 'Ciudad Autónoma de Buenos Aires', 'Catamarca', 'Chaco', 'Chubut',
+    'Córdoba', 'Corrientes', 'Entre Ríos', 'Formosa', 'Jujuy', 'La Pampa', 'La Rioja',
+    'Mendoza', 'Misiones', 'Neuquén', 'Río Negro', 'Salta', 'San Juan', 'San Luis',
+    'Santa Cruz', 'Santa Fe', 'Santiago del Estero', 'Tierra del Fuego', 'Tucumán',
+  ],
+  CAMPOS_BULTO: ['pesoG', 'altoCm', 'anchoCm', 'largoCm'],
+  armarDomicilio({ calle, numero, pisoDepto }) {
+    const linea = [String(calle || '').trim(), String(numero || '').trim()].filter(Boolean).join(' ');
+    const piso = String(pisoDepto || '').trim();
+    return piso ? `${linea}, ${piso}` : linea;
+  },
+  /* CP de 4 dígitos (5500) o CPA completo (M5500ABC). */
+  cpValido(cp) {
+    const v = String(cp || '').trim();
+    return /^\d{4}$/.test(v) || /^[a-z]\d{4}[a-z]{3}$/i.test(v);
+  },
+  /* 10 dígitos sin 0 ni 15; con prefijos (+54 9, 0, 15) llega a 13. */
+  telefonoValido(t) {
+    const d = String(t || '').replace(/\D/g, '');
+    return d.length >= 8 && d.length <= 13;
+  },
+  /* Solo sucursal y domicilio salen por Andreani; el retiro en el local no. */
+  seDespachaPorAndreani: (entregaTipo) => entregaTipo === 'sucursal' || entregaTipo === 'domicilio',
+  /* Peso (g) y medidas (cm) de una presentación, tal como están en el catálogo. */
+  bultoDe(productId, sizeLabel, products = this.allProducts) {
+    const prod = (products || []).find(p => p.id === productId);
+    const v = prod && (prod.variants || []).find(x => x.label === sizeLabel);
+    const n = (x) => (Number(x) > 0 ? Number(x) : null);
+    return { pesoG: n(v && v.pesoG), altoCm: n(v && v.altoCm), anchoCm: n(v && v.anchoCm), largoCm: n(v && v.largoCm) };
+  },
+  /* Qué le falta a un pedido para generar el envío en Andreani. Lista vacía =
+     completo. El peso sale del ítem (se copia al comprar) o, en pedidos viejos
+     o manuales, del catálogo actual. */
+  faltantesEnvio(order, products = this.allProducts) {
+    if (!order || !this.seDespachaPorAndreani(order.entregaTipo)) return [];
+    const meta = order.customerMeta || {};
+    const f = [];
+    if (order.entregaTipo === 'domicilio') {
+      if (!String(meta.calle || '').trim()) f.push('calle');
+      if (!String(meta.numero || '').trim()) f.push('número');
+    }
+    if (!String(order.customerCity || '').trim()) f.push('localidad');
+    if (!String(meta.provincia || '').trim()) f.push('provincia');
+    if (!this.cpValido(order.customerPostalCode)) f.push('código postal');
+    if (!this.telefonoValido(order.customerPhone)) f.push('teléfono');
+    const sinPeso = (order.items || []).filter(i => !(Number(i.pesoG) > 0) && !this.bultoDe(i.productId, i.size, products).pesoG);
+    if (sinPeso.length) f.push(`peso de ${sinPeso.length === 1 ? '1 producto' : sinPeso.length + ' productos'}`);
+    return f;
+  },
+
   /* caché en memoria, inicializada desde localStorage para mostrar al instante */
   _cache: {
     products: _readLS('vc-products'),
@@ -149,11 +207,16 @@ window.VcoreData = {
     let variants;
     if (Array.isArray(p.variants) && p.variants.length) {
       variants = p.variants
-        .map(v => ({
-          label: String(v.label || '').trim(),
-          price: Number(v.price) || 0,
-          priceMayorista: Number(v.priceMayorista) || 0,
-        }))
+        .map(v => {
+          const out = {
+            label: String(v.label || '').trim(),
+            price: Number(v.price) || 0,
+            priceMayorista: Number(v.priceMayorista) || 0,
+          };
+          /* Peso y medidas para el envío: solo si están cargados. */
+          ['pesoG', 'altoCm', 'anchoCm', 'largoCm'].forEach(k => { if (Number(v[k]) > 0) out[k] = Number(v[k]); });
+          return out;
+        })
         .filter(v => v.label);
     } else {
       const sizes = (p.sizes && p.sizes.length) ? p.sizes : ['Único'];

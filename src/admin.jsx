@@ -343,6 +343,7 @@ fieldset.adm-fs { border: 0; margin: 0; padding: 0; min-width: 0; display: flex;
 .adm-var-del:hover:not(:disabled) { border-color: #D32F2F44; color: #B71C1C; background: #FFEBEE; }
 .adm-var-del:disabled { opacity: .4; cursor: not-allowed; }
 .adm-var-add { margin-top: 10px; align-self: flex-start; }
+.adm-var-head--bulto, .adm-var-row--bulto { grid-template-columns: 1fr 90px 80px 80px 80px; }
 
 /* remitera: filas de ítems */
 .adm-rem-head, .adm-rem-row { display: grid; grid-template-columns: 3fr 72px 130px 130px 30px;
@@ -503,6 +504,7 @@ fieldset.adm-fs { border: 0; margin: 0; padding: 0; min-width: 0; display: flex;
   .adm-modal__hd { border-radius: 0; }
   .adm-field-row, .adm-field-row--3, .adm-field-row--4 { grid-template-columns: 1fr; }
   .adm-var-row, .adm-var-head { grid-template-columns: 1fr 90px 90px 36px; gap: 8px; }
+  .adm-var-head--bulto, .adm-var-row--bulto { grid-template-columns: 1fr repeat(4, 64px); }
   .adm-rem-head { display: none; }
   .adm-rem-row { grid-template-columns: 1fr 60px 100px 30px; }
   .adm-rem-row__total { display: none; }
@@ -1418,11 +1420,15 @@ function emptyProduct() {
    sea nuevo (variants), legacy (sizes + price) o vacío. */
 function productToVariants(p) {
   if (p && Array.isArray(p.variants) && p.variants.length) {
-    return p.variants.map(v => ({
-      label: v.label || '',
-      price: v.price != null ? v.price : 0,
-      priceMayorista: v.priceMayorista != null ? v.priceMayorista : 0,
-    }));
+    return p.variants.map(v => {
+      const row = {
+        label: v.label || '',
+        price: v.price != null ? v.price : 0,
+        priceMayorista: v.priceMayorista != null ? v.priceMayorista : 0,
+      };
+      D.CAMPOS_BULTO.forEach(k => { row[k] = v[k] != null ? v[k] : ''; });
+      return row;
+    });
   }
   if (p && p.sizes && p.sizes.length) {
     return p.sizes.map(label => ({ label, price: p.price != null ? p.price : 0, priceMayorista: 0 }));
@@ -1463,11 +1469,15 @@ function ProductEditor({ product, onSave, onClose }) {
   function save() {
     if (!p.name.trim()) { alert('El producto necesita un nombre.'); return; }
     const clean = variants
-      .map(v => ({
-        label: String(v.label).trim(),
-        price: parseFloat(v.price) || 0,
-        priceMayorista: parseFloat(v.priceMayorista) || 0,
-      }))
+      .map(v => {
+        const out = {
+          label: String(v.label).trim(),
+          price: parseFloat(v.price) || 0,
+          priceMayorista: parseFloat(v.priceMayorista) || 0,
+        };
+        D.CAMPOS_BULTO.forEach(k => { if (parseFloat(v[k]) > 0) out[k] = parseFloat(v[k]); });
+        return out;
+      })
       .filter(v => v.label);
     if (!clean.length) { alert('Agregá al menos una presentación con su precio.'); return; }
     const minPrice = Math.min(...clean.map(v => v.price));
@@ -1574,6 +1584,27 @@ function ProductEditor({ product, onSave, onClose }) {
               onClick={addVariant}>
               <IcoPlus size={13} /> Agregar presentación
             </button>
+          </div>
+
+          <div className="adm-field">
+            <label>Peso y medidas para el envío</label>
+            <div className="adm-var-list">
+              <div className="adm-var-head adm-var-head--bulto">
+                <span>Presentación</span><span>Peso (g)</span><span>Alto (cm)</span><span>Ancho (cm)</span><span>Largo (cm)</span>
+              </div>
+              {variants.map((v, i) => (
+                <div className="adm-var-row adm-var-row--bulto" key={i}>
+                  <span style={{ fontSize: 13, color: 'var(--ink-600)' }}>{v.label || '—'}</span>
+                  {D.CAMPOS_BULTO.map(k => (
+                    <input key={k} type="number" min={0} value={v[k] ?? ''} onChange={e => setVariant(i, k, e.target.value)} />
+                  ))}
+                </div>
+              ))}
+            </div>
+            <span className="adm-field__hint">
+              Con el envase puesto, como se despacha. Andreani los pide para cotizar y generar la etiqueta.
+              Para cargar todo el catálogo de una vez: Descuentos → Envíos.
+            </span>
           </div>
 
           <div className="adm-field"><label>Descripción</label>
@@ -2020,6 +2051,100 @@ function AdminDescuentos({ store }) {
 
 /* Montos de envío gratis y costos de envío de la tienda (config.envio).
    La tienda y la remitera los leen con D.envio / D.shipping. */
+/* Peso y medidas de todo el catálogo en una sola tabla, para no abrir producto
+   por producto. Guarda solo los productos que cambiaron. */
+function PesosYMedidas({ store }) {
+  const puedeEditar = store.can('productos.editar');
+  const [cambios, setCambios] = useState({});   // "productId|label" → { pesoG: '…' }
+  const [soloFaltantes, setSoloFaltantes] = useState(false);
+  const [estado, setEstado] = useState('');
+  const [busy, setBusy] = useState(false);
+  const filas = [];
+  store.products.forEach(p => (p.variants || []).forEach(v => filas.push({ p, v, key: p.id + '|' + v.label })));
+  const valor = (f, k) => { const c = cambios[f.key]; return c && k in c ? c[k] : (f.v[k] ?? ''); };
+  const faltan = filas.filter(f => !(Number(valor(f, 'pesoG')) > 0)).length;
+  const visibles = soloFaltantes ? filas.filter(f => !(Number(f.v.pesoG) > 0) || cambios[f.key]) : filas;
+  const hayCambios = Object.keys(cambios).length > 0;
+
+  const editar = (key, k, val) => {
+    setCambios(c => ({ ...c, [key]: { ...(c[key] || {}), [k]: val.replace(/[^\d.,]/g, '').replace(',', '.') } }));
+    setEstado('');
+  };
+  async function guardar() {
+    setBusy(true); setEstado('');
+    try {
+      const tocados = store.products.filter(p => (p.variants || []).some(v => cambios[p.id + '|' + v.label]));
+      for (const p of tocados) {
+        const variants = p.variants.map(v => {
+          const c = cambios[p.id + '|' + v.label];
+          if (!c) return v;
+          const out = { ...v };
+          D.CAMPOS_BULTO.forEach(k => { if (k in c) { if (Number(c[k]) > 0) out[k] = Number(c[k]); else delete out[k]; } });
+          return out;
+        });
+        await store.saveProduct({ ...p, variants });
+      }
+      setCambios({});
+      setEstado('guardado');
+    } catch (e) {
+      setEstado('No se pudo guardar: ' + (e.message || e));
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <div className="adm-panel">
+      <div className="adm-panel__hd" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <h3>Peso y medidas de los productos</h3>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: faltan ? '#9a5a12' : 'var(--green-700)' }}>
+          {faltan ? `${faltan} de ${filas.length} presentaciones sin peso` : 'Todas las presentaciones tienen peso'}
+        </span>
+      </div>
+      <div style={{ padding: '18px 24px 6px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <span className="adm-field__hint">
+          Andreani los pide para cotizar y generar la etiqueta. Cargalos con el envase puesto, tal como se despacha:
+          peso en gramos y medidas en centímetros. Las medidas son opcionales; el peso no.
+        </span>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
+          <input type="checkbox" checked={soloFaltantes} onChange={e => setSoloFaltantes(e.target.checked)} />
+          Mostrar solo las que no tienen peso
+        </label>
+      </div>
+      <div className="adm-tblwrap">
+        <table className="adm-tbl adm-tbl--tight">
+          <thead><tr><th>Producto</th><th>Presentación</th><th style={{ width: 100 }}>Peso (g)</th><th style={{ width: 90 }}>Alto (cm)</th><th style={{ width: 90 }}>Ancho (cm)</th><th style={{ width: 90 }}>Largo (cm)</th></tr></thead>
+          <tbody>
+            {visibles.map(f => (
+              <tr key={f.key}>
+                <td>{f.p.name}</td>
+                <td style={{ fontSize: 12.5, color: 'var(--ink-600)' }}>{f.v.label}</td>
+                {D.CAMPOS_BULTO.map(k => (
+                  <td key={k}><div className="adm-field">
+                    <input inputMode="decimal" value={valor(f, k)} disabled={!puedeEditar || busy}
+                      onChange={e => editar(f.key, k, e.target.value)}
+                      style={{ width: '100%', borderColor: k === 'pesoG' && !(Number(valor(f, k)) > 0) ? '#e8b77a' : undefined }} />
+                  </div></td>
+                ))}
+              </tr>
+            ))}
+            {!visibles.length && (
+              <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--ink-400)', padding: 20 }}>No hay presentaciones sin peso.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      {puedeEditar && (
+        <div style={{ padding: '14px 24px 22px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <button className="adm-btn adm-btn--primary" onClick={guardar} disabled={!hayCambios || busy}>
+            {busy ? 'Guardando…' : estado === 'guardado' && !hayCambios ? '✓ Guardado' : 'Guardar pesos y medidas'}
+          </button>
+          {hayCambios && !busy && <button className="adm-btn adm-btn--ghost" onClick={() => setCambios({})}>Descartar</button>}
+          {estado && estado !== 'guardado' && <span style={{ fontSize: 13, color: '#B71C1C' }}>{estado}</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AdminEnvios({ store }) {
   const puedeEditar = store.can('descuentos.editar');
   const actual = D.envioDe(store.config);
@@ -2154,6 +2279,9 @@ function AdminEnvios({ store }) {
           {estado && estado !== 'guardado' && <span style={{ fontSize: 13, color: '#B71C1C' }}>{estado}</span>}
         </div>
       )}
+
+      <div style={{ height: 18 }} />
+      <PesosYMedidas store={store} />
     </div>
   );
 }

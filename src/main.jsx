@@ -24,6 +24,7 @@ function loadBundle() {
   await import('./data.jsx');
   await import('./shell.jsx');
   await import('./pages.jsx');
+  await import('./sucursal-selector.jsx');   // window.VcoreSelectorSucursal (carrito y panel)
   await import('./cart.jsx');
   /* Panel de admin: permisos → núcleo → secciones (cada módulo se registra en
      window.VcoreAdminSections, que el shell resuelve al renderizar). */

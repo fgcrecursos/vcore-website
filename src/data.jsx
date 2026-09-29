@@ -105,6 +105,12 @@ window.VcoreData = {
     const d = String(t || '').replace(/\D/g, '');
     return d.length >= 8 && d.length <= 13;
   },
+  /* Sucursal Andreani que eligió la clienta, en el formato del remito. */
+  entregaSucursalTexto(order) {
+    const s = order && order.entregaTipo === 'sucursal' && order.sucursalAndreani;
+    if (!s) return '';
+    return `Sucursal Andreani ${s.nombre} (N° ${s.numero}) — ${[s.calle, s.localidad, s.provincia].filter(Boolean).join(', ')}${s.cp ? ` (CP ${s.cp})` : ''}`;
+  },
   /* Solo sucursal y domicilio salen por Andreani; el retiro en el local no. */
   seDespachaPorAndreani: (entregaTipo) => entregaTipo === 'sucursal' || entregaTipo === 'domicilio',
   /* Peso (g) y medidas (cm) de una presentación, tal como están en el catálogo. */
@@ -129,6 +135,7 @@ window.VcoreData = {
     if (!String(meta.provincia || '').trim()) f.push('provincia');
     if (!this.cpValido(order.customerPostalCode)) f.push('código postal');
     if (!this.telefonoValido(order.customerPhone)) f.push('teléfono');
+    if (order.entregaTipo === 'sucursal' && !order.sucursalAndreani) f.push('sucursal');
     const sinPeso = (order.items || []).filter(i => !(Number(i.pesoG) > 0) && !this.bultoDe(i.productId, i.size, products).pesoG);
     if (sinPeso.length) f.push(`peso de ${sinPeso.length === 1 ? '1 producto' : sinPeso.length + ' productos'}`);
     return f;

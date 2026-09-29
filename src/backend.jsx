@@ -184,13 +184,28 @@ const Backend = {
       /* Ficha ampliada del cliente (CRM). Se replica en cada pedido suyo. */
       customer_meta: o.customerMeta || {},
     };
+    /* Sucursal Andreani elegida (supabase/sucursal-andreani-2026-09.sql). Solo
+       se manda si hay una, así los pedidos sin sucursal no dependen de la columna. */
+    if (o.sucursalAndreani) row.sucursal_andreani = o.sucursalAndreani;
     /* Un remito manual puede fecharse en el pasado: respetamos su ts. */
     if (o.ts) row.created_at = new Date(o.ts).toISOString();
     return row;
   },
+  /* Mientras no se corra supabase/sucursal-andreani-2026-09.sql la columna
+     sucursal_andreani no existe: se reintenta sin ella para no perder el pedido.
+     La sucursal igual queda escrita en shipping_label. */
+  async _conSucursal(escribir, row) {
+    const r = await escribir(row);
+    if (r.error && row.sucursal_andreani !== undefined && /sucursal_andreani/.test(r.error.message || '')) {
+      console.warn('[Vcore] falta la columna sucursal_andreani: correr supabase/sucursal-andreani-2026-09.sql');
+      const { sucursal_andreani, ...sinSucursal } = row;
+      return escribir(sinSucursal);
+    }
+    return r;
+  },
   async createOrder(o) {
     const c = sb(); if (!c) return false;
-    const { error } = await c.from('orders').insert(this._orderRow(o));
+    const { error } = await this._conSucursal(row => c.from('orders').insert(row), this._orderRow(o));
     if (error) { console.error('[Vcore] createOrder', error.message); return false; }
     return true;
   },
@@ -198,7 +213,7 @@ const Backend = {
      desde el estado local: así no hay race SELECT→UPDATE entre guardados. */
   async upsertOrder(o) {
     const c = sb(); if (!c) throw new Error('Backend no configurado');
-    const { error } = await c.from('orders').upsert(this._orderRow(o), { onConflict: 'id' });
+    const { error } = await this._conSucursal(row => c.from('orders').upsert(row, { onConflict: 'id' }), this._orderRow(o));
     if (error) throw error;
   },
   _mapOrder(r) {
@@ -219,6 +234,7 @@ const Backend = {
       creditApplied: Number(r.credit_applied) || 0, adminNotes: r.admin_notes || '',
       entregaTipo: r.entrega_tipo || 'sucursal', notasCliente: r.notas_cliente || '',
       customerMeta: r.customer_meta || {},
+      sucursalAndreani: r.sucursal_andreani || null,
     };
   },
   async listOrders() {

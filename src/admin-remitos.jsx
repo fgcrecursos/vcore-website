@@ -267,8 +267,8 @@ function buildRemitoFromOrder(order, allOrders, cfg) {
   const conf = cfg || {};
   const fecha = new Date(order.ts).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const numero = genRemitoNumero(order, allOrders);
-  const domicilioEntregaAuto = [order.customerAddress, order.customerCity, order.customerPostalCode]
-    .filter(Boolean).join(', ');
+  const domicilioEntregaAuto = D.entregaSucursalTexto(order) ||
+    [order.customerAddress, order.customerCity, order.customerPostalCode].filter(Boolean).join(', ');
 
   const items = (order.items || []).map((i, idx) => ({
     id: String(idx + 1),
@@ -579,6 +579,7 @@ function RemitoModal({ store, onClose, order, readOnly = false }) {
     (R && R.datosDespacho) || cfg.remito_despacho || 'DESPACHO PRODUCTO FINAL');
   const [domicilioEntrega, setDomicilioEntrega] = useState(
     (R && R.domicilioEntrega) ||
+    D.entregaSucursalTexto(order) ||
     [order && order.customerAddress, order && order.customerCity, order && order.customerPostalCode]
       .filter(Boolean).join(', ') || '');
 
@@ -1056,6 +1057,57 @@ function metaEnvioDeCliente(c, domicilio) {
   return out;
 }
 
+/* La sucursal se puede elegir o cambiar mientras el pedido no salió. */
+const puedeElegirSucursal = (o) => ['nuevo', 'confirmado', 'preparacion'].includes(o.status || 'nuevo');
+
+/* Elegir o cambiar la sucursal Andreani de un pedido desde el panel: para los
+   pedidos que entraron cuando Andreani no respondía, o cuando la clienta pide
+   otra por WhatsApp. Usa el mismo selector que el carrito. */
+function SucursalModal({ store, order, onClose }) {
+  const [cp, setCp] = useState((order && order.customerPostalCode) || '');
+  const [sucursal, setSucursal] = useState((order && order.sucursalAndreani) || null);
+  const Selector = window.VcoreSelectorSucursal;
+  if (!order) return null;
+  function guardar() {
+    /* El texto del envío termina en " — <sucursal anterior>": se reemplaza solo esa parte. */
+    const previa = order.sucursalAndreani && ` — ${order.sucursalAndreani.nombre}`;
+    const label = String(order.shippingLabel || 'Sucursal Andreani');
+    const base = previa && label.endsWith(previa) ? label.slice(0, -previa.length) : label;
+    store.patchOrder(order.id, {
+      sucursalAndreani: window.AndreaniSucursales.paraPedido(sucursal),
+      shippingLabel: `${base} — ${sucursal.nombre}`,
+    }, 'No se pudo guardar la sucursal en el servidor.');
+    onClose();
+  }
+  return (
+    <div className="adm-modal-ov" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="adm-modal" style={{ maxWidth: 560 }}>
+        <div className="adm-modal__hd">
+          <h3>Sucursal Andreani — {order.customerName || order.id}</h3>
+          <button className="adm-close" onClick={onClose}><IcoClose size={15} /></button>
+        </div>
+        <div className="adm-modal__body">
+          <div className="adm-field" style={{ maxWidth: 200 }}><label>Código postal</label>
+            <input value={cp} onChange={e => setCp(e.target.value)} placeholder="Ej. 5500" />
+          </div>
+          <div className="adm-field"><label>Sucursal donde retira</label>
+            {Selector && <Selector cp={cp} value={sucursal} onChange={setSucursal} />}
+          </div>
+          {order.remito && (
+            <span className="adm-field__hint">
+              Este pedido ya tiene remito: si cambiás la sucursal, corregí también el domicilio de entrega del remito.
+            </span>
+          )}
+        </div>
+        <div className="adm-modal__ft">
+          <button className="adm-btn adm-btn--outline" onClick={onClose}>Cancelar</button>
+          <button className="adm-btn adm-btn--primary" onClick={guardar} disabled={!sucursal}>Guardar sucursal</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* Aviso en la fila de un pedido que sale por Andreani y todavía no tiene todo lo
    que Andreani pide para generar la etiqueta. Solo mientras no se despachó. */
 function FaltaParaEnvio({ order }) {
@@ -1078,6 +1130,7 @@ function AdminOrders({ store }) {
   const [search, setSearch] = useState('');
   const [remitoOrderId, setRemitoOrderId] = useState(null);
   const [remitoManual, setRemitoManual] = useState(false);
+  const [sucursalOrderId, setSucursalOrderId] = useState(null);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
 
   const canEstado    = store.can('pedidos.estado');
@@ -1313,6 +1366,17 @@ function AdminOrders({ store }) {
                         <div style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>
                           {o.customerCity}{o.customerDni ? ` · DNI ${o.customerDni}` : ''}
                         </div>
+                        {o.entregaTipo === 'sucursal' && (o.sucursalAndreani || puedeElegirSucursal(o)) && (
+                          <div style={{ fontSize: 11.5, color: 'var(--ink-600)', marginTop: 2 }} title={D.entregaSucursalTexto(o)}>
+                            {o.sucursalAndreani ? `Retira en Andreani ${o.sucursalAndreani.nombre}` : 'Sin sucursal elegida'}
+                            {canEditar && puedeElegirSucursal(o) && (
+                              <button type="button" onClick={() => setSucursalOrderId(o.id)}
+                                style={{ marginLeft: 6, padding: 0, background: 'none', border: 0, cursor: 'pointer', color: 'var(--green-700)', fontSize: 11.5, fontWeight: 700, textDecoration: 'underline' }}>
+                                {o.sucursalAndreani ? 'Cambiar' : 'Elegir'}
+                              </button>
+                            )}
+                          </div>
+                        )}
                         <FaltaParaEnvio order={o} />
                       </td>
                       <td style={{ fontSize: 12.5 }}>
@@ -1378,6 +1442,10 @@ function AdminOrders({ store }) {
       )}
       {remitoManual && (
         <RemitoModal store={store} order={null} onClose={() => setRemitoManual(false)} />
+      )}
+      {sucursalOrderId && (
+        <SucursalModal store={store} order={store.orders.find(o => o.id === sucursalOrderId)}
+          onClose={() => setSucursalOrderId(null)} />
       )}
     </div>
   );

@@ -157,7 +157,7 @@ function TierProgress({ subtotal }) {
   );
 }
 
-function buildWAMsg({ items, tier, codeApplied, codeDiscount, subtotal, tierSaving, codeSaving, shippingOpt, shippingCost, total, customer }) {
+function buildWAMsg({ items, tier, codeApplied, codeDiscount, subtotal, tierSaving, codeSaving, shippingOpt, shippingCost, total, customer, sucursal, sucursalACoordinar }) {
   const lines = items.map(it =>
     `• ${it.product.name} (${it.size}) ×${it.qty} — ${D.fmt(unitOf(it) * it.qty)}`
   ).join('\n');
@@ -178,6 +178,8 @@ function buildWAMsg({ items, tier, codeApplied, codeDiscount, subtotal, tierSavi
   if (tierSaving > 0) msg += `Desc. ${tier.label} (${tier.badge}): -${D.fmt(tierSaving)}\n`;
   if (codeSaving > 0) msg += `Código ${codeApplied}: -${D.fmt(codeSaving)}\n`;
   msg += `Envío (${shippingOpt.label}): ${shippingCost === 0 ? 'Gratis' : D.fmt(shippingCost)}\n`;
+  if (sucursal) msg += `Retiro en: Sucursal Andreani ${window.AndreaniSucursales.texto(sucursal)}\n`;
+  else if (sucursalACoordinar) msg += `Retiro en: sucursal Andreani a coordinar\n`;
   msg += `\n*TOTAL: ${D.fmt(total)}*\n\nForma de pago: a coordinar 🙏`;
   return encodeURIComponent(msg);
 }
@@ -186,7 +188,7 @@ function buildWAMsg({ items, tier, codeApplied, codeDiscount, subtotal, tierSavi
    con opciones de envío. Este mapa las mantiene alineadas. */
 const ENTREGA_DE_ENVIO = { andreani: 'sucursal', home: 'domicilio', pickup: 'local' };
 
-function saveOrder({ items, total, tier, tierSaving, codeApplied, codeSaving, subtotal, shippingOpt, shippingCost, customer }) {
+function saveOrder({ items, total, tier, tierSaving, codeApplied, codeSaving, subtotal, shippingOpt, shippingCost, customer, sucursal }) {
   const summary = items.map(it => `${it.product.name} ×${it.qty}`).join(', ');
   const c = customer || {};
   const order = {
@@ -205,7 +207,10 @@ function saveOrder({ items, total, tier, tierSaving, codeApplied, codeSaving, su
     tierDiscAmt: tierSaving,
     couponCode: codeApplied || '',
     couponDiscAmt: codeSaving,
-    shippingLabel: shippingOpt.label,
+    /* La sucursal también va en el texto: se ve en el panel aunque la columna
+       sucursal_andreani todavía no exista en la base. */
+    shippingLabel: sucursal ? `${shippingOpt.label} — ${sucursal.nombre}` : shippingOpt.label,
+    sucursalAndreani: sucursal ? window.AndreaniSucursales.paraPedido(sucursal) : null,
     shippingCost,
     entregaTipo: ENTREGA_DE_ENVIO[shippingOpt.id] || 'sucursal',
     total,
@@ -248,6 +253,9 @@ function CartDrawer({ open, items, onClose, onQty }) {
   const [code, setCode] = useState('');
   const [codeApplied, setCodeApplied] = useState(null);
   const [codeErr, setCodeErr] = useState(false);
+  const [sucursal, setSucursal] = useState(null);
+  const [sucursalEstado, setSucursalEstado] = useState('idle');
+  const Selector = window.VcoreSelectorSucursal;
   /* Datos del cliente (para CRM + cuenta corriente) */
   const [customer, setCustomer] = useState(() => {
     let c = {};
@@ -305,6 +313,9 @@ function CartDrawer({ open, items, onClose, onQty }) {
       if (!String(customer.city || '').trim()) f.push('ciudad');
       if (!customer.provincia) f.push('provincia');
       if (!D.cpValido(customer.postal)) f.push('código postal (4 números, ej. 5500)');
+      /* A sucursal hay que elegir una, salvo que Andreani no haya respondido:
+         ahí se deja seguir y se coordina por WhatsApp. */
+      else if (ship === 'andreani' && !sucursal && sucursalEstado !== 'error') f.push('la sucursal Andreani donde retirás');
     }
     return f;
   };
@@ -319,8 +330,10 @@ function CartDrawer({ open, items, onClose, onQty }) {
       items, tier, codeApplied, codeDiscount,
       subtotal, tierSaving, codeSaving,
       shippingOpt, shippingCost, total, customer,
+      sucursal: ship === 'andreani' ? sucursal : null, sucursalACoordinar: ship === 'andreani' && !sucursal,
     });
-    saveOrder({ items, total, tier, tierSaving, codeApplied, codeSaving, subtotal, shippingOpt, shippingCost, customer });
+    saveOrder({ items, total, tier, tierSaving, codeApplied, codeSaving, subtotal, shippingOpt, shippingCost, customer,
+      sucursal: ship === 'andreani' ? sucursal : null });
     const phone = (D.config && D.config.whatsapp) || '5491100000000';
     window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
   }
@@ -456,6 +469,12 @@ function CartDrawer({ open, items, onClose, onQty }) {
                     <option value="">Elegí tu localidad</option>
                     {D.ZONAS_ENVIO.map(z => <option key={z.id} value={z.id}>{z.label}</option>)}
                   </select>
+                )}
+                {ship === 'andreani' && Selector && (
+                  <div style={{ marginTop: 10 }}>
+                    <div className="vc-ft-label">Sucursal donde retirás</div>
+                    <Selector cp={customer.postal} value={sucursal} onChange={setSucursal} onEstado={setSucursalEstado} />
+                  </div>
                 )}
               </div>
 

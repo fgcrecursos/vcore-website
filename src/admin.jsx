@@ -2347,6 +2347,12 @@ function AdminConfig({ store }) {
               <input value={cfg.alias || ''} onChange={f('alias')} placeholder="Ej. VCORE.NUTRI" />
             </div>
           </div>
+          <div className="adm-field"><label>CBU / CVU</label>
+            <input value={cfg.cbu || ''} onChange={f('cbu')} placeholder="22 dígitos (opcional)" />
+            <span className="adm-field__hint">
+              Banco, alias, CBU y titular también se le muestran al cliente que paga por transferencia.
+            </span>
+          </div>
           <div className="adm-field-row">
             <div className="adm-field"><label>CUIT / CUIL</label>
               <input value={cfg.cuit || ''} onChange={f('cuit')} placeholder="20-12345678-9" />
@@ -2376,6 +2382,33 @@ function AdminConfig({ store }) {
             </button>
             {saved && <span style={{ fontSize: 13, color: 'var(--text-brand)', fontWeight: 700 }}>✓ Guardado</span>}
           </div>
+        </div>
+      </div>
+
+      {/* Cobro con Mercado Pago — apagado hasta que las funciones estén deployadas */}
+      <div className="adm-panel">
+        <div className="adm-panel__hd"><h3>Cobrar con Mercado Pago</h3></div>
+        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <span className="adm-field__hint" style={{ fontSize: 13, lineHeight: 1.55 }}>
+            Con esto encendido, el medio de pago ofrece <strong>tarjeta, efectivo (Rapipago / Pago Fácil),
+            Mercado Pago y Cuotas sin Tarjeta</strong>, además de la transferencia. Cuando el pago se acredita,
+            el cobro queda registrado solo en el pedido y el pedido pasa a <strong>confirmado</strong>.
+            <br /><br />
+            <strong>Encendelo recién cuando estén deployadas las funciones mp-crear-pago y mp-webhook</strong> con
+            el token de Mercado Pago y corrido supabase/mercadopago-2026-09.sql (ver MERCADOPAGO.md).
+          </span>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13.5, fontWeight: 700 }}>
+            <input type="checkbox" checked={!!cfg.mercado_pago_activo} disabled={busy}
+              onChange={async (e) => {
+                const v = e.target.checked;
+                const next = { ...cfg, mercado_pago_activo: v };
+                setCfg(next); setBusy(true);
+                try { await store.saveConfig(next); }
+                catch (err) { alert('No se pudo guardar: ' + (err.message || err)); setCfg(c => ({ ...c, mercado_pago_activo: !v })); }
+                finally { setBusy(false); }
+              }} />
+            {cfg.mercado_pago_activo ? 'Encendido: la tienda cobra con Mercado Pago' : 'Apagado: solo transferencia y WhatsApp'}
+          </label>
         </div>
       </div>
     </div>

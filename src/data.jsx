@@ -6,17 +6,13 @@ function _readLS(key) {
   try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : null; } catch { return null; }
 }
 
+import './precios.js';   // window.VcorePrecios (reglas compartidas con el servidor)
+
 window.VcoreData = {
 
-  /* Umbrales y descuentos iguales a Somos Setas: Mayorista paga $250.000 con -30%
-     (250000/0.70 ≈ 357143 de subtotal crudo) y Distribuidor paga $500.000 con -40%
-     (500000/0.60 ≈ 833334 de subtotal crudo). Ver T_MAYORISTA/T_DISTRIBUIDOR en
-     store.jsx de Somos Setas. */
-  tiers: [
-    { id: 'retail',      label: 'Minorista',   min: 0,       discount: 0,    badge: null },
-    { id: 'wholesale',   label: 'Mayorista',    min: 357143,  discount: 0.30, badge: '−30%' },
-    { id: 'distributor', label: 'Distribuidor', min: 833334,  discount: 0.40, badge: '−40%' },
-  ],
+  /* Escalones, envíos y la cuenta del pedido viven en precios.js (window.VcorePrecios),
+     el mismo archivo que usa el servidor para cobrar por Mercado Pago. */
+  tiers: window.VcorePrecios.TIERS,
 
   /* Envío. Los montos viven en config.envio (columna jsonb de la tabla `config`)
      y se editan desde el panel: Descuentos → Envíos. ENVIO_DEFAULT es solo el
@@ -25,56 +21,19 @@ window.VcoreData = {
      (ver getShippingCost), igual que en Somos Setas. La zona 'otra' no se puede
      borrar: es a la que cae cualquier zona que ya no exista, y su costo es el
      default de "A domicilio" en la remitera manual del admin. */
-  ENVIO_DEFAULT: {
-    gratisSucursalDesde:  180000,
-    gratisDomicilioDesde: 280000,
-    costoSucursal:        7500,
-    zonas: [
-      { id: 'mendoza-ciudad',        label: 'Ciudad de Mendoza',                                    costo: 3000 },
-      { id: 'godoy-cruz',            label: 'Godoy Cruz',                                            costo: 3000 },
-      { id: 'las-heras',             label: 'Las Heras (Centro y El Plumerillo)',                    costo: 3500 },
-      { id: 'las-heras-algarrobal',  label: 'Las Heras (Algarrobal, Panquegua, Borbollón)',           costo: 4000 },
-      { id: 'guaymallen',            label: 'Guaymallén (Centro y Villanueva)',                      costo: 3500 },
-      { id: 'guaymallen-corralitos', label: 'Guaymallén (Corralitos, Rodeo de la Cruz, Corralitos)',  costo: 4000 },
-      { id: 'maipu',                 label: 'Maipú',                                                 costo: 3500 },
-      { id: 'lujan',                 label: 'Luján de Cuyo (Centro y Carrodilla)',                   costo: 4000 },
-      { id: 'lujan-chacras',         label: 'Luján de Cuyo (Chacras, Vistalba, Mayor Drummond)',      costo: 4500 },
-      { id: 'perdriel',              label: 'Perdriel',                                               costo: 4500 },
-      { id: 'otra',                  label: 'Resto de la provincia / país',                           costo: 8800 },
-    ],
-  },
+  ENVIO_DEFAULT: window.VcorePrecios.ENVIO_DEFAULT,
 
   /* Config de envío efectiva: lo guardado, completado con ENVIO_DEFAULT. */
-  envioDe(cfg) {
-    const e = (cfg && cfg.envio) || {};
-    const d = this.ENVIO_DEFAULT;
-    const num = (v, def) => (v !== '' && v != null && Number.isFinite(Number(v)) ? Number(v) : def);
-    const zonas = Array.isArray(e.zonas) && e.zonas.length ? e.zonas : d.zonas;
-    return {
-      gratisSucursalDesde:  num(e.gratisSucursalDesde,  d.gratisSucursalDesde),
-      gratisDomicilioDesde: num(e.gratisDomicilioDesde, d.gratisDomicilioDesde),
-      costoSucursal:        num(e.costoSucursal,        d.costoSucursal),
-      zonas: zonas.some(z => z.id === 'otra') ? zonas : [...zonas, d.zonas.find(z => z.id === 'otra')],
-    };
-  },
+  envioDe(cfg) { return window.VcorePrecios.envioDe(cfg); },
   get envio() { return this.envioDe(this.config); },
 
   /* Opciones de envío de la tienda, armadas con los montos de la config.
      `base` de 'home' es el default de la remitera manual (zona 'otra'). */
-  get shipping() {
-    const e = this.envio;
-    return [
-      { id: 'andreani', label: 'Andreani — Sucursal', base: e.costoSucursal,                    freeFrom: e.gratisSucursalDesde },
-      { id: 'home',     label: 'A domicilio',          base: this.zonaEnvio('otra', e.zonas).costo, freeFrom: e.gratisDomicilioDesde },
-      { id: 'pickup',   label: 'Retiro en local',      base: 0,                                  freeFrom: 0 },
-    ];
-  },
+  get shipping() { return window.VcorePrecios.opcionesEnvio(this.envio); },
 
   get ZONAS_ENVIO() { return this.envio.zonas; },
 
-  zonaEnvio(zonaId, zonas = this.ZONAS_ENVIO) {
-    return zonas.find(z => z.id === zonaId) || zonas.find(z => z.id === 'otra');
-  },
+  zonaEnvio(zonaId, zonas = this.ZONAS_ENVIO) { return window.VcorePrecios.zonaEnvio(zonaId, zonas); },
 
   /* ── Datos para despachar con Andreani ─────────────────────────────────
      Andreani pide la dirección en partes (calle, número, piso/depto, localidad,
@@ -190,11 +149,9 @@ window.VcoreData = {
 
   /* Códigos activos como mapa { CODIGO: fracción } */
   get codes() {
-    let arr = this._backendOn ? this._cache.codes : _readLS('vc-codes');
+    const arr = this._backendOn ? this._cache.codes : _readLS('vc-codes');
     if (!arr) return this._backendOn ? {} : { 'VCORE10': 0.10, 'BIENVENIDO': 0.15 };
-    const obj = {};
-    arr.filter(c => c.active).forEach(c => { obj[c.code] = c.value / 100; });
-    return obj;
+    return window.VcorePrecios.mapaCodigos(arr);
   },
 
   /* Datos de contacto del negocio */
@@ -462,13 +419,7 @@ window.VcoreData = {
   fmt: (n) => '$' + Math.round(n).toLocaleString('es-CL'),
 
   /* Precio para una presentación específica. */
-  priceFor(product, sizeLabel) {
-    const variants = (product.variants && product.variants.length)
-      ? product.variants
-      : [{ label: (product.sizes && product.sizes[0]) || 'Único', price: product.price }];
-    const v = variants.find(x => x.label === sizeLabel) || variants[0];
-    return v ? v.price : (product.price || 0);
-  },
+  priceFor(product, sizeLabel) { return window.VcorePrecios.priceFor(product, sizeLabel); },
 
   /* ¿Tiene presentaciones con precios distintos? */
   hasPriceRange(product) {
@@ -477,9 +428,7 @@ window.VcoreData = {
     return Math.min(...prices) !== Math.max(...prices);
   },
 
-  getTier(subtotal) {
-    return [...this.tiers].reverse().find(t => subtotal >= t.min) || this.tiers[0];
-  },
+  getTier(subtotal) { return window.VcorePrecios.getTier(subtotal); },
 
   getNextTier(subtotal) {
     return this.tiers.find(t => t.min > subtotal) || null;
@@ -489,10 +438,6 @@ window.VcoreData = {
      Somos Setas: ahi los pisos de envio gratis se evaluan contra el subtotal, no
      contra el monto ya descontado. */
   getShippingCost(shippingId, subtotal, zonaId) {
-    const opt = this.shipping.find(s => s.id === shippingId);
-    if (!opt) return 0;
-    if (opt.freeFrom !== null && subtotal >= opt.freeFrom) return 0;
-    if (shippingId === 'home') return this.zonaEnvio(zonaId).costo;
-    return opt.base;
+    return window.VcorePrecios.costoEnvio(shippingId, subtotal, zonaId, this.envio);
   },
 };

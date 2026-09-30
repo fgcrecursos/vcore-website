@@ -173,7 +173,9 @@ export default function App() {
         items={cart}
         onClose={() => setCartOpen(false)}
         onQty={changeQty}
+        onClear={() => setCart([])}
       />
+      {window.VcorePagoResultado && <window.VcorePagoResultado />}
 
       <SearchOverlay
         open={searchOpen}

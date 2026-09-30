@@ -141,8 +141,10 @@ const Backend = {
       /* datos que imprime el remito */
       banco: cfg.banco || '', alias: cfg.alias || '', cuit: cfg.cuit || '',
       titular: cfg.titular || '', remito_leyenda: cfg.remito_leyenda || '',
-      remito_despacho: cfg.remito_despacho || '', retiro: cfg.retiro || '' };
-    const { error } = await c.from('config').upsert(row, { onConflict: 'id' });
+      remito_despacho: cfg.remito_despacho || '', retiro: cfg.retiro || '',
+      /* transferencias y cobro con Mercado Pago (supabase/mercadopago-2026-09.sql) */
+      cbu: cfg.cbu || '', mercado_pago_activo: !!cfg.mercado_pago_activo };
+    const { error } = await this._conSucursal(r => c.from('config').upsert(r, { onConflict: 'id' }), row);
     if (error) throw error;
   },
   /* Montos de envío (Descuentos → Envíos). Va aparte de saveConfig para que
@@ -187,21 +189,46 @@ const Backend = {
     /* Sucursal Andreani elegida (supabase/sucursal-andreani-2026-09.sql). Solo
        se manda si hay una, así los pedidos sin sucursal no dependen de la columna. */
     if (o.sucursalAndreani) row.sucursal_andreani = o.sucursalAndreani;
+    /* Medio de pago elegido y estado del cobro por Mercado Pago
+       (supabase/mercadopago-2026-09.sql). Igual criterio: solo si hay dato. */
+    if (o.pagoMetodo) row.pago_metodo = o.pagoMetodo;
+    if (o.mp) row.mp = o.mp;
     /* Un remito manual puede fecharse en el pasado: respetamos su ts. */
     if (o.ts) row.created_at = new Date(o.ts).toISOString();
     return row;
   },
-  /* Mientras no se corra supabase/sucursal-andreani-2026-09.sql la columna
-     sucursal_andreani no existe: se reintenta sin ella para no perder el pedido.
-     La sucursal igual queda escrita en shipping_label. */
+  /* Columnas que agregan los SQL de septiembre. Si alguna todavía no existe en
+     la base, se reintenta sin ella para no perder el pedido (la sucursal igual
+     queda escrita en shipping_label). */
+  _COLUMNAS_NUEVAS: {
+    sucursal_andreani: 'supabase/sucursal-andreani-2026-09.sql',
+    pago_metodo: 'supabase/mercadopago-2026-09.sql',
+    mp: 'supabase/mercadopago-2026-09.sql',
+    cbu: 'supabase/mercadopago-2026-09.sql',
+    mercado_pago_activo: 'supabase/mercadopago-2026-09.sql',
+  },
   async _conSucursal(escribir, row) {
-    const r = await escribir(row);
-    if (r.error && row.sucursal_andreani !== undefined && /sucursal_andreani/.test(r.error.message || '')) {
-      console.warn('[Vcore] falta la columna sucursal_andreani: correr supabase/sucursal-andreani-2026-09.sql');
-      const { sucursal_andreani, ...sinSucursal } = row;
-      return escribir(sinSucursal);
+    let fila = row;
+    for (let i = 0; i < 5; i++) {
+      const r = await escribir(fila);
+      const msg = (r.error && r.error.message) || '';
+      const falta = Object.keys(this._COLUMNAS_NUEVAS).find(col => fila[col] !== undefined && new RegExp(`'${col}'|\\b${col}\\b`).test(msg));
+      if (!falta) return r;
+      console.warn(`[Vcore] falta la columna ${falta}: correr ${this._COLUMNAS_NUEVAS[falta]}`);
+      const { [falta]: _omitida, ...resto } = fila;
+      fila = resto;
     }
-    return r;
+    return escribir(fila);
+  },
+  /* Pide a la función mp-crear-pago la URL de cobro de un pedido ya guardado.
+     → { url } o { error } con el motivo que devuelve el servidor. */
+  async crearPagoMP(orderId) {
+    const c = sb(); if (!c) return { error: 'Backend no configurado.' };
+    const { data, error } = await c.functions.invoke('mp-crear-pago', { body: { orderId } });
+    if (!error && data && data.url) return { url: data.url };
+    let msg = '';
+    try { const j = await error.context.json(); msg = j && j.error; } catch (e) { /* sin cuerpo */ }
+    return { error: msg || '' };
   },
   async createOrder(o) {
     const c = sb(); if (!c) return false;
@@ -235,6 +262,7 @@ const Backend = {
       entregaTipo: r.entrega_tipo || 'sucursal', notasCliente: r.notas_cliente || '',
       customerMeta: r.customer_meta || {},
       sucursalAndreani: r.sucursal_andreani || null,
+      pagoMetodo: r.pago_metodo || '', mp: r.mp || null,
     };
   },
   async listOrders() {

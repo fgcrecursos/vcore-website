@@ -1057,6 +1057,44 @@ function metaEnvioDeCliente(c, domicilio) {
   return out;
 }
 
+/* Cómo va el cobro según el medio que eligió el cliente. Mercado Pago lo escribe
+   mp-webhook en order.mp; el cobro en sí queda en order.payments. */
+const MP_ESTADOS = {
+  approved:     { label: 'MP: pagado',            bg: '#e9f7ee', fg: '#2a7a47' },
+  pending:      { label: 'MP: pago en proceso',   bg: '#fff4e0', fg: '#9a5a12' },
+  in_process:   { label: 'MP: pago en proceso',   bg: '#fff4e0', fg: '#9a5a12' },
+  rejected:     { label: 'MP: pago rechazado',    bg: '#fdecea', fg: '#B71C1C' },
+  cancelled:    { label: 'MP: pago cancelado',    bg: '#fdecea', fg: '#B71C1C' },
+  refunded:     { label: 'MP: pago devuelto',     bg: '#fdecea', fg: '#B71C1C' },
+  charged_back: { label: 'MP: contracargo',       bg: '#fdecea', fg: '#B71C1C' },
+  pendiente:    { label: 'MP: sin pagar todavía', bg: 'var(--paper-100)', fg: 'var(--ink-500)' },
+};
+function EstadoPago({ order }) {
+  const P = window.VcorePrecios;
+  const chip = (e, title) => (
+    <div title={title} style={{ display: 'inline-block', marginTop: 4, marginLeft: 0, padding: '1px 7px', borderRadius: 4, background: e.bg, color: e.fg, fontSize: 10.5, fontWeight: 700 }}>
+      {e.label}
+    </div>
+  );
+  if (order.pagoMetodo === 'transferencia') {
+    if ((order.payments || []).length || order.status === 'anulado') return null;
+    return chip({ label: 'Transferencia: esperando comprobante', bg: '#fff4e0', fg: '#9a5a12' },
+      'El cliente eligió transferencia: el cobro se registra a mano cuando manda el comprobante');
+  }
+  if (!P.cobraPorMP(order.pagoMetodo)) return null;
+  const mp = order.mp || {};
+  let e = MP_ESTADOS[mp.estado] || MP_ESTADOS.pendiente;
+  let title = `${P.medioLabel(order.pagoMetodo)} · ` + (mp.paymentId ? `Pago ${mp.paymentId}${mp.detalle ? ' · ' + mp.detalle : ''}` : 'El cliente todavía no completó el pago');
+  if (order.pagoMetodo === 'efectivo' && (mp.estado === 'pending' || mp.estado === 'in_process')) {
+    e = { label: 'MP: cupón de efectivo sin pagar', bg: '#fff4e0', fg: '#9a5a12' };
+  }
+  if (mp.estado === 'approved' && mp.montoOk === false) {
+    e = { label: 'MP: monto distinto, revisar', bg: '#fdecea', fg: '#B71C1C' };
+    title = `Mercado Pago cobró ${fmt(mp.monto || 0)} y el pedido es de ${fmt(order.total || 0)}. No se confirmó solo.`;
+  }
+  return chip(e, title);
+}
+
 /* La sucursal se puede elegir o cambiar mientras el pedido no salió. */
 const puedeElegirSucursal = (o) => ['nuevo', 'confirmado', 'preparacion'].includes(o.status || 'nuevo');
 
@@ -1378,6 +1416,7 @@ function AdminOrders({ store }) {
                           </div>
                         )}
                         <FaltaParaEnvio order={o} />
+                        <EstadoPago order={o} />
                       </td>
                       <td style={{ fontSize: 12.5 }}>
                         {(o.items || []).length} línea{(o.items || []).length !== 1 ? 's' : ''} / {(o.items || []).reduce((s, i) => s + (Number(i.qty) || 0), 0)} u.

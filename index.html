@@ -31,6 +31,9 @@
 <div id="root"></div>
 <script>window.__VCORE_ASSET_BASE__ = '/assets/';</script>
 <script src="/config.js"></script>
+<!-- Meta Pixel (Facebook / Instagram): el ID va en config.js; sin ID no carga nada. -->
+<script src="/meta-pixel.js"></script>
+<script>MetaPixel.init((window.__VCORE_CONFIG__ || {}).metaPixelId);</script>
 <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>

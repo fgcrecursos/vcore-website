@@ -1,6 +1,6 @@
 /* Vcore website — CartDrawer with volume tiers, discount codes, shipping & WhatsApp checkout. */
 const React = window.React;
-const { useState } = React;
+const { useState, useRef, useEffect } = React;
 const { Button } = window.VcoreDesignSystem_8ff97c;
 const I = window.VcoreIcons;
 const D = window.VcoreData;
@@ -243,6 +243,17 @@ function saveOrder({ items, total, tier, tierSaving, codeApplied, codeSaving, su
       localStorage.setItem('vc-orders', JSON.stringify(orders));
     } catch {}
   }
+  return order;
+}
+
+/* Meta Pixel: el carrito en el formato que piden los eventos de compra. */
+function pixelContenidos(items) {
+  return {
+    content_type: 'product',
+    content_ids: [...new Set(items.map(it => it.product.id))],
+    contents: items.map(it => ({ id: it.product.id, quantity: it.qty, item_price: unitOf(it) })),
+    num_items: items.reduce((s, it) => s + it.qty, 0),
+  };
 }
 
 function CartDrawer({ open, items, onClose, onQty }) {
@@ -265,7 +276,15 @@ function CartDrawer({ open, items, onClose, onQty }) {
     if (!c.calle && !c.numero && c.address) c = { ...c, calle: c.address };
     return { provincia: 'Mendoza', ...c };
   });
+  /* Meta Pixel: el checkout empieza cuando el cliente se pone a cargar sus datos
+     (el carrito se abre solo al agregar, así que abrirlo no dice nada). */
+  const checkoutIniciado = useRef(false);
+  useEffect(() => { if (!open) checkoutIniciado.current = false; }, [open]);
   function setC(k, v) {
+    if (!checkoutIniciado.current && items.length) {
+      checkoutIniciado.current = true;
+      window.MetaPixel?.track('InitiateCheckout', { ...pixelContenidos(items), value: total });
+    }
     setCustomer(prev => {
       const next = { ...prev, [k]: v };
       try { localStorage.setItem('vc-customer', JSON.stringify(next)); } catch {}
@@ -332,8 +351,12 @@ function CartDrawer({ open, items, onClose, onQty }) {
       shippingOpt, shippingCost, total, customer,
       sucursal: ship === 'andreani' ? sucursal : null, sucursalACoordinar: ship === 'andreani' && !sucursal,
     });
-    saveOrder({ items, total, tier, tierSaving, codeApplied, codeSaving, subtotal, shippingOpt, shippingCost, customer,
+    const order = saveOrder({ items, total, tier, tierSaving, codeApplied, codeSaving, subtotal, shippingOpt, shippingCost, customer,
       sucursal: ship === 'andreani' ? sucursal : null });
+    /* Meta Pixel: el pedido enviado por WhatsApp cuenta como compra (el pago se
+       coordina después). El eventID es el número de pedido del panel. */
+    window.MetaPixel?.identificar({ email: customer.email, telefono: customer.phone });
+    window.MetaPixel?.track('Purchase', { ...pixelContenidos(items), value: total }, { eventID: order.id });
     const phone = (D.config && D.config.whatsapp) || '5491100000000';
     window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
   }

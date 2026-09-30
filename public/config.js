@@ -14,4 +14,8 @@ window.__VCORE_CONFIG__ = {
   // Cloudinary → Settings → Upload → Upload presets (unsigned)
   cloudinaryCloudName: 'dbmmvwezb',
   cloudinaryUploadPreset: 'vcore_unsigned',
+
+  // Meta → Administrador de eventos → el pixel de Vcore → ID (solo números).
+  // Vacío = sin pixel.
+  metaPixelId: '',
 };

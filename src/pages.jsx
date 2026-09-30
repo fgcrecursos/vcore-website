@@ -1287,6 +1287,15 @@ function Product({ product, onAdd, onOpen }) {
 
   useEffect(() => { setSize(p.sizes[0]); setQty(1); }, [p.id]);
 
+  /* Meta Pixel: una vista por producto. */
+  useEffect(() => {
+    const precios = (p.sizes || []).map(s => D.priceFor(p, s)).filter(n => n > 0);
+    window.MetaPixel?.track('ViewContent', {
+      content_type: 'product', content_ids: [p.id], content_name: p.name,
+      content_category: p.category, value: precios.length ? Math.min(...precios) : undefined,
+    });
+  }, [p.id]);
+
   /* relacionados: misma categoría primero, completar con el resto */
   const related = (() => {
     const all = D.products.filter(x => x.id !== p.id);

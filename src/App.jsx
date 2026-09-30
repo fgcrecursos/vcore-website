@@ -94,6 +94,11 @@ export default function App() {
   function addToCart(p, qty = 1, size) {
     const sz = size || p.sizes[0];
     const unitPrice = window.VcoreData.priceFor(p, sz);
+    window.MetaPixel?.track('AddToCart', {
+      content_type: 'product', content_ids: [p.id], content_name: p.name,
+      contents: [{ id: p.id, quantity: qty, item_price: unitPrice }],
+      value: unitPrice * qty,
+    });
     setCart(c => {
       const i = c.findIndex(it => it.product.id === p.id && it.size === sz);
       if (i >= 0) { const n = [...c]; n[i] = { ...n[i], qty: n[i].qty + qty }; return n; }

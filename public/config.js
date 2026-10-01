@@ -17,5 +17,5 @@ window.__VCORE_CONFIG__ = {
 
   // Meta → Administrador de eventos → el pixel de Vcore → ID (solo números).
   // Vacío = sin pixel.
-  metaPixelId: '',
+  metaPixelId: '1550827170179535',
 };

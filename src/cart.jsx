@@ -367,8 +367,8 @@ function CartDrawer({ open, items, onClose, onQty, onClear }) {
   useEffect(() => {
     if (!zonasCP) return;
     if (zonasCP.length === 0) setZona('otra');
-    else if (zonasCP.length === 1) setZona(zonasCP[0].id);
-    else if (!zonasCP.some(z => z.id === zona)) setZona('');
+    /* Varias: queda la elegida si es una de esas; si no, la primera (la principal del CP). */
+    else if (!zonasCP.some(z => z.id === zona)) setZona(zonasCP[0].id);
   }, [customer.postal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const subtotal = items.reduce((s, it) => s + unitOf(it) * it.qty, 0);

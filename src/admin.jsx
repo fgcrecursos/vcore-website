@@ -2152,7 +2152,7 @@ function AdminEnvios({ store }) {
     gratisSucursalDesde:  String(e.gratisSucursalDesde),
     gratisDomicilioDesde: String(e.gratisDomicilioDesde),
     costoSucursal:        String(e.costoSucursal),
-    zonas: e.zonas.map(z => ({ ...z, costo: String(z.costo) })),
+    zonas: e.zonas.map(z => ({ ...z, costo: String(z.costo), cps: (z.cps || []).join(', ') })),
   });
   const [form, setForm] = useState(() => aForm(actual));
   const [estado, setEstado] = useState(''); // '' | 'guardado' | mensaje de error
@@ -2170,7 +2170,7 @@ function AdminEnvios({ store }) {
     setForm(f => {
       const zonas = [...f.zonas];
       const iOtra = zonas.findIndex(z => z.id === 'otra');
-      zonas.splice(iOtra >= 0 ? iOtra : zonas.length, 0, { id: 'z-' + Date.now().toString(36), label: '', costo: '' });
+      zonas.splice(iOtra >= 0 ? iOtra : zonas.length, 0, { id: 'z-' + Date.now().toString(36), label: '', costo: '', cps: '' });
       return { ...f, zonas };
     });
     setEstado('');
@@ -2185,7 +2185,9 @@ function AdminEnvios({ store }) {
       const label = (z.label || '').trim(), costo = monto(z.costo);
       if (!label) { setEstado('Hay una zona sin nombre.'); return; }
       if (costo == null) { setEstado(`Falta el costo de "${label}".`); return; }
-      zonas.push({ id: z.id, label, costo });
+      /* Los CP se escriben separados por coma o espacio; quedan los de 4 números, sin repetir. */
+      const cps = z.id === 'otra' ? [] : [...new Set(String(z.cps || '').match(/\d{4}/g) || [])];
+      zonas.push({ id: z.id, label, costo, cps });
     }
     const envio = { gratisSucursalDesde: gs, gratisDomicilioDesde: gd, costoSucursal: cs, zonas };
     setBusy(true);
@@ -2240,12 +2242,17 @@ function AdminEnvios({ store }) {
         </div>
         <div className="adm-tblwrap">
           <table className="adm-tbl adm-tbl--tight">
-            <thead><tr><th>Zona</th><th style={{ width: 170 }}>Costo</th>{puedeEditar && <th style={{ width: 60 }}></th>}</tr></thead>
+            <thead><tr><th>Zona</th><th style={{ width: 210 }}>Códigos postales</th><th style={{ width: 170 }}>Costo</th>{puedeEditar && <th style={{ width: 60 }}></th>}</tr></thead>
             <tbody>
               {form.zonas.map((z, i) => (
                 <tr key={z.id}>
                   <td><div className="adm-field">
                     <input value={z.label} disabled={!puedeEditar} placeholder="Nombre de la zona" onChange={e => updateZona(i, 'label', e.target.value)} />
+                  </div></td>
+                  <td><div className="adm-field">
+                    {z.id === 'otra'
+                      ? <span className="adm-field__hint">Los que no están en otra zona</span>
+                      : <input value={z.cps} disabled={!puedeEditar} inputMode="numeric" placeholder="Ej. 5500, 5502" onChange={e => updateZona(i, 'cps', e.target.value)} />}
                   </div></td>
                   <td><div className="adm-field">{inputMonto(z.costo, v => updateZona(i, 'costo', v))}</div></td>
                   {puedeEditar && (
@@ -2265,7 +2272,8 @@ function AdminEnvios({ store }) {
             <button className="adm-btn adm-btn--outline" onClick={agregarZona}><IcoPlus size={14} /> Agregar zona</button>
           )}
           <span className="adm-field__hint">
-            “Resto de la provincia / país” no se puede quitar: es la que se usa cuando la clienta no encuentra su zona, y la que precarga el remito para envíos a domicilio.
+            Con el código postal que escribe la clienta, la tienda elige la zona sola; si un CP está en varias zonas (por ejemplo 5505, Luján Centro y Chacras), le deja elegir entre esas.
+            “Resto de la provincia / país” no se puede quitar: es la que se usa cuando el CP no está en ninguna zona, y la que precarga el remito para envíos a domicilio.
           </span>
         </div>
       </div>

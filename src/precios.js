@@ -27,17 +27,17 @@
     gratisDomicilioDesde: 280000,
     costoSucursal:        7500,
     zonas: [
-      { id: 'mendoza-ciudad',        label: 'Ciudad de Mendoza',                                    costo: 3000 },
-      { id: 'godoy-cruz',            label: 'Godoy Cruz',                                            costo: 3000 },
-      { id: 'las-heras',             label: 'Las Heras (Centro y El Plumerillo)',                    costo: 3500 },
-      { id: 'las-heras-algarrobal',  label: 'Las Heras (Algarrobal, Panquegua, Borbollón)',           costo: 4000 },
-      { id: 'guaymallen',            label: 'Guaymallén (Centro y Villanueva)',                      costo: 3500 },
-      { id: 'guaymallen-corralitos', label: 'Guaymallén (Corralitos, Rodeo de la Cruz, Corralitos)',  costo: 4000 },
-      { id: 'maipu',                 label: 'Maipú',                                                 costo: 3500 },
-      { id: 'lujan',                 label: 'Luján de Cuyo (Centro y Carrodilla)',                   costo: 4000 },
-      { id: 'lujan-chacras',         label: 'Luján de Cuyo (Chacras, Vistalba, Mayor Drummond)',      costo: 4500 },
-      { id: 'perdriel',              label: 'Perdriel',                                               costo: 4500 },
-      { id: 'otra',                  label: 'Resto de la provincia / país',                           costo: 8800 },
+      { id: 'mendoza-ciudad',        label: 'Ciudad de Mendoza',                                    costo: 3000, cps: ['5500', '5502'] },
+      { id: 'godoy-cruz',            label: 'Godoy Cruz',                                            costo: 3000, cps: ['5501', '5503', '5504', '5547'] },
+      { id: 'las-heras',             label: 'Las Heras (Centro y El Plumerillo)',                    costo: 3500, cps: ['5539', '5540', '5541', '5542'] },
+      { id: 'las-heras-algarrobal',  label: 'Las Heras (Algarrobal, Panquegua, Borbollón)',           costo: 4000, cps: ['5539', '5541'] },
+      { id: 'guaymallen',            label: 'Guaymallén (Centro y Villanueva)',                      costo: 3500, cps: ['5519', '5521', '5523', '5526'] },
+      { id: 'guaymallen-corralitos', label: 'Guaymallén (Corralitos, Rodeo de la Cruz, Corralitos)',  costo: 4000, cps: ['5525', '5527'] },
+      { id: 'maipu',                 label: 'Maipú',                                                 costo: 3500, cps: ['5511', '5513', '5515', '5516', '5517', '5522'] },
+      { id: 'lujan',                 label: 'Luján de Cuyo (Centro y Carrodilla)',                   costo: 4000, cps: ['5505', '5507'] },
+      { id: 'lujan-chacras',         label: 'Luján de Cuyo (Chacras, Vistalba, Mayor Drummond)',      costo: 4500, cps: ['5505', '5507', '5508', '5509', '5528', '5534'] },
+      { id: 'perdriel',              label: 'Perdriel',                                               costo: 4500, cps: ['5509', '5544'] },
+      { id: 'otra',                  label: 'Resto de la provincia / país',                           costo: 8800, cps: [] },
     ],
   };
 
@@ -46,7 +46,13 @@
     const e = (cfg && cfg.envio) || {};
     const d = ENVIO_DEFAULT;
     const num = (v, def) => (v !== '' && v != null && Number.isFinite(Number(v)) ? Number(v) : def);
-    const zonas = Array.isArray(e.zonas) && e.zonas.length ? e.zonas : d.zonas;
+    /* Una zona guardada antes de que existieran los códigos postales toma los
+       de fábrica de la zona con el mismo id. */
+    const zonas = (Array.isArray(e.zonas) && e.zonas.length ? e.zonas : d.zonas).map(z => {
+      if (Array.isArray(z.cps)) return z;
+      const fab = d.zonas.find(x => x.id === z.id);
+      return { ...z, cps: fab ? fab.cps : [] };
+    });
     return {
       gratisSucursalDesde:  num(e.gratisSucursalDesde,  d.gratisSucursalDesde),
       gratisDomicilioDesde: num(e.gratisDomicilioDesde, d.gratisDomicilioDesde),
@@ -57,6 +63,14 @@
   function zonaEnvio(zonaId, zonas) {
     const zs = zonas || ENVIO_DEFAULT.zonas;
     return zs.find(z => z.id === zonaId) || zs.find(z => z.id === 'otra');
+  }
+  /* Zonas que corresponden a un código postal (5500 o M5500ABC). null = CP
+     incompleto; [] = ninguna zona lo tiene, o sea "Resto de la provincia / país";
+     más de una = el CP abarca varias zonas y elige la clienta. */
+  function zonasPorCP(cp, zonas) {
+    const m = String(cp || '').trim().match(/^[a-z]?(\d{4})/i);
+    if (!m) return null;
+    return (zonas || ENVIO_DEFAULT.zonas).filter(z => z.id !== 'otra' && (z.cps || []).includes(m[1]));
   }
   /* Opciones de envío de la tienda, armadas con los montos de la config.
      `base` de 'home' es el default de la remitera manual (zona 'otra'). */
@@ -125,7 +139,7 @@
   const medioLabel = (id) => (MEDIOS_PAGO.find(m => m.id === id) || {}).label || '';
 
   g.VcorePrecios = {
-    TIERS, ENVIO_DEFAULT, envioDe, zonaEnvio, opcionesEnvio, costoEnvio, getTier, priceFor,
+    TIERS, ENVIO_DEFAULT, envioDe, zonaEnvio, zonasPorCP, opcionesEnvio, costoEnvio, getTier, priceFor,
     mapaCodigos, calcularPedido, MEDIOS_PAGO, cobraPorMP, medioLabel,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

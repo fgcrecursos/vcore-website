@@ -74,12 +74,12 @@ const CART_CSS = `
   text-transform: uppercase; color: var(--ink-500); margin-bottom: 8px; }
 
 /* shipping */
-.vc-ship-opts { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
-.vc-ship-opt { display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 12px; border: 1.5px solid var(--border-default); border-radius: var(--radius-md);
+.vc-ship-opts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-bottom: 0; }
+.vc-ship-opt { display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 2px;
+  padding: 7px 9px; border: 1.5px solid var(--border-default); border-radius: var(--radius-md);
   cursor: pointer; transition: border-color .15s, background .15s; }
 .vc-ship-opt.on { border-color: var(--green-500); background: var(--green-050); }
-.vc-ship-opt__name { font-weight: 600; font-size: 13.5px; color: var(--ink-800); }
+.vc-ship-opt__name { font-weight: 600; font-size: 12.5px; line-height: 1.25; color: var(--ink-800); }
 .vc-ship-opt__cost { font-family: var(--font-display); font-weight: 800; font-size: 13px; }
 .vc-ship-opt__cost.free { color: var(--green-600); }
 [data-theme="dark"] .vc-ship-opt__cost.free { color: var(--green-400); }
@@ -359,6 +359,18 @@ function CartDrawer({ open, items, onClose, onQty, onClear }) {
     });
   }
 
+  /* Zona de envío según el código postal: con los CP cargados en cada zona la
+     elige sola; si el CP abarca varias zonas deja elegir solo entre esas, y si
+     ninguna lo tiene es "Resto de la provincia / país". Se puede cambiar a mano. */
+  const zonasCP = D.zonasPorCP(customer.postal);
+  const zonasLista = zonasCP && zonasCP.length > 1 ? zonasCP : D.ZONAS_ENVIO;
+  useEffect(() => {
+    if (!zonasCP) return;
+    if (zonasCP.length === 0) setZona('otra');
+    else if (zonasCP.length === 1) setZona(zonasCP[0].id);
+    else if (!zonasCP.some(z => z.id === zona)) setZona('');
+  }, [customer.postal]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const subtotal = items.reduce((s, it) => s + unitOf(it) * it.qty, 0);
   /* La cuenta sale de precios.js: la misma que rehace el servidor antes de cobrar. */
   const calc = window.VcorePrecios.calcularPedido({
@@ -637,8 +649,8 @@ function CartDrawer({ open, items, onClose, onQty, onClear }) {
                 {ship === 'home' && (
                   <select className="vc-code-input" style={{ textTransform: 'none', letterSpacing: 0, width: '100%', marginTop: 7 }}
                     value={zona} onChange={e => setZona(e.target.value)}>
-                    <option value="">Elegí tu localidad</option>
-                    {D.ZONAS_ENVIO.map(z => <option key={z.id} value={z.id}>{z.label}</option>)}
+                    <option value="">{zonasLista !== D.ZONAS_ENVIO ? 'Tu CP abarca varias zonas: elegí la tuya' : 'Elegí tu localidad'}</option>
+                    {zonasLista.map(z => <option key={z.id} value={z.id}>{z.label}</option>)}
                   </select>
                 )}
                 {ship === 'andreani' && Selector && (

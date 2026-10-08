@@ -35,6 +35,8 @@ window.VcoreData = {
 
   zonaEnvio(zonaId, zonas = this.ZONAS_ENVIO) { return window.VcorePrecios.zonaEnvio(zonaId, zonas); },
 
+  zonasPorCP(cp, zonas = this.ZONAS_ENVIO) { return window.VcorePrecios.zonasPorCP(cp, zonas); },
+
   /* ── Datos para despachar con Andreani ─────────────────────────────────
      Andreani pide la dirección en partes (calle, número, piso/depto, localidad,
      provincia, CP), un teléfono del destinatario y el peso y las medidas del

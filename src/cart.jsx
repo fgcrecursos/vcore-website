@@ -25,8 +25,15 @@ const CART_CSS = `
   transform: translateX(100%); transition: transform .3s cubic-bezier(.4,0,.2,1);
   box-shadow: -8px 0 40px rgba(0,0,0,.18); }
 .vc-cart.open { transform: translateX(0); }
+/* El formulario del pedido vive en el pie y es más alto que la pantalla: todo
+   el carrito scrollea como una sola columna (antes solo scrolleaba la lista de
+   productos, que quedaba en 0 px, y el pie no se podía recorrer). El encabezado
+   queda fijo arriba y, con el carrito abierto, la página de atrás no se mueve. */
+.vc-cart { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+html:has(.vc-cart.open), html:has(.vc-cart.open) body { overflow: hidden; }
 .vc-cart__hd { display: flex; align-items: center; justify-content: space-between;
-  padding: 0 24px; height: 62px; border-bottom: 1px solid var(--paper-200); flex: none; }
+  padding: 0 24px; height: 62px; border-bottom: 1px solid var(--paper-200); flex: none;
+  position: sticky; top: 0; z-index: 2; background: var(--paper-050); }
 .vc-cart__title { font-family: var(--font-display); font-weight: 800; font-size: 20px;
   letter-spacing: -.01em; }
 .vc-cart__close { width: 36px; height: 36px; border-radius: 50%; border: 0;
@@ -50,7 +57,7 @@ const CART_CSS = `
 [data-theme="dark"] .vc-tier-labels span.on { color: var(--green-400); }
 
 /* items */
-.vc-cart__body { flex: 1; overflow-y: auto; padding: 0 24px; }
+.vc-cart__body { flex: 0 0 auto; padding: 0 24px; }
 .vc-line { display: flex; gap: 14px; padding: 18px 0; border-bottom: 1px solid var(--paper-200); }
 .vc-line:last-child { border-bottom: none; }
 .vc-line__img { width: 72px; height: 84px; border-radius: var(--radius-md); overflow: hidden; flex: none; }
@@ -99,6 +106,9 @@ const CART_CSS = `
   font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
   color: var(--ink-900); outline: none; }
 .vc-code-input:focus { border-color: var(--green-500); }
+/* En la grilla del formulario un input no se achica solo por debajo de su ancho
+   natural y desbordaba el carrito: se ajusta al ancho de su columna. */
+.vc-cart__ft .vc-code-input { min-width: 0; width: 100%; box-sizing: border-box; }
 .vc-code-feedback { font-size: 12px; font-weight: 700; margin: 0 0 12px; }
 .vc-code-feedback.ok { color: var(--green-700); }
 [data-theme="dark"] .vc-code-feedback.ok { color: var(--green-400); }

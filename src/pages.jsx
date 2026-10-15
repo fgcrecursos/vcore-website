@@ -260,7 +260,8 @@ const PAGE_CSS = `
 .vc-pcard__promo { position: absolute; top: 12px; left: 12px; z-index: 3; padding: 6px 11px;
   border-radius: 999px; background: var(--coral-500); color: #fff; font-size: 11.5px; font-weight: 800;
   letter-spacing: .06em; text-transform: uppercase; box-shadow: 0 6px 16px rgba(217,72,61,.35); }
-.vc-pcard--promo .vc-pc__price { color: var(--coral-600); }
+.vc-pcard--promo .vc-pc__price { color: var(--green-600); }
+[data-theme="dark"] .vc-pcard--promo .vc-pc__price { color: var(--green-400); }
 .vc-pc__antes { font-family: var(--font-body); font-weight: 600; font-size: 13px; color: var(--ink-500);
   margin-right: 8px; text-decoration-thickness: 1.5px; }
 .vc-rating { display: inline-flex; align-items: center; gap: 5px;
@@ -408,7 +409,8 @@ const PAGE_CSS = `
   letter-spacing: -.03em; line-height: .98; margin: 14px 0 6px; }
 .vc-pdp__sub { font-size: 20px; color: var(--ink-600); margin: 0 0 18px; font-weight: 500; }
 .vc-pdp__price { font-family: var(--font-display); font-weight: 800; font-size: 34px; margin: 0; }
-.vc-pdp__price--promo { color: var(--coral-600); }
+.vc-pdp__price--promo { color: var(--green-600); }
+[data-theme="dark"] .vc-pdp__price--promo { color: var(--green-400); }
 .vc-pdp__antes { font-family: var(--font-body); font-weight: 600; font-size: 18px; color: var(--ink-500);
   margin-right: 12px; text-decoration-thickness: 2px; }
 .vc-pdp__promo { display: inline-block; align-self: flex-start; width: fit-content; margin-bottom: 10px; padding: 6px 12px; border-radius: 999px;

@@ -133,6 +133,13 @@ html:has(.vc-cart.open), html:has(.vc-cart.open) body { overflow: hidden; }
 .vc-medio:first-child { border-top: 0; }
 .vc-medio:hover { background: var(--paper-100); }
 .vc-medio.on { background: var(--green-050); }
+/* En modo oscuro el --green-050 sigue siendo casi blanco y el texto es claro:
+   la opción elegida no se leía. Ahí va un verde translúcido sobre el fondo. */
+[data-theme="dark"] .vc-medio.on,
+[data-theme="dark"] .vc-ship-opt.on { background: rgba(55,167,105,.16); }
+[data-theme="dark"] .vc-miniqty button:hover { background: rgba(55,167,105,.16); }
+[data-theme="dark"] .vc-medio.on .vc-medio-radio { border-color: var(--green-400); }
+[data-theme="dark"] .vc-medio.on .vc-medio-radio::after { background: var(--green-400); }
 .vc-medio-radio { flex: none; width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--ink-400); position: relative; }
 .vc-medio.on .vc-medio-radio { border-color: var(--green-600); }
 .vc-medio.on .vc-medio-radio::after { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--green-600); }

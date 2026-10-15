@@ -424,6 +424,7 @@ const PAGE_CSS = `
   border: 1.5px solid var(--border-default); background: var(--surface-card);
   color: var(--ink-800); cursor: pointer; }
 .vc-opt button.on { border-color: var(--green-500); background: var(--green-050); color: var(--green-800); }
+[data-theme="dark"] .vc-opt button.on { background: rgba(55,167,105,.16); color: var(--green-300); }
 .vc-opt__price { display: block; font-weight: 800; font-size: 12px; color: var(--green-700);
   margin-top: 3px; }
 [data-theme="dark"] .vc-opt__price { color: var(--green-400); }

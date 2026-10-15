@@ -6,8 +6,15 @@ const I = window.VcoreIcons;
 const D = window.VcoreData;
 const ProductImage = window.VcoreProductImage;
 
-/* Precio unitario de una línea según la presentación elegida. */
-const unitOf = (it) => (it.unitPrice != null ? it.unitPrice : D.priceFor(it.product, it.size));
+/* Precio unitario de una línea según la presentación elegida. Se calcula en el
+   momento con el catálogo actual (y no con el precio guardado al agregarlo):
+   así una promo que venció, o que empezó, se refleja en un carrito viejo igual
+   que la cuenta que rehace el servidor antes de cobrar. */
+const unitOf = (it) => {
+  const actual = it.product && (D.products || []).find(p => p.id === it.product.id);
+  if (actual) return D.priceFor(actual, it.size);
+  return it.unitPrice != null ? it.unitPrice : D.priceFor(it.product, it.size);
+};
 
 const CART_CSS = `
 .vc-cart-ov { position: fixed; inset: 0; background: rgba(8,18,16,.5); z-index: 44;

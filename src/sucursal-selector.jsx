@@ -17,6 +17,7 @@ const CSS = `
   transition: border-color .15s, background .15s; }
 .vc-suc-opt:hover { border-color: var(--green-500); }
 .vc-suc-opt.on { border-color: var(--green-500); background: var(--green-050); }
+[data-theme="dark"] .vc-suc-opt.on { background: rgba(55,167,105,.16); }
 .vc-suc-radio { flex: none; width: 15px; height: 15px; margin-top: 2px; border-radius: 50%;
   border: 1.5px solid var(--border-default); position: relative; background: var(--surface-card); }
 .vc-suc-opt.on .vc-suc-radio { border-color: var(--green-600); }

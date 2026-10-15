@@ -34,7 +34,9 @@ const shippingDefaultFor = (tipo) => {
 };
 
 /* Listas de precios de los remitos manuales. El precio mayorista es opcional por
-   presentación: si no está cargado se usa el minorista (el de la tienda). */
+   presentación: si no está cargado se usa el minorista (el de la tienda). El
+   minorista es el vigente: si la presentación tiene una promo activa, la usa
+   igual que la tienda; el mayorista no cambia con las promos. */
 const LISTAS_PRECIO = [
   { id: 'minorista', label: 'Precio minorista' },
   { id: 'mayorista', label: 'Precio mayorista' },
@@ -42,7 +44,7 @@ const LISTAS_PRECIO = [
 const variantPriceFor = (v, lista) => {
   if (!v) return 0;
   if (lista === 'mayorista' && Number(v.priceMayorista) > 0) return Number(v.priceMayorista);
-  return Number(v.price) || 0;
+  return window.VcorePrecios.precioDe(v);
 };
 
 /* Tasa de descuento según el nombre del tramo. Se usa para RECALCULAR el monto

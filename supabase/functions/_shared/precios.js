@@ -95,13 +95,31 @@
     return [...TIERS].reverse().find(t => subtotal >= t.min) || TIERS[0];
   }
 
-  /* Precio para una presentación específica. */
+  /* ---------- Promociones ----------
+     Una presentación puede traer `pricePromo` y `promoHasta` (AAAA-MM-DD,
+     inclusive, en hora de Argentina). Mientras esté vigente, la tienda y el
+     cobro usan el precio promo; desde el día siguiente vuelve sola a `price`,
+     sin que nadie tenga que tocar nada. El mayorista no cambia. */
+  function hoyAR(ahora) {
+    return new Date((ahora == null ? Date.now() : ahora) - 3 * 3600 * 1000).toISOString().slice(0, 10);
+  }
+  function promoVigente(v, ahora) {
+    const promo = Number(v && v.pricePromo);
+    return promo > 0 && promo < Number(v.price)
+      && /^\d{4}-\d{2}-\d{2}$/.test(String(v.promoHasta || ''))
+      && hoyAR(ahora) <= v.promoHasta;
+  }
+  function precioDe(v, ahora) {
+    return promoVigente(v, ahora) ? Number(v.pricePromo) : (Number(v && v.price) || 0);
+  }
+
+  /* Precio para una presentación específica (con la promo, si está vigente). */
   function priceFor(product, sizeLabel) {
     const variants = (product.variants && product.variants.length)
       ? product.variants
       : [{ label: (product.sizes && product.sizes[0]) || 'Único', price: product.price }];
     const v = variants.find(x => x.label === sizeLabel) || variants[0];
-    return v ? v.price : (product.price || 0);
+    return v ? precioDe(v) : (product.price || 0);
   }
 
   /* Códigos activos como mapa { CODIGO: fracción }, a partir de las filas de `codes`. */
@@ -140,6 +158,6 @@
 
   g.VcorePrecios = {
     TIERS, ENVIO_DEFAULT, envioDe, zonaEnvio, zonasPorCP, opcionesEnvio, costoEnvio, getTier, priceFor,
-    mapaCodigos, calcularPedido, MEDIOS_PAGO, cobraPorMP, medioLabel,
+    hoyAR, promoVigente, precioDe, mapaCodigos, calcularPedido, MEDIOS_PAGO, cobraPorMP, medioLabel,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

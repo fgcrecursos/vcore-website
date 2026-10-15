@@ -252,6 +252,17 @@ const PAGE_CSS = `
 .vc-pc__price { font-family: var(--font-display); font-weight: 800; font-size: 20px; }
 .vc-pc__from { font-family: var(--font-body); font-weight: 600; font-size: 11px;
   color: var(--ink-500); letter-spacing: 0; }
+/* Promo con fecha de fin: la tarjeta se recorta en coral y lleva la cinta con
+   el último día. Cuando vence, p.promo deja de existir y vuelve a ser normal. */
+.vc-pcard--promo .vc-pcard__plate { box-shadow: 0 0 0 3px var(--coral-500), 0 18px 40px rgba(217,72,61,.22);
+  border-bottom-color: var(--coral-500); }
+.vc-pcard--promo:hover .vc-pcard__plate { box-shadow: 0 0 0 3px var(--coral-500), 0 26px 52px rgba(217,72,61,.30); }
+.vc-pcard__promo { position: absolute; top: 12px; left: 12px; z-index: 3; padding: 6px 11px;
+  border-radius: 999px; background: var(--coral-500); color: #fff; font-size: 11.5px; font-weight: 800;
+  letter-spacing: .06em; text-transform: uppercase; box-shadow: 0 6px 16px rgba(217,72,61,.35); }
+.vc-pcard--promo .vc-pc__price { color: var(--coral-600); }
+.vc-pc__antes { font-family: var(--font-body); font-weight: 600; font-size: 13px; color: var(--ink-500);
+  margin-right: 8px; text-decoration-thickness: 1.5px; }
 .vc-rating { display: inline-flex; align-items: center; gap: 5px;
   color: var(--ink-600); font-size: 13px; font-weight: 600; }
 .vc-rating svg { color: var(--warning-500); }
@@ -397,6 +408,12 @@ const PAGE_CSS = `
   letter-spacing: -.03em; line-height: .98; margin: 14px 0 6px; }
 .vc-pdp__sub { font-size: 20px; color: var(--ink-600); margin: 0 0 18px; font-weight: 500; }
 .vc-pdp__price { font-family: var(--font-display); font-weight: 800; font-size: 34px; margin: 0; }
+.vc-pdp__price--promo { color: var(--coral-600); }
+.vc-pdp__antes { font-family: var(--font-body); font-weight: 600; font-size: 18px; color: var(--ink-500);
+  margin-right: 12px; text-decoration-thickness: 2px; }
+.vc-pdp__promo { display: inline-block; align-self: flex-start; width: fit-content; margin-bottom: 10px; padding: 6px 12px; border-radius: 999px;
+  background: var(--coral-500); color: #fff; font-size: 12px; font-weight: 800; letter-spacing: .06em;
+  text-transform: uppercase; }
 .vc-pdp__blurb { font-size: 16.5px; line-height: 1.65; color: var(--ink-700);
   margin: 18px 0 26px; max-width: 460px; }
 .vc-opt { display: flex; gap: 10px; margin-bottom: 22px; }
@@ -541,6 +558,8 @@ const PAGE_CSS = `
   /* product card tighter */
   .vc-pc__name { font-size: 16px; margin-top: 12px; }
   .vc-pc__price { font-size: 17px; }
+  .vc-pcard__promo { top: 10px; left: 10px; padding: 5px 9px; font-size: 9.5px; letter-spacing: .04em; white-space: nowrap; }
+  .vc-pc__antes { font-size: 12px; margin-right: 6px; }
   .vc-pc__foot { flex-direction: column; align-items: stretch; gap: 10px; }
   .vc-pc__foot > button { width: 100%; }
 
@@ -667,11 +686,13 @@ function toneOf(p) {
 function ProductCard({ p, onOpen, onAdd }) {
   const linea = lineaOf(p.category);
   return (
-    <div className="vc-pcard" onClick={() => onOpen(p)}>
+    <div className={`vc-pcard${p.promo ? ' vc-pcard--promo' : ''}`} onClick={() => onOpen(p)}>
       <div className={`vc-pcard__plate vc-pcard__plate--${linea.id}`}>
         <ProductImage product={{ ...p, tone: linea.tone }} />
         <span className="vc-pcard__dot" title={linea.title} aria-label={`Línea ${linea.title}`} />
-        {p.badge && (
+        {p.promo ? (
+          <div className="vc-pcard__promo">Promo hasta el {D.promoHastaCorto(p.promo.hasta)}</div>
+        ) : p.badge && (
           <div style={{ position: 'absolute', top: 12, left: 12 }}>
             <Badge tone={linea.tone === 'amber' ? 'coral' : linea.tone} variant="solid">{p.badge}</Badge>
           </div>
@@ -682,7 +703,9 @@ function ProductCard({ p, onOpen, onAdd }) {
         <div className="vc-pc__sub">{p.sub}</div>
         <div className="vc-pc__foot">
           <span className="vc-pc__price">
-            {D.hasPriceRange(p) && <span className="vc-pc__from">Desde </span>}{D.fmt(p.price)}
+            {D.hasPriceRange(p) && <span className="vc-pc__from">Desde </span>}
+            {p.promo && <s className="vc-pc__antes" aria-label="Precio sin promoción">{D.fmt(p.promo.antes)}</s>}
+            {D.fmt(p.price)}
           </span>
           <Button size="sm" onClick={(e) => { e.stopPropagation(); onAdd(p); }}>Agregar</Button>
         </div>
@@ -1350,7 +1373,19 @@ function Product({ product, onAdd, onOpen }) {
           <div className="vc-pdp__sub" style={{ marginTop: 14 }}>{p.sub}</div>
           <Rating r={p.rating} n={p.reviews} />
           <p className="vc-pdp__blurb">{p.blurb}</p>
-          <p className="vc-pdp__price">{D.fmt(D.priceFor(p, size))}</p>
+          {(() => {
+            const v = p.variants.find(x => x.label === size) || p.variants[0];
+            const enPromo = v && window.VcorePrecios.promoVigente(v);
+            return (
+              <>
+                {enPromo && <div className="vc-pdp__promo">Promo hasta el {D.promoHastaCorto(v.promoHasta)}</div>}
+                <p className={`vc-pdp__price${enPromo ? ' vc-pdp__price--promo' : ''}`}>
+                  {enPromo && <s className="vc-pdp__antes" aria-label="Precio sin promoción">{D.fmt(v.price)}</s>}
+                  {D.fmt(D.priceFor(p, size))}
+                </p>
+              </>
+            );
+          })()}
 
           <div style={{ marginTop: 26, marginBottom: 10, fontSize: 11.5, fontWeight: 700,
             letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--ink-500)' }}>

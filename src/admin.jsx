@@ -344,6 +344,8 @@ fieldset.adm-fs { border: 0; margin: 0; padding: 0; min-width: 0; display: flex;
 .adm-var-del:disabled { opacity: .4; cursor: not-allowed; }
 .adm-var-add { margin-top: 10px; align-self: flex-start; }
 .adm-var-head--bulto, .adm-var-row--bulto { grid-template-columns: 1fr 90px 80px 80px 80px; }
+.adm-var-head--promo, .adm-var-row--promo { grid-template-columns: 1fr 120px 140px 36px; }
+.adm-var-row--promo .adm-cal__btn { width: 100%; justify-content: center; }
 
 /* remitera: filas de ítems */
 .adm-rem-head, .adm-rem-row { display: grid; grid-template-columns: 3fr 72px 130px 130px 30px;
@@ -505,6 +507,7 @@ fieldset.adm-fs { border: 0; margin: 0; padding: 0; min-width: 0; display: flex;
   .adm-field-row, .adm-field-row--3, .adm-field-row--4 { grid-template-columns: 1fr; }
   .adm-var-row, .adm-var-head { grid-template-columns: 1fr 90px 90px 36px; gap: 8px; }
   .adm-var-head--bulto, .adm-var-row--bulto { grid-template-columns: 1fr repeat(4, 64px); }
+  .adm-var-head--promo, .adm-var-row--promo { grid-template-columns: 1fr 90px 120px 36px; }
   .adm-rem-head { display: none; }
   .adm-rem-row { grid-template-columns: 1fr 60px 100px 30px; }
   .adm-rem-row__total { display: none; }
@@ -1074,7 +1077,7 @@ const CAL_ANCHO = 264, CAL_ALTO = 345, CAL_MARGEN = 10;
    El desplegable se monta en <body> (portal) y no al lado del botón: .adm-panel
    tiene `overflow: hidden` y la barra de filtros scrollea en pantallas chicas,
    así que ahí adentro el calendario aparecía cortado. */
-function CalendarioDia({ value, onChange }) {
+function CalendarioDia({ value, onChange, permitirFuturo = false, etiqueta = 'Un día' }) {
   const [abierto, setAbierto] = useState(false);
   const btn = useRef(null);
   const pop = useRef(null);
@@ -1136,7 +1139,8 @@ function CalendarioDia({ value, onChange }) {
     return [...Array(arranque).fill(null), ...Array.from({ length: largo }, (_, i) => i + 1)];
   }, [cursor]);
 
-  const sinFuturo = cursor.a > hoy.getFullYear() || (cursor.a === hoy.getFullYear() && cursor.m >= hoy.getMonth());
+  /* Para filtrar se elige un día que ya pasó; para una promo, uno que todavía no. */
+  const sinFuturo = !permitirFuturo && (cursor.a > hoy.getFullYear() || (cursor.a === hoy.getFullYear() && cursor.m >= hoy.getMonth()));
   const mover = paso => { const d = new Date(cursor.a, cursor.m + paso, 1); setCursor({ a: d.getFullYear(), m: d.getMonth() }); };
   const elegir = ymd => { onChange(ymd); setAbierto(false); };
 
@@ -1144,7 +1148,7 @@ function CalendarioDia({ value, onChange }) {
     <>
       <button ref={btn} type="button" className={`adm-fchip adm-cal__btn${value ? ' on' : ''}`} onClick={() => setAbierto(!abierto)} title="Elegir un día">
         <IcoCal size={13} />
-        {value ? dayLabelShort(value) : 'Un día'}
+        {value ? dayLabelShort(value) : etiqueta}
       </button>
 
       {abierto && window.ReactDOM.createPortal(
@@ -1165,7 +1169,7 @@ function CalendarioDia({ value, onChange }) {
                   key={ymd}
                   type="button"
                   className={`adm-cal__dia${ymd === value ? ' sel' : ''}${ymd === hoyYmd && ymd !== value ? ' hoy' : ''}`}
-                  disabled={ymd > hoyYmd}
+                  disabled={permitirFuturo ? ymd < hoyYmd : ymd > hoyYmd}
                   onClick={() => elegir(ymd)}
                 >{dia}</button>
               );
@@ -1427,6 +1431,8 @@ function productToVariants(p) {
         priceMayorista: v.priceMayorista != null ? v.priceMayorista : 0,
       };
       D.CAMPOS_BULTO.forEach(k => { row[k] = v[k] != null ? v[k] : ''; });
+      row.pricePromo = v.pricePromo != null ? v.pricePromo : '';
+      row.promoHasta = v.promoHasta || null;
       return row;
     });
   }
@@ -1476,10 +1482,19 @@ function ProductEditor({ product, onSave, onClose }) {
           priceMayorista: parseFloat(v.priceMayorista) || 0,
         };
         D.CAMPOS_BULTO.forEach(k => { if (parseFloat(v[k]) > 0) out[k] = parseFloat(v[k]); });
+        /* Promo: solo se guarda completa (precio + último día). */
+        if (parseFloat(v.pricePromo) > 0 && v.promoHasta) {
+          out.pricePromo = parseFloat(v.pricePromo);
+          out.promoHasta = v.promoHasta;
+        }
         return out;
       })
       .filter(v => v.label);
     if (!clean.length) { alert('Agregá al menos una presentación con su precio.'); return; }
+    const promoMal = variants.find(v => v.label && (parseFloat(v.pricePromo) > 0) !== !!v.promoHasta);
+    if (promoMal) { alert(`La promo de "${promoMal.label}" necesita el precio y el último día. Completá los dos o borrá la promo.`); return; }
+    const promoCara = clean.find(v => v.pricePromo != null && v.pricePromo >= v.price);
+    if (promoCara) { alert(`El precio promo de "${promoCara.label}" tiene que ser menor que el minorista.`); return; }
     const minPrice = Math.min(...clean.map(v => v.price));
     onSave({
       ...p,
@@ -1584,6 +1599,33 @@ function ProductEditor({ product, onSave, onClose }) {
               onClick={addVariant}>
               <IcoPlus size={13} /> Agregar presentación
             </button>
+          </div>
+
+          <div className="adm-field">
+            <label>Promoción</label>
+            <div className="adm-var-list">
+              <div className="adm-var-head adm-var-head--promo">
+                <span>Presentación</span><span>Precio promo ($)</span><span>Último día</span><span></span>
+              </div>
+              {variants.map((v, i) => (
+                <div className="adm-var-row adm-var-row--promo" key={i}>
+                  <span style={{ fontSize: 13, color: 'var(--ink-600)' }}>{v.label || '—'}</span>
+                  <input type="number" min={0} value={v.pricePromo ?? ''} placeholder="sin promo"
+                    onChange={e => setVariant(i, 'pricePromo', e.target.value)} />
+                  <CalendarioDia value={v.promoHasta} permitirFuturo etiqueta="Elegir día"
+                    onChange={dia => setVariant(i, 'promoHasta', dia)} />
+                  <button type="button" className="adm-var-del" aria-label="Quitar promo"
+                    disabled={!v.pricePromo && !v.promoHasta}
+                    onClick={() => { setVariant(i, 'pricePromo', ''); setVariant(i, 'promoHasta', null); }}>
+                    <IcoTrash size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <span className="adm-field__hint">
+              Hasta el último día inclusive, la tienda cobra el precio promo, tacha el minorista y
+              destaca la tarjeta. Al día siguiente vuelve sola al precio normal. El mayorista no cambia.
+            </span>
           </div>
 
           <div className="adm-field">

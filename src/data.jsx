@@ -181,6 +181,9 @@ window.VcoreData = {
           };
           /* Peso y medidas para el envío: solo si están cargados. */
           ['pesoG', 'altoCm', 'anchoCm', 'largoCm'].forEach(k => { if (Number(v[k]) > 0) out[k] = Number(v[k]); });
+          /* Promo con fecha de fin: se guarda aunque esté vencida (el panel la edita). */
+          if (Number(v.pricePromo) > 0) out.pricePromo = Number(v.pricePromo);
+          if (v.promoHasta) out.promoHasta = String(v.promoHasta);
           return out;
         })
         .filter(v => v.label);
@@ -189,8 +192,21 @@ window.VcoreData = {
       variants = sizes.map(label => ({ label: String(label).trim(), price: Number(p.price) || 0, priceMayorista: 0 }));
     }
     if (!variants.length) variants = [{ label: 'Único', price: Number(p.price) || 0, priceMayorista: 0 }];
-    const minPrice = Math.min(...variants.map(v => v.price));
-    return { ...p, variants, sizes: variants.map(v => v.label), price: minPrice };
+    /* `price` es el precio "desde" que se cobra hoy (con la promo vigente).
+       `promo` solo existe mientras dure: { antes, hasta } de la presentación
+       más barata, para tachar el precio normal y marcar la tarjeta. */
+    const P = window.VcorePrecios;
+    const vigentes = variants.map(v => P.precioDe(v));
+    const minPrice = Math.min(...vigentes);
+    const masBarata = variants[vigentes.indexOf(minPrice)];
+    const promo = P.promoVigente(masBarata) ? { antes: masBarata.price, hasta: masBarata.promoHasta } : null;
+    return { ...p, variants, sizes: variants.map(v => v.label), price: minPrice, promo };
+  },
+
+  /* "13/11" — el día en que termina una promo */
+  promoHastaCorto(ymd) {
+    const [, m, d] = String(ymd).split('-');
+    return `${Number(d)}/${Number(m)}`;
   },
 
   /* Catálogo visible (tienda) y completo (admin), normalizados */
@@ -426,7 +442,7 @@ window.VcoreData = {
   /* ¿Tiene presentaciones con precios distintos? */
   hasPriceRange(product) {
     if (!product.variants || product.variants.length < 2) return false;
-    const prices = product.variants.map(v => v.price);
+    const prices = product.variants.map(v => window.VcorePrecios.precioDe(v));
     return Math.min(...prices) !== Math.max(...prices);
   },
 

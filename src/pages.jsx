@@ -1058,7 +1058,7 @@ function HowToBuy() {
     { p: pick('glicinato-magnesio', 1), qty: 2 },
   ].filter(l => l.p);
   const total = lines.reduce((sum, l) => sum + l.p.price * l.qty, 0);
-  const wa = () => window.open(`https://wa.me/${(D.config && D.config.whatsapp) || '5491100000000'}?text=Hola!%20Quiero%20hacer%20un%20pedido`, '_blank');
+  const wa = () => window.open(`https://wa.me/${(D.config && D.config.whatsapp) || '5492615509004'}?text=Hola!%20Quiero%20hacer%20un%20pedido`, '_blank');
   const thumb = p => (p.photo ? <img src={p.photo} alt="" onLoad={window.VcoreFitPhoto} /> : <ProductImage product={p} />);
 
   return (
@@ -1616,7 +1616,7 @@ function AboutPage() {
             </p>
           </div>
           <Button size="lg"
-            onClick={() => window.open(`https://wa.me/${(D.config && D.config.whatsapp) || '5491100000000'}?text=Hola!%20Tengo%20una%20consulta`, '_blank')}
+            onClick={() => window.open(`https://wa.me/${(D.config && D.config.whatsapp) || '5492615509004'}?text=Hola!%20Tengo%20una%20consulta`, '_blank')}
             iconRight={<I.ArrowRight size={18} />}>
             Escribinos
           </Button>

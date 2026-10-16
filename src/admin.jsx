@@ -608,8 +608,8 @@ const STATUS_LABELS = { preparacion: 'en preparación' };
 const statusLabel = (s) => STATUS_LABELS[s] || s || 'nuevo';
 
 const CONFIG_DEFAULT = {
-  whatsapp: '5491100000000',
-  address: 'Buenos Aires, Argentina',
+  whatsapp: '5492615509004',
+  address: 'Marcos Sastre 985, Godoy Cruz – Mendoza, Argentina',
   instagram: 'https://instagram.com/vcorenutri',
   email: 'hola@vcore.com.ar',
   banco: '', alias: '', cuit: '', titular: '',
@@ -2358,14 +2358,14 @@ function AdminConfig({ store }) {
         <div className="adm-panel__hd"><h3>Datos del negocio</h3></div>
         <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div className="adm-field"><label>Número de WhatsApp</label>
-            <input value={cfg.whatsapp} onChange={f('whatsapp')} placeholder="5491100000000" />
+            <input value={cfg.whatsapp} onChange={f('whatsapp')} placeholder="5492615509004" />
             <span className="adm-field__hint">
               Formato: código de país + número sin espacios ni +. Ej: 5491123456789
             </span>
           </div>
           <div className="adm-field-row">
             <div className="adm-field"><label>Dirección</label>
-              <input value={cfg.address} onChange={f('address')} placeholder="Buenos Aires, Argentina" />
+              <input value={cfg.address} onChange={f('address')} placeholder="Marcos Sastre 985, Godoy Cruz – Mendoza, Argentina" />
             </div>
             <div className="adm-field"><label>Email de contacto</label>
               <input value={cfg.email} onChange={f('email')} placeholder="hola@vcore.com.ar" />

@@ -513,7 +513,7 @@ function CartDrawer({ open, items, onClose, onQty, onClear }) {
        coordina después). El eventID es el número de pedido del panel. */
     window.MetaPixel?.identificar({ email: customer.email, telefono: customer.phone });
     window.MetaPixel?.track('Purchase', { ...pixelContenidos(items), value: total }, { eventID: order.id });
-    const phone = (D.config && D.config.whatsapp) || '5491100000000';
+    const phone = (D.config && D.config.whatsapp) || '5492615509004';
     window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
   }
 
@@ -546,7 +546,7 @@ function CartDrawer({ open, items, onClose, onQty, onClear }) {
                 <div className="vc-transf__fila"><span>Pedido</span><strong>{pedidoTransferencia.id}</strong></div>
               </div>
               <a className="vc-wa-btn" style={{ textDecoration: 'none', marginTop: 16 }} target="_blank" rel="noopener noreferrer"
-                href={`https://wa.me/${(D.config && D.config.whatsapp) || '5491100000000'}?text=${encodeURIComponent(pedidoTransferencia.mensaje + `\n\n*Pago por transferencia* — pedido ${pedidoTransferencia.id}. Te adjunto el comprobante.`)}`}>
+                href={`https://wa.me/${(D.config && D.config.whatsapp) || '5492615509004'}?text=${encodeURIComponent(pedidoTransferencia.mensaje + `\n\n*Pago por transferencia* — pedido ${pedidoTransferencia.id}. Te adjunto el comprobante.`)}`}>
                 Enviar comprobante por WhatsApp
               </a>
             </div>
@@ -810,7 +810,7 @@ function PagoResultado() {
     : pendiente
       ? 'Mercado Pago está terminando de procesarlo (si elegiste efectivo, se acredita cuando pagues el cupón). Apenas se acredite, confirmamos tu pedido.'
       : 'No se hizo ningún cobro. Si querés, escribinos por WhatsApp y lo resolvemos.';
-  const phone = (D.config && D.config.whatsapp) || '5491100000000';
+  const phone = (D.config && D.config.whatsapp) || '5492615509004';
   return (
     <div className="vc-pago-ov" onClick={() => setInfo(null)}>
       <div className="vc-pago-card" onClick={e => e.stopPropagation()} role="dialog" aria-label={titulo}>

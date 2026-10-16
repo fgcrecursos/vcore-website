@@ -159,7 +159,7 @@ window.VcoreData = {
   /* Datos de contacto del negocio */
   get config() {
     if (this._backendOn && this._cache.config) return this._cache.config;
-    return _readLS('vc-config') || { whatsapp: '5491100000000', address: '', instagram: '', email: '' };
+    return _readLS('vc-config') || { whatsapp: '5492615509004', address: '', instagram: '', email: '' };
   },
 
   categories: ['Todo', 'Rendimiento', 'Recuperación', 'Vitaminas', 'Bienestar', 'Colágeno', 'Articulaciones'],

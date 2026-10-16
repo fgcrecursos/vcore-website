@@ -395,10 +395,28 @@ fieldset.adm-fs { border: 0; margin: 0; padding: 0; min-width: 0; display: flex;
   color: var(--text-brand); white-space: nowrap; }
 
 /* filas de pedido resaltadas por estado */
-.adm-tbl tr.row--nuevo td { background: var(--green-050); box-shadow: inset 3px 0 0 var(--green-500); }
-.adm-tbl tr.row--confirmado td { background: var(--paper-050); box-shadow: inset 3px 0 0 var(--green-700); }
+.adm-tbl tr.row--nuevo td { background: var(--green-050); }
+.adm-tbl tr.row--confirmado td { background: var(--paper-050); }
+/* la raya de estado va solo en la primera celda: en todas dibujaba una grilla */
+.adm-tbl tr.row--nuevo td:first-child { box-shadow: inset 3px 0 0 var(--green-500); }
+.adm-tbl tr.row--confirmado td:first-child { box-shadow: inset 3px 0 0 var(--green-700); }
 .adm-tbl tr.row--anulado td { opacity: .55; }
 .adm-tbl tr.row--sel td { background: var(--green-100) !important; }
+
+/* En modo oscuro --green-050/--green-100 siguen casi blancos y el texto es claro:
+   se usa el verde de marca translúcido, igual que en el carrito. */
+[data-theme="dark"] .adm-tbl tr.row--nuevo td { background: rgba(55,167,105,.10); }
+[data-theme="dark"] .adm-tbl tr.row--sel td { background: rgba(55,167,105,.22) !important; }
+[data-theme="dark"] .adm-alert { background: rgba(55,167,105,.12); }
+[data-theme="dark"] .adm-alert__t { color: var(--green-300); }
+[data-theme="dark"] .adm-alert__s { color: var(--ink-700); }
+[data-theme="dark"] .adm-statussel.on { background: rgba(55,167,105,.16); color: var(--green-300); }
+[data-theme="dark"] .adm-box--brand,
+[data-theme="dark"] .adm-combo__opt.on,
+[data-theme="dark"] .adm-split__item.on,
+[data-theme="dark"] .adm-perm.on,
+[data-theme="dark"] .adm-cal__nav:hover:not(:disabled),
+[data-theme="dark"] .adm-cal__dia:hover:not(:disabled) { background: rgba(55,167,105,.16); }
 
 /* selector de estado inline */
 .adm-statussel { padding: 4px 8px; font-size: 11.5px; border-radius: var(--radius-sm);

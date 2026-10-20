@@ -2386,7 +2386,7 @@ function AdminConfig({ store }) {
           <div className="adm-field"><label>Número de WhatsApp</label>
             <input value={cfg.whatsapp} onChange={f('whatsapp')} placeholder="5492615509004" />
             <span className="adm-field__hint">
-              Formato: código de país + número sin espacios ni +. Ej: 5491123456789
+              Formato: código de país + número sin espacios ni +. Ej: 5492615509004
             </span>
           </div>
           <div className="adm-field-row">

@@ -55,7 +55,7 @@ create table if not exists public.codes (
 -- ---------- CONFIGURACIÓN (fila única) --------------------------------------
 create table if not exists public.config (
   id         integer primary key default 1,
-  whatsapp   text default '5491100000000',
+  whatsapp   text default '5492615509004',
   address    text default '',
   instagram  text default '',
   email      text default '',

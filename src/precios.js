@@ -23,9 +23,9 @@
   /* Envío: valor de fábrica mientras config.envio no traiga el dato. La zona
      'otra' no se puede borrar: es a la que cae cualquier zona que ya no exista. */
   const ENVIO_DEFAULT = {
-    gratisSucursalDesde:  180000,
-    gratisDomicilioDesde: 280000,
-    costoSucursal:        7500,
+    gratisSucursalDesde:  200000,
+    gratisDomicilioDesde: 300000,
+    costoSucursal:        8800,
     zonas: [
       { id: 'mendoza-ciudad',        label: 'Ciudad de Mendoza',                                    costo: 3000 },
       { id: 'godoy-cruz',            label: 'Godoy Cruz',                                            costo: 3000 },
@@ -37,7 +37,7 @@
       { id: 'lujan',                 label: 'Luján de Cuyo (Centro y Carrodilla)',                   costo: 4000 },
       { id: 'lujan-chacras',         label: 'Luján de Cuyo (Chacras, Vistalba, Mayor Drummond)',      costo: 4500 },
       { id: 'perdriel',              label: 'Perdriel',                                               costo: 4500 },
-      { id: 'otra',                  label: 'Resto de la provincia / país',                           costo: 8800 },
+      { id: 'otra',                  label: 'Resto de la provincia / país',                           costo: 12000 },
     ],
   };
 

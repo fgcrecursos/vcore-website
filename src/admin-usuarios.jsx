@@ -45,14 +45,16 @@ function PermisosPicker({ rol, permisos, onChange }) {
   );
 }
 
-function UserEditor({ store, user, onClose }) {
-  const esNuevo = !user;
-  const [email, setEmail]       = useState((user && user.email) || '');
-  const [nombre, setNombre]     = useState((user && user.nombre) || '');
+/* `solicitud`: aprobar a alguien que se registró solo. La cuenta ya existe (con
+   la contraseña que eligió), así que no se pide contraseña: solo rol y permisos. */
+function UserEditor({ store, user, solicitud, onClose }) {
+  const esNuevo = !user && !solicitud;
+  const [email, setEmail]       = useState((user && user.email) || (solicitud && solicitud.email) || '');
+  const [nombre, setNombre]     = useState((user && user.nombre) || (solicitud && solicitud.nombre) || '');
   const [password, setPassword] = useState('');
   const [rol, setRol]           = useState((user && user.rol) || 'ventas');
   const [permisos, setPermisos] = useState(() => Array.isArray(user && user.permisos) ? user.permisos : []);
-  const [notas, setNotas]       = useState((user && user.notas) || '');
+  const [notas, setNotas]       = useState((user && user.notas) || (solicitud && solicitud.mensaje) || '');
   const [err, setErr]           = useState('');
   const [msg, setMsg]           = useState('');
   const [saving, setSaving]     = useState(false);
@@ -65,12 +67,14 @@ function UserEditor({ store, user, onClose }) {
 
   const rolInfo = window.VC_ROLE_INFO[rol];
   /* Un acceso total no puede ser degradado por otro: solo se ve. */
-  const esSuperadminAjeno = !esNuevo && user.rol === 'superadmin' &&
+  const esSuperadminAjeno = !!user && user.rol === 'superadmin' &&
     user.email !== (store.userEmail || '').toLowerCase();
 
   async function guardar() {
     setErr(''); setMsg(''); setSaving(true);
-    const res = esNuevo
+    const res = solicitud
+      ? await store.approveRequest(solicitud.email, { nombre, rol, permisos, notas })
+      : esNuevo
       ? await store.createUser({ email, password, nombre, rol, permisos })
       : await store.updateUser(user.email, { nombre, rol, permisos, notas });
     setSaving(false);
@@ -83,7 +87,8 @@ function UserEditor({ store, user, onClose }) {
     <div className="adm-modal-ov" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="adm-modal">
         <div className="adm-modal__hd">
-          <h3>{esNuevo ? 'Nuevo usuario' : `Editar — ${user.nombre || user.email}`}</h3>
+          <h3>{solicitud ? `Aprobar acceso — ${solicitud.nombre || solicitud.email}`
+            : esNuevo ? 'Nuevo usuario' : `Editar — ${user.nombre || user.email}`}</h3>
           <button className="adm-close" onClick={onClose}><IcoClose size={15} /></button>
         </div>
         <div className="adm-modal__body">
@@ -130,6 +135,13 @@ function UserEditor({ store, user, onClose }) {
             </div>
           )}
 
+          {solicitud && (
+            <div className="adm-box" style={{ fontSize: 12.5, color: 'var(--ink-600)', lineHeight: 1.5 }}>
+              Esta persona creó su cuenta desde la pantalla de ingreso. Al aprobar, entra al panel con su
+              email y la contraseña que eligió, con el rol y los permisos que marques acá.
+            </div>
+          )}
+
           {!esNuevo && (
             <div className="adm-field"><label>Notas internas</label>
               <textarea rows={2} value={notas} onChange={e => setNotas(e.target.value)}
@@ -141,7 +153,7 @@ function UserEditor({ store, user, onClose }) {
           <button className="adm-btn adm-btn--outline" onClick={onClose}>Cancelar</button>
           {!esSuperadminAjeno && (
             <button className="adm-btn adm-btn--primary" onClick={guardar} disabled={saving}>
-              {saving ? 'Guardando…' : esNuevo ? 'Crear usuario' : 'Guardar cambios'}
+              {saving ? 'Guardando…' : solicitud ? 'Aprobar acceso' : esNuevo ? 'Crear usuario' : 'Guardar cambios'}
             </button>
           )}
         </div>
@@ -152,9 +164,11 @@ function UserEditor({ store, user, onClose }) {
 
 function AdminUsuarios({ store }) {
   const [editing, setEditing] = useState(null);   // "__new" | email
+  const [aprobando, setAprobando] = useState(null);   // solicitud
   const [aviso, setAviso] = useState('');
 
   const users = store.users || [];
+  const solicitudes = store.requests || [];
   const miEmail = (store.userEmail || '').toLowerCase();
   const soySuperadmin = store.me && store.me.rol === 'superadmin';
   const editUser = editing && editing !== '__new' ? users.find(u => u.email === editing) : null;
@@ -174,6 +188,17 @@ function AdminUsuarios({ store }) {
     const res = await store.deleteUser(u.email);
     if (res && res.error) flash(res.error);
   }
+
+  /* Rechazar solo quita la solicitud: la cuenta de acceso sigue existiendo pero
+     sin permisos, así que esa persona ve "Acceso no habilitado" y puede volver
+     a pedirlo. */
+  async function rechazar(r) {
+    if (!confirm(`¿Rechazar la solicitud de ${r.nombre || r.email}? No va a poder entrar al panel.`)) return;
+    const res = await store.rejectRequest(r.email);
+    if (res && res.error) flash(res.error);
+  }
+
+  const fechaCorta = (ts) => new Date(ts).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
 
   const rolLabel = (id) => (window.VC_ROLE_INFO[id] || {}).label || id;
   /* Cantidad de permisos efectivos, para dar idea del alcance de cada usuario. */
@@ -205,6 +230,48 @@ function AdminUsuarios({ store }) {
       {!soySuperadmin && (
         <div className="adm-box" style={{ marginBottom: 14, fontSize: 12.5, color: 'var(--ink-500)' }}>
           Solo los usuarios con acceso total pueden guardar cambios acá. Vos podés consultar la lista.
+        </div>
+      )}
+
+      {solicitudes.length > 0 && (
+        <div className="adm-panel" style={{ marginBottom: 18 }}>
+          <div style={{ padding: '16px 20px 4px' }}>
+            <div className="adm-ccstat__l">Solicitudes de acceso</div>
+            <div style={{ fontSize: 12.5, color: 'var(--ink-500)', marginTop: 4 }}>
+              {solicitudes.length === 1
+                ? '1 persona creó su cuenta desde la pantalla de ingreso y espera que le asignes un rol.'
+                : `${solicitudes.length} personas crearon su cuenta desde la pantalla de ingreso y esperan que les asignes un rol.`}
+            </div>
+          </div>
+          <div className="adm-tblwrap">
+            <table className="adm-tbl">
+              <thead><tr><th>Persona</th><th>Email</th><th>Pidió</th><th></th></tr></thead>
+              <tbody>
+                {solicitudes.map(r => (
+                  <tr key={r.email}>
+                    <td>
+                      <div style={{ fontWeight: 700, fontSize: 13.5 }}>{r.nombre || '—'}</div>
+                      {r.mensaje && <div style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>{r.mensaje}</div>}
+                    </td>
+                    <td style={{ fontSize: 12.5 }}>{r.email}</td>
+                    <td style={{ fontSize: 12.5, color: 'var(--ink-500)', whiteSpace: 'nowrap' }}>{fechaCorta(r.created_at)}</td>
+                    <td>
+                      {soySuperadmin && (
+                        <div className="adm-actions">
+                          <button className="adm-btn adm-btn--primary adm-btn--sm" onClick={() => setAprobando(r)}>
+                            Aprobar
+                          </button>
+                          <button className="adm-btn adm-btn--outline adm-btn--sm" onClick={() => rechazar(r)}>
+                            Rechazar
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -268,6 +335,9 @@ function AdminUsuarios({ store }) {
       {editing && (
         <UserEditor store={store} user={editing === '__new' ? null : editUser}
           onClose={() => setEditing(null)} />
+      )}
+      {aprobando && (
+        <UserEditor store={store} solicitud={aprobando} onClose={() => setAprobando(null)} />
       )}
     </div>
   );

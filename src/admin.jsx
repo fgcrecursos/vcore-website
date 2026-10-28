@@ -450,6 +450,13 @@ fieldset.adm-fs { border: 0; margin: 0; padding: 0; min-width: 0; display: flex;
 .adm-login__inp:focus { border-color: var(--green-500); }
 .adm-login__hint { font-size: 12px; color: var(--ink-400); margin-top: 10px; }
 .adm-login__err { font-size: 12.5px; color: #B71C1C; margin-top: 10px; font-weight: 700; }
+.adm-login__ok { font-size: 13px; color: var(--ink-700); margin: 4px 0 0; line-height: 1.6; }
+.adm-login__stack { display: grid; gap: 10px; }
+.adm-login__stack textarea.adm-login__inp { height: auto; min-height: 70px; padding: 11px 14px; resize: vertical; }
+.adm-login__alt { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border-default);
+  font-size: 13px; color: var(--ink-500); text-align: center; }
+.adm-login__link { background: none; border: 0; padding: 0; font: inherit; font-weight: 800;
+  color: var(--text-brand); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 
 /* order detail */
 .adm-order-detail { padding: 0 24px 24px; }
@@ -482,6 +489,10 @@ fieldset.adm-fs { border: 0; margin: 0; padding: 0; min-width: 0; display: flex;
   border-radius: var(--radius-sm); background: var(--paper-050); cursor: pointer; }
 .adm-perm.on { background: var(--green-050); }
 .adm-perm.locked { opacity: .75; cursor: default; }
+/* El picker vive dentro de un .adm-field: sin esto hereda el rótulo en
+   mayúsculas y la casilla se estira al 100% como si fuera un input de texto. */
+.adm-field .adm-perm { font-size: inherit; font-weight: 400; letter-spacing: 0; text-transform: none; text-align: left; }
+.adm-field .adm-perm input[type="checkbox"] { width: auto; flex: none; padding: 0; margin-top: 3px; }
 .adm-perm__l { font-size: 12.5px; font-weight: 700; color: var(--ink-800); }
 .adm-perm__d { font-size: 11.5px; color: var(--ink-500); line-height: 1.4; }
 
@@ -651,6 +662,7 @@ function useAdminStore({ auth, userEmail }) {
   const [me, setMe] = useState(null);
   const [meLoading, setMeLoading] = useState(false);
   const [users, setUsers] = useState([]);
+  const [requests, setRequests] = useState([]);
 
   /* Espejo síncrono de los pedidos: las mutaciones encadenadas (guardar remito y
      acto seguido imprimir, pagos múltiples) necesitan leer el estado ya aplicado
@@ -735,9 +747,32 @@ function useAdminStore({ auth, userEmail }) {
     return list;
   }, []);
 
+  /* Solicitudes de acceso (registro propio desde la pantalla de ingreso). */
+  const reloadRequests = useCallback(async () => {
+    if (!backendOn()) return [];
+    const list = await BE().fetchRequests();
+    setRequests(list);
+    return list;
+  }, []);
+
   useEffect(() => {
-    if (me && window.vcEffectivePerms(me).includes('usuarios.gestionar')) reloadUsers();
-  }, [me, reloadUsers]);
+    if (me && window.vcEffectivePerms(me).includes('usuarios.gestionar')) { reloadUsers(); reloadRequests(); }
+    else setRequests([]);
+  }, [me, reloadUsers, reloadRequests]);
+
+  const approveRequest = useCallback(async (email, fields) => {
+    if (!backendOn()) return { error: 'La gestión de usuarios necesita el backend configurado.' };
+    const res = await BE().approveRequest(email, fields);
+    if (res.ok) await Promise.all([reloadUsers(), reloadRequests()]);
+    return res;
+  }, [reloadUsers, reloadRequests]);
+
+  const rejectRequest = useCallback(async (email) => {
+    if (!backendOn()) return { error: 'La gestión de usuarios necesita el backend configurado.' };
+    const res = await BE().deleteRequest(email);
+    if (res.ok) await reloadRequests();
+    return res;
+  }, [reloadRequests]);
 
   const createUser = useCallback(async (payload) => {
     if (!backendOn()) return { error: 'La gestión de usuarios necesita el backend configurado.' };
@@ -907,6 +942,7 @@ function useAdminStore({ auth, userEmail }) {
     addOrder, patchOrder, updateOrderStatus, deleteOrder,
     updateOrderRemito, updateOrderPayments, updateOrderCreditNotes, updateCustomerInfo,
     createUser, updateUser, deleteUser,
+    requests, reloadRequests, approveRequest, rejectRequest,
     saveProduct, deleteProduct, saveBanner, deleteBanner, saveCode, deleteCode, saveConfig, saveEnvio,
   };
 }
@@ -915,6 +951,7 @@ function useAdminStore({ auth, userEmail }) {
 function AdminLogin({ onAuth }) {
   injectAdmin();
   const secure = backendOn();
+  const [modo, setModo] = useState('ingreso');   // ingreso | registro
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
   const [err, setErr] = useState('');
@@ -929,13 +966,19 @@ function AdminLogin({ onAuth }) {
       try {
         await BE().login(email.trim(), pw);
         onAuth();
-      } catch {
-        setErr('Email o contraseña incorrectos');
+      } catch (e) {
+        setErr(/confirm/i.test((e && e.message) || '')
+          ? 'Todavía no confirmaste tu email: buscá el mail de confirmación en tu bandeja (y en spam).'
+          : 'Email o contraseña incorrectos');
       } finally { setBusy(false); }
     } else {
       if (pw === 'vcore2026') { sessionStorage.setItem('vc-admin', '1'); onAuth(); }
       else setErr('Contraseña incorrecta');
     }
+  }
+
+  if (modo === 'registro') {
+    return <AdminRegistro email={email} onEmail={setEmail} onVolver={() => { setModo('ingreso'); setErr(''); }} />;
   }
 
   return (
@@ -960,27 +1003,186 @@ function AdminLogin({ onAuth }) {
         </div>
         {err && <div className="adm-login__err">{err}</div>}
         {!secure && <div className="adm-login__hint">Modo demo · Contraseña: vcore2026</div>}
+        {secure && (
+          <div className="adm-login__alt">
+            ¿Trabajás en Vcore y no tenés cuenta?{' '}
+            <button className="adm-login__link" onClick={() => { setModo('registro'); setErr(''); }}>
+              Solicitar acceso
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* Registro propio: crea la cuenta y deja una solicitud. No da ningún permiso
+   hasta que un usuario con acceso total la apruebe desde Usuarios. */
+function AdminRegistro({ email, onEmail, onVolver }) {
+  const [nombre, setNombre]   = useState('');
+  const [pw, setPw]           = useState('');
+  const [pw2, setPw2]         = useState('');
+  const [mensaje, setMensaje] = useState('');
+  const [err, setErr]         = useState('');
+  const [busy, setBusy]       = useState(false);
+  const [listo, setListo]     = useState(false);
+
+  async function enviar() {
+    if (busy) return;
+    setErr('');
+    if (pw !== pw2) { setErr('Las contraseñas no coinciden.'); return; }
+    setBusy(true);
+    const res = await BE().requestAccess({ email, password: pw, nombre, mensaje });
+    setBusy(false);
+    if (res.error) { setErr(res.error); return; }
+    /* Sin confirmación de email, el alta ya deja la sesión abierta y el panel
+       pasa solo a la pantalla de "solicitud pendiente". */
+    if (res.needsConfirm) setListo(true);
+  }
+
+  const eyebrow = (
+    <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase',
+      color: 'var(--text-brand)' }}>Panel de administración</div>
+  );
+
+  if (listo) {
+    return (
+      <div className="adm-login">
+        <div className="adm-login__box">
+          {eyebrow}
+          <h2>Revisá tu mail</h2>
+          <p className="adm-login__ok">
+            Te mandamos un enlace a <strong>{email.trim().toLowerCase()}</strong> para confirmar la cuenta
+            (si no llega, buscalo en spam).
+          </p>
+          <p className="adm-login__ok">
+            Tu solicitud ya quedó registrada. Cuando un administrador la apruebe vas a poder entrar
+            con tu email y tu contraseña.
+          </p>
+          <button className="adm-btn adm-btn--primary" style={{ marginTop: 18, width: '100%', justifyContent: 'center' }}
+            onClick={onVolver}>Volver a ingresar</button>
+        </div>
+      </div>
+    );
+  }
+
+  const onKey = (e) => e.key === 'Enter' && enviar();
+  return (
+    <div className="adm-login">
+      <div className="adm-login__box">
+        {eyebrow}
+        <h2>Solicitar acceso</h2>
+        <div className="adm-login__stack">
+          <input className="adm-login__inp" type="text" placeholder="Nombre y apellido" autoComplete="name"
+            value={nombre} onChange={e => { setNombre(e.target.value); setErr(''); }} onKeyDown={onKey} autoFocus />
+          <input className="adm-login__inp" type="email" placeholder="Email" autoComplete="email"
+            value={email} onChange={e => { onEmail(e.target.value); setErr(''); }} onKeyDown={onKey} />
+          <input className="adm-login__inp" type="password" placeholder="Contraseña (mínimo 6 caracteres)"
+            autoComplete="new-password" value={pw} onChange={e => { setPw(e.target.value); setErr(''); }} onKeyDown={onKey} />
+          <input className="adm-login__inp" type="password" placeholder="Repetí la contraseña"
+            autoComplete="new-password" value={pw2} onChange={e => { setPw2(e.target.value); setErr(''); }} onKeyDown={onKey} />
+          <textarea className="adm-login__inp" rows={2} maxLength={500}
+            placeholder="¿En qué área trabajás? (opcional)"
+            value={mensaje} onChange={e => setMensaje(e.target.value)} />
+          <button className="adm-btn adm-btn--primary" onClick={enviar} disabled={busy}
+            style={{ height: 44, justifyContent: 'center' }}>
+            {busy ? 'Enviando…' : 'Crear cuenta y solicitar acceso'}
+          </button>
+        </div>
+        {err && <div className="adm-login__err">{err}</div>}
+        <div className="adm-login__hint">
+          Crear la cuenta no da acceso al panel: un administrador revisa la solicitud y te asigna los permisos.
+        </div>
+        <div className="adm-login__alt">
+          ¿Ya tenés cuenta?{' '}
+          <button className="adm-login__link" onClick={onVolver}>Ingresar</button>
+        </div>
       </div>
     </div>
   );
 }
 
 /* Sesión válida pero sin permisos cargados: la persona se autenticó, pero nadie
-   le dio acceso al panel todavía (o se lo dieron de baja). */
+   le dio acceso al panel todavía (o se lo dieron de baja). Si ya pidió acceso,
+   se le avisa que está pendiente; si no, puede pedirlo desde acá. */
 function AdminSinAcceso({ store, onLogout }) {
+  const [solicitud, setSolicitud] = useState(undefined);   // undefined = cargando · false = tabla no disponible
+  const [nombre, setNombre]       = useState('');
+  const [mensaje, setMensaje]     = useState('');
+  const [err, setErr]             = useState('');
+  const [busy, setBusy]           = useState(false);
+
+  useEffect(() => {
+    let vivo = true;
+    BE().fetchMyRequest(store.userEmail).then(r => { if (vivo) setSolicitud(r === undefined ? false : r); });
+    return () => { vivo = false; };
+  }, [store.userEmail]);
+
+  async function pedir() {
+    if (busy) return;
+    if (!nombre.trim()) { setErr('Completá tu nombre.'); return; }
+    setErr(''); setBusy(true);
+    const res = await BE().submitMyRequest(store.userEmail, { nombre, mensaje });
+    setBusy(false);
+    if (res.error) { setErr(res.error); return; }
+    const r = await BE().fetchMyRequest(store.userEmail);
+    setSolicitud(r || { email: store.userEmail, nombre, created_at: new Date().toISOString() });
+  }
+
+  const p = { fontSize: 13.5, color: 'var(--ink-500)', lineHeight: 1.6, margin: '0 0 8px' };
+  let cuerpo;
+  if (solicitud === undefined) {
+    cuerpo = <p style={{ ...p, margin: '14px 0 22px' }}>Cargando…</p>;
+  } else if (solicitud) {
+    const fecha = new Date(solicitud.created_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'long' });
+    cuerpo = (
+      <>
+        <h2 style={{ fontSize: 24, margin: '14px 0 10px' }}>Solicitud pendiente</h2>
+        <p style={p}>
+          Pediste acceso el {fecha} como <strong>{store.userEmail}</strong>. Un administrador tiene que
+          aprobarla y asignarte los permisos.
+        </p>
+        <p style={{ ...p, margin: '0 0 22px' }}>
+          Cuando esté aprobada, recargá esta página o volvé a entrar.
+        </p>
+      </>
+    );
+  } else {
+    cuerpo = (
+      <>
+        <h2 style={{ fontSize: 24, margin: '14px 0 10px' }}>Acceso no habilitado</h2>
+        <p style={p}>
+          Iniciaste sesión como <strong>{store.userEmail}</strong>, pero ese usuario todavía no tiene
+          permisos asignados en el panel.
+        </p>
+        {solicitud === false ? (
+          <p style={{ ...p, margin: '0 0 22px' }}>
+            Pedile a un administrador que te dé de alta en <strong>Usuarios</strong>.
+          </p>
+        ) : (
+          <div className="adm-login__stack" style={{ textAlign: 'left', margin: '16px 0 18px' }}>
+            <input className="adm-login__inp" type="text" placeholder="Nombre y apellido" autoComplete="name"
+              value={nombre} onChange={e => { setNombre(e.target.value); setErr(''); }} />
+            <textarea className="adm-login__inp" rows={2} maxLength={500}
+              placeholder="¿En qué área trabajás? (opcional)"
+              value={mensaje} onChange={e => setMensaje(e.target.value)} />
+            <button className="adm-btn adm-btn--primary" onClick={pedir} disabled={busy}
+              style={{ height: 44, justifyContent: 'center' }}>
+              {busy ? 'Enviando…' : 'Solicitar acceso'}
+            </button>
+            {err && <div className="adm-login__err" style={{ marginTop: 0 }}>{err}</div>}
+          </div>
+        )}
+      </>
+    );
+  }
+
   return (
     <div className="adm-login">
       <div className="adm-login__box" style={{ textAlign: 'center' }}>
         <IcoShield size={34} />
-        <h2 style={{ fontSize: 24, margin: '14px 0 10px' }}>Acceso no habilitado</h2>
-        <p style={{ fontSize: 13.5, color: 'var(--ink-500)', lineHeight: 1.6, margin: '0 0 8px' }}>
-          Iniciaste sesión como <strong>{store.userEmail}</strong>, pero ese usuario todavía no tiene
-          permisos asignados en el panel.
-        </p>
-        <p style={{ fontSize: 13.5, color: 'var(--ink-500)', lineHeight: 1.6, margin: '0 0 22px' }}>
-          Pedile a un administrador que te dé de alta en <strong>Usuarios</strong>.
-        </p>
-        <button className="adm-btn adm-btn--primary" onClick={onLogout}>Cerrar sesión</button>
+        {cuerpo}
+        <button className="adm-btn adm-btn--outline" onClick={onLogout}>Cerrar sesión</button>
       </div>
     </div>
   );
@@ -2493,7 +2695,7 @@ const NAV = [
   { id: 'cuenta',      label: 'Control de pagos', icon: IcoWallet },
   { id: 'facturacion', label: 'Facturación',      icon: IcoChart },
   { id: 'codes',       label: 'Descuentos',       icon: IcoTag },
-  { id: 'usuarios',    label: 'Usuarios',         icon: IcoShield },
+  { id: 'usuarios',    label: 'Usuarios',         icon: IcoShield, badge: 'solicitudes' },
   { id: 'config',      label: 'Configuración',    icon: IcoCog },
 ];
 
@@ -2584,6 +2786,7 @@ function AdminPage({ onExit }) {
               <Ic size={16} />
               {label}
               {badge === 'nuevos' && nuevos > 0 && <span className="adm-nav__badge">{nuevos}</span>}
+              {badge === 'solicitudes' && store.requests.length > 0 && <span className="adm-nav__badge">{store.requests.length}</span>}
             </button>
           ))}
         </nav>

@@ -411,6 +411,96 @@ const Backend = {
     return { ok: true };
   },
 
+  /* ── solicitudes de acceso (registro propio) ────────── */
+  /* La persona crea su cuenta desde la pantalla de ingreso. No recibe permisos:
+     el trigger vc_on_auth_signup (supabase/solicitudes-acceso-2026-10-28.sql)
+     deja la solicitud en vc_user_requests a partir de la metadata, y un
+     superadmin la aprueba o rechaza desde Usuarios.
+     Devuelve { needsConfirm } cuando Supabase exige confirmar el email (el alta
+     no trae sesión hasta que la persona hace clic en el mail). */
+  async requestAccess({ email, password, nombre, mensaje }) {
+    const c = sb(); if (!c) return { error: 'Backend no configurado' };
+    const mail = (email || '').trim().toLowerCase();
+    if (!(nombre || '').trim()) return { error: 'Completá tu nombre.' };
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) return { error: 'El email no tiene un formato válido.' };
+    if (!password || password.length < 6) return { error: 'La contraseña debe tener al menos 6 caracteres.' };
+
+    let data;
+    try {
+      const res = await c.auth.signUp({
+        email: mail, password,
+        options: {
+          data: { solicita_panel: true, nombre: nombre.trim().slice(0, 120), mensaje: (mensaje || '').trim().slice(0, 500) },
+          emailRedirectTo: window.location.origin + window.location.pathname + '#/admin',
+        },
+      });
+      if (res.error) {
+        if (/already|registered|exists/i.test(res.error.message)) {
+          return { error: 'Ya hay una cuenta con ese email. Ingresá con tu contraseña: si todavía no tenés acceso, desde ahí podés pedirlo.' };
+        }
+        return { error: explicarErrorAlta(res.error, 'No se pudo crear la cuenta') };
+      }
+      data = res.data;
+    } catch (e) {
+      return { error: explicarErrorAlta(e, 'No se pudo crear la cuenta') };
+    }
+    /* Con "Confirm email" activo, Supabase no revela si el email ya existía:
+       devuelve un usuario sin identidades y no manda nada. */
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      return { error: 'Ya hay una cuenta con ese email. Ingresá con tu contraseña: si todavía no tenés acceso, desde ahí podés pedirlo.' };
+    }
+    return { ok: true, needsConfirm: !data.session };
+  },
+  /* Solicitud propia (o null). undefined = la tabla no se pudo leer. */
+  async fetchMyRequest(email) {
+    const c = sb(); if (!c) return null;
+    const mail = (email || '').trim().toLowerCase();
+    const { data, error } = await c.from('vc_user_requests').select('*').eq('email', mail).maybeSingle();
+    if (error) { console.warn('[Vcore] vc_user_requests:', error.message); return undefined; }
+    return data || null;
+  },
+  /* Para quien ya tenía cuenta (o se registró antes de que existiera la tabla) y
+     entra sin permisos: pide acceso desde la pantalla de "Acceso no habilitado". */
+  async submitMyRequest(email, { nombre, mensaje }) {
+    const c = sb(); if (!c) return { error: 'Backend no configurado' };
+    const mail = (email || '').trim().toLowerCase();
+    const { error } = await c.from('vc_user_requests').upsert({
+      email: mail, nombre: (nombre || '').trim().slice(0, 120), mensaje: (mensaje || '').trim().slice(0, 500),
+    }, { onConflict: 'email', ignoreDuplicates: true });
+    if (error) {
+      console.error('[Vcore] submitMyRequest', error);
+      return { error: explicarErrorAlta(error, 'No se pudo enviar la solicitud') };
+    }
+    return { ok: true };
+  },
+  async fetchRequests() {
+    const c = sb(); if (!c) return [];
+    const { data, error } = await c.from('vc_user_requests').select('*').order('created_at', { ascending: true });
+    if (error) { console.warn('[Vcore] fetchRequests', error.message); return []; }
+    return data || [];
+  },
+  /* Aprobar = cargar la fila de permisos y recién después borrar la solicitud:
+     si lo segundo falla, la persona ya tiene acceso y la solicitud queda a la vista. */
+  async approveRequest(email, { nombre, rol, permisos, notas }) {
+    const c = sb(); if (!c) return { error: 'Backend no configurado' };
+    const mail = (email || '').trim().toLowerCase();
+    const { error: rowErr } = await c.from('vc_users').upsert({
+      email: mail, nombre: nombre || '', rol: rol || 'lectura',
+      permisos: permisos || [], notas: notas || '', activo: true,
+    }, { onConflict: 'email' });
+    if (rowErr) return { error: explicarErrorAlta(rowErr, 'No se pudo dar el acceso') };
+    const { error } = await c.from('vc_user_requests').delete().eq('email', mail);
+    if (error) return { ok: true, warning: 'El acceso quedó dado, pero la solicitud no se pudo quitar de la lista: ' + error.message };
+    return { ok: true };
+  },
+  async deleteRequest(email) {
+    const c = sb(); if (!c) return { error: 'Backend no configurado' };
+    const mail = (email || '').trim().toLowerCase();
+    const { error } = await c.from('vc_user_requests').delete().eq('email', mail);
+    if (error) return { error: 'No se pudo rechazar: ' + error.message };
+    return { ok: true };
+  },
+
   /* ── Cloudinary image upload (unsigned) ─────────────── */
   async uploadImage(file) {
     if (!this.cloudinaryOn()) throw new Error('Cloudinary no configurado');

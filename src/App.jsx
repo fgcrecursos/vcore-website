@@ -34,13 +34,8 @@ export default function App() {
   const [cartOpen, setCartOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [, setDataVersion] = useState(0);
-  const [theme, setTheme] = useState(() => {
-    try { return localStorage.getItem('vcore-theme') || 'light'; } catch (e) { return 'light'; }
-  });
-
-  useEffect(() => {
-    try { localStorage.setItem('vcore-theme', theme); } catch (e) {}
-  }, [theme]);
+  /* el sitio va siempre en modo oscuro */
+  const theme = 'dark';
 
   /* la URL (hash) es la fuente de verdad de la navegación */
   useEffect(() => {
@@ -78,8 +73,6 @@ export default function App() {
     window.addEventListener('vc:data-loaded', onData);
     return () => window.removeEventListener('vc:data-loaded', onData);
   }, []);
-
-  function toggleTheme() { setTheme(t => t === 'dark' ? 'light' : 'dark'); }
 
   const Header = window.VcoreHeader;
   const Footer = window.VcoreFooter;
@@ -157,7 +150,6 @@ export default function App() {
         cartCount={count}
         onOpenCart={() => setCartOpen(true)}
         theme={theme}
-        onToggleTheme={toggleTheme}
         onSearch={() => setSearchOpen(true)}
       />
 

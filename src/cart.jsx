@@ -556,7 +556,7 @@ function CartDrawer({ open, items, onClose, onQty, onClear }) {
 
         {!hasItems ? (
           <div className="vc-cart__empty">
-            <I.Bag size={48} />
+            <I.Cart size={48} />
             <div className="vc-cart__empty-title">Tu carrito está vacío</div>
             <div style={{ fontSize: 14 }}>Agregá suplementos para armar tu pedido.</div>
             <Button onClick={() => { onClose(); window.dispatchEvent(new CustomEvent('vc:nav', { detail: 'shop' })); }}>

@@ -14,6 +14,7 @@ function mk(paths, opts = {}) {
 
 const Icons = {
   Bag: mk('<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>'),
+  Cart: mk('<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>'),
   Search: mk('<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>'),
   Menu: mk('<path d="M4 12h16M4 6h16M4 18h16"/>'),
   ArrowRight: mk('<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>'),

@@ -26,18 +26,6 @@ const SITE_CSS = `
   display: inline-flex; align-items: center; justify-content: center; cursor: pointer; position: relative;
   transition: background var(--duration-fast) var(--ease-standard); }
 .vc-iconbtn:hover { background: var(--paper-100); }
-.vc-hd__theme {
-  display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px 0 12px;
-  margin-right: 4px; border-radius: var(--radius-pill); cursor: pointer;
-  border: 1.5px solid var(--border-default); background: transparent;
-  font-family: var(--font-display); font-weight: 700; font-size: 13.5px; letter-spacing: -.01em;
-  color: var(--ink-800);
-  transition: background var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
-}
-.vc-hd__theme:hover { border-color: var(--green-500); color: var(--green-700); background: var(--green-050); }
-.vc-hd__theme svg { display: block; }
-[data-theme="dark"] .vc-hd__theme { color: var(--ink-800); border-color: var(--paper-300); }
-[data-theme="dark"] .vc-hd__theme:hover { color: var(--green-400); border-color: var(--green-400); background: rgba(55,167,105,.12); }
 .vc-cart-count { position: absolute; top: 4px; right: 3px; min-width: 17px; height: 17px; padding: 0 4px;
   background: var(--green-500); color: #fff; border-radius: 999px; font-size: 10.5px; font-weight: 800;
   display: flex; align-items: center; justify-content: center; }
@@ -128,7 +116,7 @@ main:has(> .vc-band-outer:last-child) + .vc-ft { margin-top: 0; }
 @media (max-width: 860px) {
   .vc-wrap { padding: 0 18px; }
   .vc-hd__row { height: 60px; gap: 12px; }
-  .vc-hd__nav--desk, .vc-hd__theme--desk, .vc-hd__admin--desk, .vc-ss-pill { display: none; }
+  .vc-hd__nav--desk, .vc-ss-pill { display: none; }
   .vc-hd__act { gap: 2px; }
   .vc-hd__burger { display: inline-flex; }
   .vc-hd__menu { display: block; overflow: hidden; max-height: 0; transition: max-height .28s ease;
@@ -154,7 +142,7 @@ function injectSite() {
   }
 }
 
-function Header({ page, onNav, cartCount, onOpenCart, theme, onToggleTheme, onSearch }) {
+function Header({ page, onNav, cartCount, onOpenCart, theme, onSearch }) {
   injectSite();
   const dark = theme === 'dark';
   const [menuOpen, setMenuOpen] = useState(false);
@@ -174,14 +162,9 @@ function Header({ page, onNav, cartCount, onOpenCart, theme, onToggleTheme, onSe
         <div className="vc-hd__spacer" />
         <div className="vc-hd__act">
           <SomosSetasPill />
-          <button className="vc-hd__theme vc-hd__theme--desk" aria-label={dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'} title={dark ? 'Modo claro' : 'Modo oscuro'} onClick={onToggleTheme}>
-            {dark ? <I.Sun size={17} /> : <I.Moon size={17} />}
-            <span>{dark ? 'Claro' : 'Oscuro'}</span>
-          </button>
           <button className="vc-iconbtn" aria-label="Buscar" onClick={onSearch}><I.Search size={20} /></button>
-          <button className="vc-iconbtn vc-hd__admin--desk" aria-label="Admin" onClick={() => onNav('admin')}><I.User size={20} /></button>
           <button className="vc-iconbtn" aria-label="Carrito" onClick={onOpenCart}>
-            <I.Bag size={20} />
+            <I.Cart size={22} />
             {cartCount > 0 && <span className="vc-cart-count">{cartCount}</span>}
           </button>
           <button className="vc-iconbtn vc-hd__burger" aria-label="Menú"
@@ -201,13 +184,6 @@ function Header({ page, onNav, cartCount, onOpenCart, theme, onToggleTheme, onSe
               {label}
             </button>
           ))}
-          <div className="vc-hd__menu-sep" />
-          <button className="vc-hd__menu-link" onClick={() => go('admin')}>
-            <I.User size={18} /> Panel de administración
-          </button>
-          <button className="vc-hd__menu-link" onClick={() => { onToggleTheme(); }}>
-            {dark ? <I.Sun size={18} /> : <I.Moon size={18} />} {dark ? 'Modo claro' : 'Modo oscuro'}
-          </button>
           <div className="vc-hd__menu-sep" />
           <a className="vc-hd__menu-link vc-hd__menu-link--ss" href={SS_URL} target="_blank" rel="noopener">
             <img src={ssIso()} alt="" /> Somos Setas — hongos adaptógenos <ArrowOut />

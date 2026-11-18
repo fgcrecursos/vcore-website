@@ -108,6 +108,75 @@
     return v ? precioDe(v) : (product.price || 0);
   }
 
+  /* ---------- Promos por cantidad (llevás N, pagás M) ----------
+     Cada promo vale para un escalón (el tipo de cliente se decide por el monto
+     del pedido, igual que el descuento) y una lista de productos. Se cuenta por
+     presentación: 3 iguales del mismo producto y tamaño = 1 gratis (no se
+     mezclan tamaños con precios distintos). La unidad gratis vale su precio de
+     lista y el descuento del escalón se calcula después, sobre lo que queda.
+     `desde`/`hasta` = primer y último día (AAAA-MM-DD, hora de Argentina,
+     inclusive); null = sin límite. */
+  const PROMO_PRODUCTOS = ['bicarbonato-sodio', 'vitamina-c', 'vitamina-c-polvo'];
+  const PROMOS_CANTIDAD = [
+    { id: 'bicarb-vitc-3x2-mayorista',      tier: 'wholesale',   productos: PROMO_PRODUCTOS, lleva: 3, paga: 2, nombre: '3x2', desde: '2026-11-18', hasta: null },
+    { id: 'bicarb-vitc-5mas2-distribuidor', tier: 'distributor', productos: PROMO_PRODUCTOS, lleva: 7, paga: 5, nombre: '5+2', desde: '2026-11-18', hasta: null },
+  ];
+  function promoCantidadVigente(pr, hoy) {
+    const d = hoy || hoyAR();
+    return (!pr.desde || d >= pr.desde) && (!pr.hasta || d <= pr.hasta);
+  }
+  /* Promos vigentes de un producto para un escalón ('retail' | 'wholesale' | 'distributor'). */
+  function promosDeProducto(productId, tierId, hoy) {
+    return PROMOS_CANTIDAD.filter(pr => pr.tier === tierId && pr.productos.includes(productId) && promoCantidadVigente(pr, hoy));
+  }
+  /* Unidades gratis y ahorro. items: [{ productId, size, qty, price, name }] con
+     `price` = precio unitario de lista. */
+  function promosCantidad(items, tierId, hoy) {
+    const grupos = new Map();
+    (items || []).forEach(it => {
+      const qty = Math.floor(Number(it.qty)) || 0;
+      if (qty <= 0 || !it.productId) return;
+      const clave = it.productId + '|' + (it.size || '');
+      const g0 = grupos.get(clave);
+      if (g0) g0.qty += qty;
+      else grupos.set(clave, { productId: it.productId, size: it.size || '', qty, price: Number(it.price) || 0,
+        nombre: [it.name, it.size].filter(Boolean).join(' — ') });
+    });
+    const lineas = [];
+    grupos.forEach(g1 => {
+      const pr = promosDeProducto(g1.productId, tierId, hoy)[0];
+      if (!pr || !(g1.price > 0)) return;
+      const gratis = Math.floor(g1.qty / pr.lleva) * (pr.lleva - pr.paga);
+      if (gratis > 0) lineas.push({ ...g1, promoId: pr.id, promo: pr.nombre, gratis, ahorro: gratis * g1.price });
+    });
+    return { descAmt: lineas.reduce((a, l) => a + l.ahorro, 0), lineas };
+  }
+  /* La tabla `orders` no tiene columna para la promo: viaja dentro de los
+     ítems (jsonb). marcarPromo deja `promo` y `promoGratis` en el primer ítem de
+     cada grupo; promoDeItems la reconstruye al leer el pedido. */
+  function marcarPromo(items, lineas) {
+    const usados = new Set();
+    return (items || []).map(it => {
+      const clave = (it.productId || '') + '|' + (it.size || '');
+      const l = (lineas || []).find(x => x.productId + '|' + x.size === clave);
+      const limpio = { ...it };
+      delete limpio.promo; delete limpio.promoGratis;
+      if (!l || usados.has(clave)) return limpio;
+      usados.add(clave);
+      return { ...limpio, promo: l.promo, promoGratis: l.gratis };
+    });
+  }
+  function promoDeItems(items) {
+    const lineas = (items || []).filter(i => Number(i.promoGratis) > 0).map(i => ({
+      productId: i.productId || '', size: i.size || '', promo: i.promo || '',
+      nombre: [i.name, i.size].filter(Boolean).join(' — '),
+      gratis: Number(i.promoGratis), ahorro: Number(i.promoGratis) * (Number(i.price) || 0),
+    }));
+    return { descAmt: lineas.reduce((a, l) => a + l.ahorro, 0), lineas };
+  }
+  /* "Promo 3x2 Bicarbonato de Sodio — 500 g (1 gratis)" */
+  const detallePromo = (l) => `Promo ${l.promo}${l.nombre ? ' ' + l.nombre : ''} (${l.gratis} gratis)`;
+
   /* Códigos activos como mapa { CODIGO: fracción }, a partir de las filas de `codes`. */
   function mapaCodigos(filas) {
     const obj = {};
@@ -115,17 +184,20 @@
     return obj;
   }
 
-  /* La cuenta completa del carrito: escalón, código, envío y total. */
-  function calcularPedido({ subtotal, codigo, codigos, shippingId, zonaId, config }) {
+  /* La cuenta completa del carrito: promo por cantidad, escalón, código, envío y
+     total. items (opcional) = las líneas, para las promos por cantidad. */
+  function calcularPedido({ subtotal, codigo, codigos, shippingId, zonaId, config, items, hoy }) {
     const envio = envioDe(config);
     const tier = getTier(subtotal);
-    const tierSaving = Math.round(subtotal * tier.discount);
-    const afterTier = subtotal - tierSaving;
+    const promo = promosCantidad(items, tier.id, hoy);
+    const promoSaving = promo.descAmt;
+    const tierSaving = Math.round((subtotal - promoSaving) * tier.discount);
+    const afterTier = subtotal - promoSaving - tierSaving;
     const codeDiscount = codigo ? (codigos[codigo] || 0) : 0;
     const codeSaving = Math.round(afterTier * codeDiscount);
     const afterCode = afterTier - codeSaving;
     const shippingCost = costoEnvio(shippingId, subtotal, zonaId, envio);
-    return { envio, tier, tierSaving, afterTier, codeDiscount, codeSaving, afterCode, shippingCost, total: afterCode + shippingCost };
+    return { envio, tier, promo, promoSaving, tierSaving, afterTier, codeDiscount, codeSaving, afterCode, shippingCost, total: afterCode + shippingCost };
   }
 
   /* ---------- Medios de pago ----------
@@ -145,5 +217,6 @@
   g.VcorePrecios = {
     TIERS, ENVIO_DEFAULT, envioDe, zonaEnvio, opcionesEnvio, costoEnvio, getTier, priceFor,
     hoyAR, promoVigente, precioDe, mapaCodigos, calcularPedido, MEDIOS_PAGO, cobraPorMP, medioLabel,
+    PROMOS_CANTIDAD, promoCantidadVigente, promosDeProducto, promosCantidad, detallePromo, marcarPromo, promoDeItems,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

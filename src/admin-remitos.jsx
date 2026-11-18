@@ -57,6 +57,23 @@ const tierRateFromName = (name) => {
   return t ? (Number(t.discount) || 0) : 0;
 };
 
+/* Promo por cantidad (3x2, 5+2) de las líneas de un remito. El escalón sale del
+   tramo del pedido web (Mayorista / Distribuidor); en un remito manual sin tramo,
+   la lista mayorista cuenta como Mayorista. La fecha es la del pedido, así
+   editar un remito viejo no le agrega ni le saca la promo. Solo cuentan las
+   líneas que salieron del catálogo (tienen productId). */
+function promoDeRemito(items, tierName, lista, ts) {
+  const n = searchNormalize(String(tierName || '').trim());
+  const t = D.tiers.find(x => searchNormalize(x.label) === n && x.discount > 0);
+  const tierId = t ? t.id : (lista === 'mayorista' ? 'wholesale' : 'retail');
+  const lineas = (items || []).filter(i => String(i.desc || '').trim() !== '').map(i => ({
+    productId: i.productId, size: i.size || '', qty: Number(i.cant) || 0,
+    price: Number(i.unitario) || 0, name: i.desc || '',
+  }));
+  const P = window.VcorePrecios;
+  return P.promosCantidad(lineas, tierId, P.hoyAR(ts || Date.now()));
+}
+
 /* Clasifica el tipo de cliente de un pedido según su subtotal (mismos tramos que
    la tienda), para filtrar el listado y desglosar la facturación. */
 function tipoClienteDe(o) {
@@ -120,7 +137,7 @@ function buildRemitoTableHtml(r) {
     numero, fecha, cliente, dni, items, descuentoMode, descuentoPct, descuentoFijo,
     subtotal, totalCant, logoUrl, loteGlobal, entregaTipo, shippingCost,
     datosDespacho, domicilioEntrega, tierName, couponDiscAmt, couponCode,
-    creditAplicado, cfg,
+    creditAplicado, cfg, promoLineas,
   } = r;
   const conf = cfg || {};
 
@@ -139,11 +156,15 @@ function buildRemitoTableHtml(r) {
 
   /* Descuento de TRAMO recalculado desde el subtotal actual. */
   const sub = Number(subtotal) || 0;
-  const tierAmt = Math.round(sub * tierRateFromName(tierName));
-  const tierPctCalc = sub ? Math.round(tierAmt / sub * 100) : 0;
+  /* Promo por cantidad (3x2, 5+2): primero, y el tramo va sobre lo que queda. */
+  const promoLs = Array.isArray(promoLineas) ? promoLineas : [];
+  const promoAmt = promoLs.reduce((a, l) => a + (Number(l.ahorro) || 0), 0);
+  const tierAmt = Math.round((sub - promoAmt) * tierRateFromName(tierName));
+  const tierPctCalc = tierAmt > 0 ? Math.round(tierRateFromName(tierName) * 100) : 0;
 
-  /* Cada concepto va en su propia línea: tramo, cupón, descuento manual y crédito. */
+  /* Cada concepto va en su propia línea: promo, tramo, cupón, descuento manual y crédito. */
   const discountLines = [];
+  promoLs.forEach(l => discountLines.push({ label: window.VcorePrecios.detallePromo(l).toUpperCase(), amount: Number(l.ahorro) || 0 }));
   if (tierAmt > 0) {
     const pctStr = tierPctCalc ? ` (${tierPctCalc}%)` : '';
     discountLines.push({ label: `DESCUENTO ${String(tierName || '').toUpperCase()}${pctStr}`.trim(), amount: tierAmt });
@@ -165,7 +186,7 @@ function buildRemitoTableHtml(r) {
   if (creditAmt > 0) discountLines.push({ label: 'NOTA DE CRÉDITO A FAVOR', amount: creditAmt });
 
   const shipForTotal = isFreeDelivery(entregaTipo) ? 0 : (Number(shippingCost) || 0);
-  const totalCalc = sub - tierAmt - (Number(couponDiscAmt) || 0) - manualAmt - creditAmt + shipForTotal;
+  const totalCalc = sub - promoAmt - tierAmt - (Number(couponDiscAmt) || 0) - manualAmt - creditAmt + shipForTotal;
 
   const envioLabel = entregaTipo === 'domicilio' ? 'ENVÍO A DOMICILIO'
     : entregaTipo === 'local' ? 'RETIRO EN LOCAL'
@@ -278,6 +299,7 @@ function buildRemitoFromOrder(order, allOrders, cfg) {
     cant: Number(i.qty) || 0,
     unitario: Number(i.price) || 0,
     lote: '',
+    productId: i.productId || '', size: i.size || '',
   }));
 
   const subtotal = order.subtotal != null
@@ -291,7 +313,7 @@ function buildRemitoFromOrder(order, allOrders, cfg) {
   const shippingAmt   = isFreeDelivery(entregaTipo) ? 0 : shippingCost;
   const total = order.total != null
     ? Number(order.total)
-    : subtotal - tierDiscAmt - couponDiscAmt + shippingAmt;
+    : subtotal - (Number(order.promoDescAmt) || 0) - tierDiscAmt - couponDiscAmt + shippingAmt;
 
   const base = {
     numero, fecha,
@@ -300,6 +322,7 @@ function buildRemitoFromOrder(order, allOrders, cfg) {
     ciudad: order.customerCity || '', cp: order.customerPostalCode || '',
     items,
     descuentoMode: 'pct', descuentoPct: 0, descuentoFijo: 0,
+    promoDescAmt: Number(order.promoDescAmt) || 0, promoLineas: order.promoLineas || [],
     tierDiscAmt, tierName: order.tierName || '',
     couponDiscAmt, couponCode: order.couponCode || '',
     subtotal, total,
@@ -647,7 +670,10 @@ function RemitoModal({ store, onClose, order, readOnly = false }) {
 
   /* ── cálculo de totales ── */
   const subtotal = items.reduce((s, i) => s + (Number(i.cant) || 0) * (Number(i.unitario) || 0), 0);
-  const tierDiscAmt = Math.round(subtotal * tierRateFromName(tierName));
+  /* Promo por cantidad (3x2, 5+2); el tramo se aplica sobre lo que queda. */
+  const promo = promoDeRemito(items, tierName, lista, order && order.ts);
+  const promoDescAmt = promo.descAmt;
+  const tierDiscAmt = Math.round((subtotal - promoDescAmt) * tierRateFromName(tierName));
   const manualDiscAmt = appliedMode === 'fijo'
     ? Math.min(Number(appliedFijo) || 0, subtotal)
     : Math.round(subtotal * (Number(appliedPct) || 0) / 100);
@@ -656,14 +682,14 @@ function RemitoModal({ store, onClose, order, readOnly = false }) {
     Number(descuentoPct) !== Number(appliedPct) ||
     Number(descuentoFijo) !== Number(appliedFijo);
 
-  const discAmt = tierDiscAmt + Number(couponDiscAmt) + manualDiscAmt;
+  const discAmt = promoDescAmt + tierDiscAmt + Number(couponDiscAmt) + manualDiscAmt;
   const shippingAmt = isFreeDelivery(entregaTipo) ? 0 : (Number(shippingCost) || 0);
   const totalBeforeCredit = subtotal - discAmt + shippingAmt;
   const creditMax  = Math.min(Number(creditPool) || 0, Math.max(totalBeforeCredit, 0));
   const creditUsed = Math.min(Math.max(Number(creditAplicado) || 0, 0), creditMax);
   const total = totalBeforeCredit - creditUsed;
   const totalCant = items.reduce((s, i) => s + (Number(i.cant) || 0), 0);
-  const tierPct = (tierDiscAmt && subtotal) ? Math.round(tierDiscAmt / subtotal * 100) : 0;
+  const tierPct = tierDiscAmt > 0 ? Math.round(tierRateFromName(tierName) * 100) : 0;
 
   /* ── ítems ── */
   const addItem = () => setItems(prev => [...prev, { id: Date.now().toString(), desc: '', cant: 1, unitario: 0, lote: '' }]);
@@ -708,6 +734,7 @@ function RemitoModal({ store, onClose, order, readOnly = false }) {
     descuentoMode: appliedMode,
     descuentoPct: Number(appliedPct) || 0,
     descuentoFijo: Number(appliedFijo) || 0,
+    promoDescAmt, promoLineas: promo.lineas,
     tierDiscAmt, tierName, tierPct,
     couponDiscAmt: Number(couponDiscAmt) || 0, couponCode,
     loteGlobal, entregaTipo, shippingCost: Number(shippingCost) || 0,
@@ -717,11 +744,11 @@ function RemitoModal({ store, onClose, order, readOnly = false }) {
   });
 
   /* Ítems del remito en el formato que usa el resto del panel. */
-  const orderItemsFromRemito = () => cleanItems().map(i => ({
+  const orderItemsFromRemito = () => window.VcorePrecios.marcarPromo(cleanItems().map(i => ({
     name: i.desc || '—', sub: '', size: i.size || '',
     productId: i.productId || '',
     price: Number(i.unitario) || 0, qty: Number(i.cant) || 0,
-  }));
+  })), promo.lineas);
 
   const shippingLabel = () => {
     if (isFreeDelivery(entregaTipo)) return ENTREGA_LABEL[entregaTipo];
@@ -740,6 +767,7 @@ function RemitoModal({ store, onClose, order, readOnly = false }) {
          el listado y las estadísticas reflejan cualquier edición. */
       items: orderItemsFromRemito(),
       subtotal: cleanSubtotal(),
+      promoDescAmt, promoLineas: promo.lineas,
       summary: cleanItems().map(i => `${i.desc} ×${i.cant}`).join(', '),
     };
 
@@ -995,6 +1023,11 @@ function RemitoModal({ store, onClose, order, readOnly = false }) {
             <div className="adm-rem-totals">
               <div className="adm-rem-totals__lines">
                 <div>Subtotal: {fmt(subtotal)}</div>
+                {promo.lineas.map(l => (
+                  <div key={l.productId + l.size} style={{ color: '#B71C1C' }}>
+                    {window.VcorePrecios.detallePromo(l)}: − {fmt(l.ahorro)}
+                  </div>
+                ))}
                 {tierDiscAmt > 0 && (
                   <div style={{ color: '#B71C1C' }}>
                     Descuento {tierName}{tierPct ? ` (${tierPct}%)` : ''}: − {fmt(tierDiscAmt)}

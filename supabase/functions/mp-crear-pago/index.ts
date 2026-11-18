@@ -78,6 +78,8 @@ Deno.serve(async (req) => {
 
   let subtotal = 0;
   const detalle: string[] = [];
+  // Las líneas con el precio real, para las promos por cantidad (3x2, 5+2).
+  const lineas: { productId: string; size: string; qty: number; price: number }[] = [];
   for (const item of o.items || []) {
     const prod = (prods.data || []).find((p: { id: string }) => p.id === item.productId);
     const existe = prod && prod.visible !== false &&
@@ -85,7 +87,9 @@ Deno.serve(async (req) => {
     if (!existe) return json({ error: `"${item.name || item.productId}" ya no está disponible. Actualizá el carrito.` }, 409);
     const qty = Math.floor(Number(item.qty));
     if (!(qty >= 1 && qty <= 999)) return json({ error: "Cantidad inválida en el pedido." }, 400);
-    subtotal += P.priceFor(prod, item.size) * qty;
+    const precio = P.priceFor(prod, item.size);
+    subtotal += precio * qty;
+    lineas.push({ productId: item.productId, size: item.size || "", qty, price: precio });
     detalle.push(`${qty}× ${prod.name} ${item.size || ""}`.trim());
   }
   if (!detalle.length) return json({ error: "El pedido no tiene productos." }, 400);
@@ -99,6 +103,7 @@ Deno.serve(async (req) => {
     shippingId: o.mp?.envio?.shippingId || ENVIO_DE_ENTREGA[o.entrega_tipo] || "andreani",
     zonaId: o.mp?.envio?.zonaId || "",
     config: cfg.data,
+    items: lineas,
   });
   if (!(calc.total > 0)) return json({ error: "El total del pedido es inválido." }, 400);
   if (Math.abs(calc.total - Number(o.total)) > 1) {

@@ -64,6 +64,10 @@ html:has(.vc-cart.open), html:has(.vc-cart.open) body { overflow: hidden; }
 .vc-line__img .vc-pimg { border-radius: 0; height: 100%; aspect-ratio: auto; }
 .vc-line__name { font-family: var(--font-display); font-weight: 800; font-size: 16px; margin: 0 0 2px; }
 .vc-line__meta { font-size: 12.5px; color: var(--ink-500); margin: 0 0 10px; }
+.vc-line__promo { font-size: 12px; font-weight: 700; color: var(--green-600); margin: -6px 0 10px; line-height: 1.4; }
+[data-theme="dark"] .vc-line__promo { color: var(--green-400); }
+.vc-promo-chip { display: inline-block; background: var(--coral-500, #E8664A); color: #fff; font-size: 10.5px;
+  font-weight: 800; letter-spacing: .04em; padding: 2px 7px; border-radius: 999px; margin-right: 6px; vertical-align: 1px; }
 .vc-line__row { display: flex; align-items: center; justify-content: space-between; }
 .vc-line__price { font-family: var(--font-display); font-weight: 800; font-size: 15px; }
 .vc-miniqty { display: inline-flex; align-items: center; gap: 10px;
@@ -220,7 +224,29 @@ function TierProgress({ subtotal }) {
   );
 }
 
-function buildWAMsg({ items, tier, codeApplied, codeDiscount, subtotal, tierSaving, codeSaving, shippingOpt, shippingCost, total, customer, sucursal, sucursalACoordinar, medio }) {
+/* Líneas del carrito como las pide precios.js para las promos por cantidad. */
+const lineasPromo = (items) => items.map(it => ({
+  productId: it.product.id, size: it.size, qty: it.qty, price: unitOf(it), name: it.product.name,
+}));
+
+/* Promo por cantidad en una línea: cuántas salen gratis o cuántas faltan. */
+function PromoLinea({ it, promo, tierId }) {
+  const P = window.VcorePrecios;
+  const pr = P.promosDeProducto(it.product.id, tierId)[0];
+  if (!pr) return null;
+  const l = (promo && promo.lineas || []).find(x => x.productId === it.product.id && x.size === it.size);
+  const resto = it.qty % pr.lleva;
+  const faltan = resto === 0 ? 0 : pr.lleva - resto;
+  return (
+    <div className="vc-line__promo">
+      <span className="vc-promo-chip">{pr.nombre}</span>
+      {l ? `${l.gratis} ${l.gratis === 1 ? 'te sale gratis' : 'te salen gratis'}` : `Llevás ${pr.lleva}, pagás ${pr.paga}`}
+      {faltan > 0 ? (l ? ` · sumá ${faltan} para otra` : ` · sumá ${faltan}`) : ''}
+    </div>
+  );
+}
+
+function buildWAMsg({ items, tier, promo, codeApplied, codeDiscount, subtotal, tierSaving, codeSaving, shippingOpt, shippingCost, total, customer, sucursal, sucursalACoordinar, medio }) {
   const lines = items.map(it =>
     `• ${it.product.name} (${it.size}) ×${it.qty} — ${D.fmt(unitOf(it) * it.qty)}`
   ).join('\n');
@@ -238,6 +264,7 @@ function buildWAMsg({ items, tier, codeApplied, codeDiscount, subtotal, tierSavi
     msg += `\n`;
   }
   msg += `${lines}\n\nSubtotal: ${D.fmt(subtotal)}\n`;
+  ((promo && promo.lineas) || []).forEach(l => { msg += `${window.VcorePrecios.detallePromo(l)}: -${D.fmt(l.ahorro)}\n`; });
   if (tierSaving > 0) msg += `Desc. ${tier.label} (${tier.badge}): -${D.fmt(tierSaving)}\n`;
   if (codeSaving > 0) msg += `Código ${codeApplied}: -${D.fmt(codeSaving)}\n`;
   msg += `Envío (${shippingOpt.label}): ${shippingCost === 0 ? 'Gratis' : D.fmt(shippingCost)}\n`;
@@ -251,7 +278,7 @@ function buildWAMsg({ items, tier, codeApplied, codeDiscount, subtotal, tierSavi
    con opciones de envío. Este mapa las mantiene alineadas. */
 const ENTREGA_DE_ENVIO = { andreani: 'sucursal', home: 'domicilio', pickup: 'local' };
 
-function saveOrder({ items, total, tier, tierSaving, codeApplied, codeSaving, subtotal, shippingOpt, shippingCost, customer, sucursal, extra }) {
+function saveOrder({ items, total, tier, promo, tierSaving, codeApplied, codeSaving, subtotal, shippingOpt, shippingCost, customer, sucursal, extra }) {
   const summary = items.map(it => `${it.product.name} ×${it.qty}`).join(', ');
   const c = customer || {};
   const order = {
@@ -261,11 +288,13 @@ function saveOrder({ items, total, tier, tierSaving, codeApplied, codeSaving, su
     summary,
     /* Cada ítem se lleva el peso y las medidas de su presentación al momento de
        comprar: si después se corrige el catálogo, el bulto ya despachado no cambia. */
-    items: items.map(it => ({
+    items: window.VcorePrecios.marcarPromo(items.map(it => ({
       name: it.product.name, sub: it.product.sub, size: it.size, qty: it.qty, price: unitOf(it),
       productId: it.product.id, ...D.bultoDe(it.product.id, it.size),
-    })),
+    })), promo && promo.lineas),
     subtotal,
+    promoDescAmt: (promo && promo.descAmt) || 0,
+    promoLineas: (promo && promo.lineas) || [],
     tierName: tier.label,
     tierDiscAmt: tierSaving,
     couponCode: codeApplied || '',
@@ -399,8 +428,9 @@ function CartDrawer({ open, items, onClose, onQty, onClear }) {
   /* La cuenta sale de precios.js: la misma que rehace el servidor antes de cobrar. */
   const calc = window.VcorePrecios.calcularPedido({
     subtotal, codigo: codeApplied, codigos: D.codes, shippingId: ship, zonaId: zona, config: D.config,
+    items: lineasPromo(items),
   });
-  const { tier, tierSaving, codeDiscount, codeSaving, shippingCost } = calc;
+  const { tier, promo, tierSaving, codeDiscount, codeSaving, shippingCost } = calc;
 
   const baseShippingOpt = D.shipping.find(s => s.id === ship) || D.shipping[0];
   const zonaInfo = ship === 'home' && zona ? D.zonaEnvio(zona) : null;
@@ -449,7 +479,7 @@ function CartDrawer({ open, items, onClose, onQty, onClear }) {
   }
 
   const datosPedido = (extra) => ({
-    items, total, tier, tierSaving, codeApplied, codeSaving, subtotal, shippingOpt, shippingCost, customer,
+    items, total, tier, promo, tierSaving, codeApplied, codeSaving, subtotal, shippingOpt, shippingCost, customer,
     sucursal: ship === 'andreani' ? sucursal : null, extra,
   });
 
@@ -486,7 +516,7 @@ function CartDrawer({ open, items, onClose, onQty, onClear }) {
     window.MetaPixel?.identificar({ email: customer.email, telefono: customer.phone });
     window.MetaPixel?.track('Purchase', { ...pixelContenidos(items), value: total }, { eventID: order.id });
     const msg = decodeURIComponent(buildWAMsg({
-      items, tier, codeApplied, codeDiscount, subtotal, tierSaving, codeSaving, shippingOpt, shippingCost, total, customer,
+      items, tier, promo, codeApplied, codeDiscount, subtotal, tierSaving, codeSaving, shippingOpt, shippingCost, total, customer,
       sucursal: ship === 'andreani' ? sucursal : null, sucursalACoordinar: ship === 'andreani' && !sucursal,
     }));
     setPedidoTransferencia({ id: order.id, total, mensaje: msg });
@@ -502,7 +532,7 @@ function CartDrawer({ open, items, onClose, onQty, onClear }) {
   function checkout() {
     if (!datosCompletos()) return;
     const msg = buildWAMsg({
-      items, tier, codeApplied, codeDiscount,
+      items, tier, promo, codeApplied, codeDiscount,
       subtotal, tierSaving, codeSaving,
       shippingOpt, shippingCost, total, customer,
       sucursal: ship === 'andreani' ? sucursal : null, sucursalACoordinar: ship === 'andreani' && !sucursal,
@@ -586,6 +616,7 @@ function CartDrawer({ open, items, onClose, onQty, onClear }) {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="vc-line__name">{it.product.name}</div>
                     <div className="vc-line__meta">{it.size}</div>
+                    <PromoLinea it={it} promo={promo} tierId={tier.id} />
                     <div className="vc-line__row">
                       <div className="vc-miniqty">
                         <button onClick={() => onQty(i, -1)} aria-label="Quitar uno">
@@ -711,6 +742,12 @@ function CartDrawer({ open, items, onClose, onQty, onClear }) {
               {/* Price breakdown */}
               <div className="vc-breakdown">
                 <div className="vc-b-row"><span>Subtotal</span><span>{D.fmt(subtotal)}</span></div>
+                {promo.lineas.map(l => (
+                  <div key={l.productId + l.size} className="vc-b-row saving">
+                    <span>{window.VcorePrecios.detallePromo(l)}</span>
+                    <span>-{D.fmt(l.ahorro)}</span>
+                  </div>
+                ))}
                 {tierSaving > 0 && (
                   <div className="vc-b-row saving">
                     <span>Desc. {tier.label} ({tier.badge})</span>

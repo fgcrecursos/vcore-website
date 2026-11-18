@@ -2,6 +2,7 @@
    Real ES module: imported by main.jsx. Assigns window.VcoreBackend.
    When config is empty, isOn() === false and the app stays in demo mode. */
 import { createClient } from '@supabase/supabase-js';
+import './precios.js';   // window.VcorePrecios (promoDeItems al leer pedidos)
 
 const CFG = (typeof window !== 'undefined' && window.__VCORE_CONFIG__) || {};
 
@@ -244,9 +245,12 @@ const Backend = {
     if (error) throw error;
   },
   _mapOrder(r) {
+    /* La promo por cantidad (3x2, 5+2) viaja marcada en los ítems. */
+    const promo = window.VcorePrecios.promoDeItems(r.items);
     return {
       id: r.id, date: r.created_at, ts: new Date(r.created_at).getTime(),
       summary: r.summary, items: r.items || [], subtotal: r.subtotal,
+      promoDescAmt: promo.descAmt, promoLineas: promo.lineas,
       tierName: r.tier_name, tierDiscAmt: r.tier_disc,
       couponCode: r.coupon_code, couponDiscAmt: r.coupon_disc,
       shippingLabel: r.shipping_label, shippingCost: r.shipping_cost,

@@ -6,6 +6,21 @@ const I = window.VcoreIcons;
 const D = window.VcoreData;
 const ProductImage = window.VcoreProductImage;
 
+/* Búsqueda del catálogo: minúsculas y sin tildes, así "colageno" encuentra
+   "Colágeno" y "colágeno" encuentra "Colageno". Cada palabra de la búsqueda
+   tiene que aparecer en el nombre, la descripción corta o la categoría, en
+   cualquier orden ("magnesio citrato" encuentra "Citrato de Magnesio"). */
+const DIACRITICS = new RegExp('[\\u0300-\\u036f]', 'g');
+function sinTildes(s) {
+  return String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(DIACRITICS, '');
+}
+function coincideBusqueda(p, q) {
+  const palabras = sinTildes(q).split(/\s+/).filter(Boolean);
+  if (!palabras.length) return true;
+  const texto = sinTildes([p.name, p.sub, p.category].filter(Boolean).join(' '));
+  return palabras.every(w => texto.includes(w));
+}
+
 const PAGE_CSS = `
 /* ---- Reveal al entrar en viewport ---- */
 .vc-reveal { opacity: 0; transform: translateY(26px);
@@ -362,12 +377,6 @@ const PAGE_CSS = `
 .vc-pdp2__back { position: absolute; left: 40px; top: 36px; z-index: 4; display: inline-flex;
   align-items: center; gap: 10px; color: #fff; font-size: 11.5px; font-weight: 700;
   letter-spacing: .24em; text-transform: uppercase; background: none; border: 0; cursor: pointer; }
-.vc-pdp2__circles { position: absolute; left: 40px; bottom: 40px; display: flex; gap: 10px; z-index: 4; }
-.vc-pdp2__circle { width: 64px; height: 64px; border-radius: 50%;
-  border: 1.5px solid rgba(255,255,255,.6); display: flex; flex-direction: column;
-  align-items: center; justify-content: center; color: #fff; }
-.vc-pdp2__circle b { font-family: var(--font-display); font-weight: 700; font-size: 15px; line-height: 1; }
-.vc-pdp2__circle span { font-size: 8.5px; letter-spacing: .1em; text-transform: uppercase; margin-top: 3px; }
 .vc-pdp2__panel { padding: 72px 56px 72px 64px; display: flex; flex-direction: column; }
 .vc-pdp2__panel h1 { font-family: var(--font-display); font-weight: 800;
   font-size: clamp(38px, 4.4vw, 60px); line-height: .95; letter-spacing: -.045em; margin: 0; }
@@ -1249,10 +1258,7 @@ function Shop({ onAdd, onOpen }) {
 
   const filtered = D.products.filter(p => {
     const matchCat = cat === 'Todo' || lineaOf(p.category).id === cat;
-    const matchQ = !q || [p.name, p.sub, p.category || ''].some(t =>
-      t.toLowerCase().includes(q.toLowerCase())
-    );
-    return matchCat && matchQ;
+    return matchCat && coincideBusqueda(p, q);
   });
 
   const cols = filtered.length <= 2 ? 'vc-grid--2' : filtered.length <= 3 ? 'vc-grid--3' : '';
@@ -1309,7 +1315,6 @@ function Product({ product, onAdd, onOpen }) {
   const p = product || D.products[0];
   const [size, setSize] = useState(p.sizes[0]);
   const [qty, setQty] = useState(1);
-  const stats = p.stats || D.products[0].stats;
 
   useEffect(() => { setSize(p.sizes[0]); setQty(1); }, [p.id]);
 
@@ -1332,11 +1337,6 @@ function Product({ product, onAdd, onOpen }) {
 
   const y = useScrollY();
   const linea = lineaOf(p.category);
-  const circles = (stats && stats.length ? stats : [
-    { value: '0.0%', label: 'Azúcares' },
-    { value: '0.0%', label: 'Rellenos' },
-    { value: 'Puro', label: 'Sin aditivos' },
-  ]).slice(0, 3);
 
   return (
     <main>
@@ -1360,14 +1360,6 @@ function Product({ product, onAdd, onOpen }) {
             {p.photo
               ? <img src={p.photo} alt={p.name} onLoad={window.VcoreFitPhoto} />
               : <ProductImage product={{ ...p, tone: toneOf(p) }} />}
-          </div>
-          <div className="vc-pdp2__circles">
-            {circles.map((c, i) => (
-              <div key={i} className="vc-pdp2__circle">
-                <b>{c.value}</b>
-                <span>{c.label}</span>
-              </div>
-            ))}
           </div>
         </div>
 
@@ -1451,13 +1443,8 @@ function SearchOverlay({ open, onClose, onOpen }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
-  const results = q.length > 1
-    ? D.products.filter(p =>
-        [p.name, p.sub, p.category || ''].some(t =>
-          t.toLowerCase().includes(q.toLowerCase())
-        )
-      )
-    : [];
+  const corta = q.trim().length <= 1;
+  const results = corta ? [] : D.products.filter(p => coincideBusqueda(p, q));
 
   return (
     <>
@@ -1475,10 +1462,10 @@ function SearchOverlay({ open, onClose, onOpen }) {
           </div>
           <hr className="vc-search-sep" />
           <div className="vc-search-results">
-            {results.length === 0 && q.length > 1 && (
-              <div className="vc-search-empty">Sin resultados para "{q}".</div>
+            {results.length === 0 && !corta && (
+              <div className="vc-search-empty">Sin resultados para "{q.trim()}".</div>
             )}
-            {results.length === 0 && q.length <= 1 && (
+            {results.length === 0 && corta && (
               <div className="vc-search-empty">Escribí para buscar en el catálogo.</div>
             )}
             {results.map(p => (

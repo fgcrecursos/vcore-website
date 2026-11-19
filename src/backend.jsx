@@ -85,7 +85,6 @@ const Backend = {
       id: p.id, name: p.name, sub: p.sub || '', category: p.category || 'Bienestar',
       badge: p.badge || '', blurb: p.blurb || '', tone: p.tone || 'green', photo: p.photo || '',
       variants: p.variants || [], price: p.price || 0,
-      rating: p.rating ?? 4.8, reviews: p.reviews ?? 0,
       visible: p.visible !== false, featured: !!p.featured, sort: p.sort ?? 0,
     };
     const { error } = await c.from('products').upsert(row, { onConflict: 'id' });
@@ -102,7 +101,7 @@ const Backend = {
       id: p.id, name: p.name, sub: p.sub || '', category: p.category || 'Bienestar',
       badge: p.badge || '', blurb: p.blurb || '', tone: p.tone || 'green', photo: p.photo || '',
       variants: p.variants || (p.sizes || []).map(s => ({ label: s, price: p.price || 0 })),
-      price: p.price || 0, rating: p.rating ?? 4.8, reviews: p.reviews ?? 0,
+      price: p.price || 0,
       visible: p.visible !== false, featured: !!p.featured, sort: p.sort ?? i,
     }));
     const { error } = await c.from('products').upsert(rows, { onConflict: 'id' });

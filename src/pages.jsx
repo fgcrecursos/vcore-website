@@ -279,9 +279,6 @@ const PAGE_CSS = `
 [data-theme="dark"] .vc-pcard--promo .vc-pc__price { color: var(--green-400); }
 .vc-pc__antes { font-family: var(--font-body); font-weight: 600; font-size: 13px; color: var(--ink-500);
   margin-right: 8px; text-decoration-thickness: 1.5px; }
-.vc-rating { display: inline-flex; align-items: center; gap: 5px;
-  color: var(--ink-600); font-size: 13px; font-weight: 600; }
-.vc-rating svg { color: var(--warning-500); }
 
 /* ---- Mission band: full-bleed, tipografía grande al estilo Instagram ---- */
 .vc-band-outer { position: relative; background: var(--gradient-ink-bloom); color: #EAF0EC;
@@ -656,16 +653,6 @@ function useRevealAll(dep) {
     els.forEach(el => io.observe(el));
     return () => io.disconnect();
   }, [dep]);
-}
-
-function Rating({ r, n }) {
-  return (
-    <span className="vc-rating">
-      <I.Star size={14} />
-      {r}
-      <span style={{ color: 'var(--ink-400)', fontWeight: 500 }}>({n})</span>
-    </span>
-  );
 }
 
 /* Las tres líneas de producto. El catálogo oficial declara las dos primeras;
@@ -1366,7 +1353,6 @@ function Product({ product, onAdd, onOpen }) {
         <div className="vc-pdp2__panel">
           <h1>{p.name}</h1>
           <div className="vc-pdp__sub" style={{ marginTop: 14 }}>{p.sub}</div>
-          <Rating r={p.rating} n={p.reviews} />
           <p className="vc-pdp__blurb">{p.blurb}</p>
           {(() => {
             const v = p.variants.find(x => x.label === size) || p.variants[0];

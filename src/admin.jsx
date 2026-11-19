@@ -1637,7 +1637,7 @@ function AdminDashboard({ store, onNav }) {
 function emptyProduct() {
   return { id: '', name: '', sub: '', category: D.categories[1] || 'Bienestar',
     badge: '', blurb: '', tone: 'green', photo: '',
-    visible: true, featured: false, rating: 4.8, reviews: 0 };
+    visible: true, featured: false };
 }
 
 /* Deriva las filas de variantes (presentación + precios) desde un producto,
@@ -1721,8 +1721,6 @@ function ProductEditor({ product, onSave, onClose }) {
       variants: clean,
       sizes: clean.map(v => v.label),
       price: minPrice,
-      rating: Math.min(5, Math.max(0, parseFloat(p.rating) || 0)),
-      reviews: parseInt(p.reviews, 10) || 0,
       id: p.id || p.name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
     });
   }
@@ -1872,15 +1870,6 @@ function ProductEditor({ product, onSave, onClose }) {
           <div className="adm-field"><label>Descripción</label>
             <textarea value={p.blurb || ''} onChange={f('blurb')} rows={3}
               placeholder="Describe el producto, sus beneficios y usos." />
-          </div>
-
-          <div className="adm-field-row">
-            <div className="adm-field"><label>Valoración (0–5)</label>
-              <input type="number" value={p.rating} onChange={f('rating')} min={0} max={5} step={0.1} />
-            </div>
-            <div className="adm-field"><label>Cantidad de reseñas</label>
-              <input type="number" value={p.reviews} onChange={f('reviews')} min={0} />
-            </div>
           </div>
 
           <div style={{ display: 'flex', gap: 24, paddingTop: 4 }}>
